@@ -1,0 +1,51 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Iridescent gradient along diagonal direction -->
+    <linearGradient id="iridescentGrad" x1="702" y1="322" x2="322" y2="702" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.45"/>
+      <stop offset="45%" stop-color="#06B6D4" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.45"/>
+    </linearGradient>
+    <!-- Subtle radial depth on background -->
+    <radialGradient id="bgDepth" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#0D0D0F"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bgDepth)"/>
+
+  <!-- Z strokes — white, 64px, round caps -->
+
+  <!-- Top horizontal bar: TL (322,322) → TR (702,322) -->
+  <line x1="322" y1="322" x2="702" y2="322"
+        stroke="white" stroke-width="64" stroke-linecap="round"/>
+
+  <!-- Bottom horizontal bar: BL (322,702) → BR (702,702) -->
+  <line x1="322" y1="702" x2="702" y2="702"
+        stroke="white" stroke-width="64" stroke-linecap="round"/>
+
+  <!-- Diagonal — split into 2 segments with spark cut at midpoint (512,512) -->
+  <!-- Gap: 13px from centre along unit vector (-1/√2, 1/√2) → endpoints (525,499) and (499,525) -->
+
+  <!-- Segment 1: TR → just above gap -->
+  <line x1="702" y1="322" x2="525" y2="499"
+        stroke="white" stroke-width="64" stroke-linecap="round"/>
+
+  <!-- Segment 2: just below gap → BL -->
+  <line x1="499" y1="525" x2="322" y2="702"
+        stroke="white" stroke-width="64" stroke-linecap="round"/>
+
+  <!-- Iridescent overlay on diagonal segments (thin, semi-transparent) -->
+  <line x1="702" y1="322" x2="525" y2="499"
+        stroke="url(#iridescentGrad)" stroke-width="20" stroke-linecap="round" opacity="0.55"/>
+  <line x1="499" y1="525" x2="322" y2="702"
+        stroke="url(#iridescentGrad)" stroke-width="20" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Node dots — visible filled circles at each Z vertex (r=42, slightly larger than stroke half-width 32) -->
+  <circle cx="322" cy="322" r="42" fill="white"/>
+  <circle cx="702" cy="322" r="42" fill="white"/>
+  <circle cx="322" cy="702" r="42" fill="white"/>
+  <circle cx="702" cy="702" r="42" fill="white"/>
+</svg>
