@@ -70,6 +70,7 @@ export default function CreateEventScreen() {
   const [details, setDetails] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [visibility, setVisibility] = useState<"private" | "public">("private");
   const [approvalRequired, setApprovalRequired] = useState(false);
   const [hideGuestNames, setHideGuestNames] = useState(false);
@@ -269,9 +270,14 @@ export default function CreateEventScreen() {
     !hasLineupTimeError;
 
   const handleCreate = async () => {
-    if (!isValid || creating || !selectedDate) return;
-    setCreating(true);
+    if (creating) return;
+    if (!isValid || !selectedDate) {
+      setShowValidationErrors(true);
+      return;
+    }
+    setShowValidationErrors(false);
     setError(null);
+    setCreating(true);
     try {
       const phone = await onboardingStore.getPhone();
       await createEvent({
@@ -302,7 +308,10 @@ export default function CreateEventScreen() {
         hideGuestNames,
         hideGuestAvatars,
       });
-      router.replace("/events");
+      setCreating(false);
+      Alert.alert("Event created", "Your event is ready.", [
+        { text: "OK", onPress: () => router.replace("/events") },
+      ]);
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Failed to create event";
       const isNetworkFailure =
@@ -367,15 +376,15 @@ export default function CreateEventScreen() {
     <View
       style={{
         marginHorizontal: HERO_PADDING_H,
-        marginBottom: spacing.lg,
+        marginBottom: spacing.xl,
         backgroundColor: colors.surface,
         borderRadius: radius.lg,
         overflow: "hidden",
         borderWidth: 0.5,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: colors.border,
       }}
     >
-      <View style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.06)" }}>
+      <View style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
         <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.8, textTransform: "uppercase" }}>
           {title}
         </Text>
@@ -467,7 +476,7 @@ export default function CreateEventScreen() {
             borderRadius: HERO_RADIUS,
             overflow: "hidden",
             marginTop: spacing.lg,
-            marginBottom: spacing.md,
+            marginBottom: spacing.lg,
           }}
         >
           <ImageBackground
@@ -477,7 +486,7 @@ export default function CreateEventScreen() {
           >
             <LinearGradient
               colors={["transparent", "rgba(0,0,0,0.75)"]}
-              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 140 }}
+              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "28%" }}
             />
             <View style={{ position: "absolute", top: spacing.md, right: spacing.md }}>
               <Pressable
@@ -485,16 +494,16 @@ export default function CreateEventScreen() {
                 style={({ pressed }) => ({
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 4,
-                  paddingVertical: 6,
-                  paddingHorizontal: spacing.sm,
+                  gap: spacing.xs,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
                   borderRadius: radius.full,
-                  backgroundColor: "rgba(0,0,0,0.45)",
+                  backgroundColor: "rgba(0,0,0,0.5)",
                   opacity: pressed ? 0.85 : 1,
                 })}
               >
                 <Text style={{ fontSize: 14 }}>📷</Text>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.medium, color: "#fff" }}>
+                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: "#fff" }}>
                   Change cover
                 </Text>
               </Pressable>
@@ -507,7 +516,7 @@ export default function CreateEventScreen() {
                 right: 0,
                 paddingHorizontal: spacing.lg,
                 paddingBottom: spacing.xl,
-                gap: 4,
+                gap: spacing.xs,
               }}
             >
               <Text
@@ -539,7 +548,7 @@ export default function CreateEventScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: spacing.sm }}
+            contentContainerStyle={{ gap: spacing.sm, paddingRight: HERO_PADDING_H }}
           >
             {EVENT_TYPE_OPTIONS.map((option) => {
               const selected = eventType === option.value;
@@ -551,13 +560,13 @@ export default function CreateEventScreen() {
                   style={({ pressed }) => ({
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 4,
-                    paddingVertical: 6,
-                    paddingHorizontal: spacing.sm,
+                    gap: spacing.xs,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
                     borderRadius: radius.full,
-                    backgroundColor: selected ? "rgba(123,104,238,0.25)" : pressed ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
+                    backgroundColor: selected ? colors.primaryLight20 : pressed ? colors.surfaceLighter : colors.surfaceLight,
                     borderWidth: 1,
-                    borderColor: selected ? colors.primary : "rgba(255,255,255,0.08)",
+                    borderColor: selected ? colors.primary : colors.border,
                   })}
                 >
                   <Text style={{ fontSize: 13 }}>{option.emoji}</Text>
@@ -576,11 +585,12 @@ export default function CreateEventScreen() {
           </ScrollView>
         </View>
 
-        {/* ── Error ── */}
+        {/* ── Error (server/network) ── */}
         {error && (
           <View
             style={{
               marginHorizontal: HERO_PADDING_H,
+              marginBottom: spacing.lg,
               backgroundColor: "rgba(255,71,87,0.12)",
               borderRadius: radius.lg,
               padding: spacing.lg,
@@ -594,7 +604,7 @@ export default function CreateEventScreen() {
           </View>
         )}
 
-        {/* ── Essentials: Title, Date/Time, Location (softer, less boxy) ── */}
+        {/* ── Essentials: Title, Date/Time, Location ── */}
         <View style={{ paddingHorizontal: HERO_PADDING_H, marginBottom: spacing.xl }}>
           <Text
             style={{
@@ -603,17 +613,18 @@ export default function CreateEventScreen() {
               color: colors.textMuted,
               letterSpacing: 0.8,
               textTransform: "uppercase",
-              marginBottom: spacing.md,
+              marginBottom: spacing.lg,
             }}
           >
             Essentials
           </Text>
-          <View style={{ gap: spacing.lg }}>
+          <View style={{ gap: spacing.xl }}>
             <AppInput
               label="Title *"
               value={title}
               onChangeText={setTitle}
               placeholder="e.g., Community BBQ"
+              error={showValidationErrors && !title.trim() ? "Title is required" : undefined}
             />
             <View style={{ gap: spacing.sm }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
@@ -626,10 +637,10 @@ export default function CreateEventScreen() {
                   borderRadius: radius.md,
                   paddingVertical: spacing.md,
                   paddingHorizontal: spacing.lg,
-                  minHeight: 44,
+                  minHeight: 48,
                   justifyContent: "center",
                   borderWidth: 0.5,
-                  borderColor: "rgba(255,255,255,0.08)",
+                  borderColor: showValidationErrors && !selectedDate ? colors.error : colors.border,
                   opacity: pressed ? 0.9 : 1,
                 })}
               >
@@ -637,8 +648,13 @@ export default function CreateEventScreen() {
                   {selectedDate ? formatEventDate(selectedDate.toISOString()) : "Tap to choose date and time"}
                 </Text>
               </Pressable>
+              {showValidationErrors && !selectedDate && (
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
+                  Date & time is required
+                </Text>
+              )}
             </View>
-            <View style={{ gap: spacing.md }}>
+            <View style={{ gap: spacing.sm }}>
               <LocationCardWithPicker
                 value={locationData}
                 onChange={setLocationData}
@@ -1170,48 +1186,63 @@ export default function CreateEventScreen() {
             ))}
       </ScrollView>
 
-      {/* ── Sticky CTA: Create event → (disabled state intentional, not dead) ── */}
+      {/* ── Sticky CTA: Create event → ── */}
       <View
         style={{
           paddingHorizontal: HERO_PADDING_H,
-          paddingTop: spacing.md,
+          paddingTop: spacing.lg,
           paddingBottom: ctaBottom,
           backgroundColor: colors.background,
           borderTopWidth: 0.5,
-          borderTopColor: "rgba(255,255,255,0.06)",
+          borderTopColor: colors.border,
         }}
       >
         {creating ? (
-          <View style={{ height: spacing.buttonHeightLg, justifyContent: "center", alignItems: "center" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              height: spacing.buttonHeightLg,
+              justifyContent: "center",
+              alignItems: "center",
+              gap: spacing.sm,
+              backgroundColor: colors.surfaceLight,
+              borderRadius: radius.lg,
+              borderWidth: 0.5,
+              borderColor: colors.border,
+            }}
+          >
             <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
+              Creating…
+            </Text>
           </View>
         ) : (
           <Pressable
             onPress={handleCreate}
-            disabled={!isValid || creating}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
               gap: spacing.sm,
               height: spacing.buttonHeightLg,
-              borderRadius: radius.xl,
-              backgroundColor: isValid && !creating ? colors.primary : colors.surfaceLight,
+              borderRadius: radius.lg,
+              backgroundColor: isValid ? colors.primary : colors.surfaceLight,
               borderWidth: 0.5,
-              borderColor: isValid && !creating ? colors.primary : "rgba(255,255,255,0.1)",
-              opacity: pressed && isValid ? 0.9 : !isValid ? 0.92 : 1,
+              borderColor: isValid ? colors.primary : colors.border,
+              opacity: pressed ? 0.9 : 1,
             })}
           >
             <Text
               style={{
                 fontSize: typography.sizes.lg,
                 fontWeight: typography.weights.semibold,
-                color: isValid && !creating ? colors.text : colors.textMuted,
+                color: isValid ? colors.text : colors.textMuted,
               }}
             >
               Create event
             </Text>
-            <Text style={{ fontSize: typography.sizes.md, color: isValid && !creating ? colors.text : colors.textMuted }}>
+            <Text style={{ fontSize: typography.sizes.md, color: isValid ? colors.text : colors.textMuted }}>
               →
             </Text>
           </Pressable>
