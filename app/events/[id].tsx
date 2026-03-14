@@ -1169,13 +1169,6 @@ export default function EventDetailScreen() {
             </View>
           )}
 
-          {/* ── GUEST extras ──────────────────────────────────────────────── */}
-          {!isHostMode && rsvpStatus === "pending" && (
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, marginBottom: spacing.md }}>
-              Pending approval — the host needs to approve you.
-            </Text>
-          )}
-
           {/* Manage event (host only) — at bottom so event page feels first, manage second */}
           {isHostMode && (
             <View style={{ marginTop: spacing.xxl, marginBottom: spacing.xl }}>
@@ -1204,6 +1197,36 @@ export default function EventDetailScreen() {
             borderTopColor: colors.border,
           }}
         >
+          {rsvpStatus === "pending" && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+                marginHorizontal: spacing.lg,
+                marginTop: spacing.sm,
+                marginBottom: spacing.xs,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radius.md,
+                backgroundColor: "rgba(255,165,2,0.12)",
+                borderWidth: 1,
+                borderColor: "rgba(255,165,2,0.25)",
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>⏳</Text>
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: typography.sizes.sm,
+                  fontWeight: typography.weights.medium,
+                  color: colors.text,
+                }}
+              >
+                Pending approval — waiting for host approval.
+              </Text>
+            </View>
+          )}
           {Platform.OS === "ios" ? (
             <BlurView
               intensity={80}

@@ -43,8 +43,9 @@ export default function GoingScreen() {
   );
 
   useEffect(() => {
-    if (segmentVal === "past") setSortBy((prev) => (prev === "cancelled" ? "cancelled" : "newest"));
-    else setSortBy((prev) => (prev === "cancelled" ? "cancelled" : "soonest"));
+    const keep = (v: SortOption) => ["cancelled", "going", "pending"].includes(v);
+    if (segmentVal === "past") setSortBy((prev) => (keep(prev) ? prev : "newest"));
+    else setSortBy((prev) => (keep(prev) ? prev : "soonest"));
   }, [segmentVal]);
 
   const nowMs = Date.now();
@@ -58,8 +59,12 @@ export default function GoingScreen() {
     const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
     return isGuest && rsvp;
   });
-  const goingPendingFiltered =
-    sortBy === "cancelled" ? goingPending.filter((e) => e.status === "cancelled") : goingPending;
+  const goingPendingFiltered = (() => {
+    if (sortBy === "cancelled") return goingPending.filter((e) => e.status === "cancelled");
+    if (sortBy === "going") return goingPending.filter((e) => e.attendingStatus === "going");
+    if (sortBy === "pending") return goingPending.filter((e) => e.attendingStatus === "pending");
+    return goingPending;
+  })();
   const bySearch = searchQuery.trim()
     ? goingPendingFiltered.filter((e) =>
         e.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
@@ -75,10 +80,9 @@ export default function GoingScreen() {
     return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
   });
 
-  const activeUpcomingCount = goingPending.filter((e) => e.status !== "cancelled").length;
   const countLabel =
     segmentVal === "upcoming"
-      ? `${activeUpcomingCount} upcoming event${activeUpcomingCount === 1 ? "" : "s"}`
+      ? `${sorted.length} upcoming event${sorted.length === 1 ? "" : "s"}`
       : `${sorted.length} event${sorted.length === 1 ? "" : "s"}`;
 
   const handleEventPress = (event: Event) => {
@@ -233,6 +237,7 @@ export default function GoingScreen() {
         value={sortBy}
         onSelect={setSortBy}
         showCancelledOption
+        showGoingPendingOptions
       />
     </>
   );
