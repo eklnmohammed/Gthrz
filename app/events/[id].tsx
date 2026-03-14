@@ -745,7 +745,7 @@ export default function EventDetailScreen() {
                 gap: spacing.xs,
               }}
             >
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: "#ff5a5a" }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.error }}>
                 This event has been cancelled.
               </Text>
               {eventData.cancellationReason && eventData.cancellationReason.trim() && (
@@ -1511,7 +1511,7 @@ export default function EventDetailScreen() {
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: typography.sizes.sm, color: "#ff5a5a", fontWeight: typography.weights.medium }}>
+                  <Text style={{ fontSize: typography.sizes.sm, color: colors.error, fontWeight: typography.weights.medium }}>
                     This event has been cancelled
                   </Text>
                 </View>
