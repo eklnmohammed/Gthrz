@@ -90,6 +90,7 @@ export default function EventDetailScreen() {
     hideGuestNames: false as boolean,
     hideGuestAvatars: false as boolean,
     status: "active" as "active" | "cancelled",
+    cancellationReason: null as string | null,
   });
   const [goingCount, setGoingCount] = useState<number>(0);
   const [rsvpsByStatus, setRsvpsByStatus] = useState<{
@@ -99,6 +100,8 @@ export default function EventDetailScreen() {
     cant: { user_phone: string }[];
   }>({ going: [], pending: [], maybe: [], cant: [] });
   const [showManageSheet, setShowManageSheet] = useState(false);
+  const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
+  const [cancelReasonInput, setCancelReasonInput] = useState("");
   const [showGuestsModal, setShowGuestsModal] = useState(false);
   const [showContribManageSheet, setShowContribManageSheet] = useState(false);
   const [selectedContribId, setSelectedContribId] = useState<string | null>(null);
@@ -184,6 +187,7 @@ export default function EventDetailScreen() {
               hideGuestNames: data.hide_guest_names ?? false,
               hideGuestAvatars: data.hide_guest_avatars ?? false,
               status: data.status === "cancelled" ? "cancelled" : "active",
+              cancellationReason: data.cancellation_reason ?? null,
             });
           }
 
@@ -738,14 +742,17 @@ export default function EventDetailScreen() {
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,
                 marginBottom: spacing.lg,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.sm,
+                gap: spacing.xs,
               }}
             >
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: "#ff5a5a" }}>
                 This event has been cancelled.
               </Text>
+              {eventData.cancellationReason && eventData.cancellationReason.trim() && (
+                <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, lineHeight: 20 }}>
+                  {eventData.cancellationReason.trim()}
+                </Text>
+              )}
             </View>
           )}
 
@@ -1473,29 +1480,12 @@ export default function EventDetailScreen() {
                 </View>
               ) : (
                 <AppButton
-                  title="Cancel event"
+                  title="Mark as cancelled"
                   variant="coral"
                   onPress={() => {
-                    Alert.alert(
-                      "Cancel event",
-                      "Guests will see this event as cancelled. This cannot be undone.",
-                      [
-                        { text: "Keep event", style: "cancel" },
-                        {
-                          text: "Cancel event",
-                          style: "destructive",
-                          onPress: async () => {
-                            try {
-                              await cancelEvent(params.id!);
-                              setEventData((prev) => ({ ...prev, status: "cancelled" }));
-                              setShowManageSheet(false);
-                            } catch {
-                              Alert.alert("Error", "Failed to cancel the event.");
-                            }
-                          },
-                        },
-                      ]
-                    );
+                    setShowManageSheet(false);
+                    setCancelReasonInput("");
+                    setShowCancelReasonModal(true);
                   }}
                   variant="secondary"
                   fullWidth
@@ -1503,6 +1493,94 @@ export default function EventDetailScreen() {
               )}
             </View>
             <AppButton title="Done" onPress={() => setShowManageSheet(false)} variant="secondary" fullWidth style={{ marginTop: spacing.xl }} />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Cancel reason modal (host): optional reason before marking as cancelled */}
+      <Modal
+        visible={showCancelReasonModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCancelReasonModal(false)}
+      >
+        <Pressable style={{ flex: 1, justifyContent: "center", backgroundColor: colors.overlay, paddingHorizontal: spacing.xl }} onPress={() => setShowCancelReasonModal(false)}>
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: radius.xl,
+              padding: spacing.xl,
+              borderWidth: 0.5,
+              borderColor: colors.border,
+            }}
+          >
+            <Text style={{ fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.xs }}>
+              Mark as cancelled
+            </Text>
+            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, marginBottom: spacing.lg }}>
+              Guests will see this event as cancelled. Add a reason so they know why (optional).
+            </Text>
+            <TextInput
+              value={cancelReasonInput}
+              onChangeText={setCancelReasonInput}
+              placeholder="e.g., Schedule conflict"
+              placeholderTextColor={colors.textDim}
+              multiline
+              numberOfLines={2}
+              style={{
+                backgroundColor: colors.surfaceLight,
+                borderRadius: radius.md,
+                paddingVertical: spacing.md,
+                paddingHorizontal: spacing.lg,
+                fontSize: typography.sizes.md,
+                color: colors.text,
+                borderWidth: 0.5,
+                borderColor: colors.border,
+                minHeight: 72,
+                textAlignVertical: "top",
+                marginBottom: spacing.lg,
+              }}
+            />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <Pressable
+                onPress={() => setShowCancelReasonModal(false)}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  paddingVertical: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.surfaceLight,
+                  borderWidth: 0.5,
+                  borderColor: colors.border,
+                  alignItems: "center",
+                  opacity: pressed ? 0.9 : 1,
+                })}
+              >
+                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Keep event</Text>
+              </Pressable>
+              <Pressable
+                onPress={async () => {
+                  try {
+                    await cancelEvent(params.id!, cancelReasonInput.trim() || null);
+                    setEventData((prev) => ({ ...prev, status: "cancelled", cancellationReason: cancelReasonInput.trim() || null }));
+                    setShowCancelReasonModal(false);
+                    setCancelReasonInput("");
+                  } catch {
+                    Alert.alert("Error", "Failed to cancel the event.");
+                  }
+                }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  paddingVertical: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.coral,
+                  alignItems: "center",
+                  opacity: pressed ? 0.9 : 1,
+                })}
+              >
+                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Mark as cancelled</Text>
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

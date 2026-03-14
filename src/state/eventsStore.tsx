@@ -39,6 +39,7 @@ export interface Event {
   hideGuestNames?: boolean;
   hideGuestAvatars?: boolean;
   status?: "active" | "cancelled";
+  cancellationReason?: string | null;
 }
 
 export interface RsvpByStatus {
@@ -98,7 +99,7 @@ interface EventsContextType {
     }
   ) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
-  cancelEvent: (id: string) => Promise<void>;
+  cancelEvent: (id: string, cancellationReason?: string | null) => Promise<void>;
   fetchPublicEvents: () => Promise<Event[]>;
   submitRsvp: (eventId: string, userPhone: string, status: "going" | "maybe" | "cant" | "pending") => Promise<void>;
   removeRsvp: (eventId: string, userPhone: string) => Promise<void>;
@@ -149,6 +150,7 @@ function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
     hideGuestNames: dbEvent.hide_guest_names ?? false,
     hideGuestAvatars: dbEvent.hide_guest_avatars ?? false,
     status: dbEvent.status === "cancelled" ? "cancelled" : "active",
+    cancellationReason: dbEvent.cancellation_reason ?? undefined,
   };
 }
 
@@ -440,7 +442,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const cancelEvent = useCallback(async (id: string) => {
+  const cancelEvent = useCallback(async (id: string, cancellationReason?: string | null) => {
     setError(null);
     try {
       const phone = await onboardingStore.getPhone();
@@ -457,12 +459,12 @@ export function EventsProvider({ children }: { children: ReactNode }) {
 
       const { error: updateError } = await supabase
         .from("events")
-        .update({ status: "cancelled" })
+        .update({ status: "cancelled", cancellation_reason: cancellationReason?.trim() || null })
         .eq("id", id);
 
       if (updateError) throw updateError;
 
-      setEvents((prev) => prev.map((e) => e.id === id ? { ...e, status: "cancelled" as const } : e));
+      setEvents((prev) => prev.map((e) => e.id === id ? { ...e, status: "cancelled" as const, cancellationReason: cancellationReason?.trim() || undefined } : e));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel event");
       throw err;
@@ -475,6 +477,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         .from("events")
         .select("*")
         .eq("visibility", "public")
+        .eq("status", "active")
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;

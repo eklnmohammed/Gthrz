@@ -87,6 +87,8 @@ export interface Event {
   hide_guest_avatars?: boolean | null;
   /** Event lifecycle status – 'active' (default) or 'cancelled' */
   status?: "active" | "cancelled" | null;
+  /** Optional reason when event was cancelled (visible to guests) */
+  cancellation_reason?: string | null;
 }
 
 export interface Rsvp {

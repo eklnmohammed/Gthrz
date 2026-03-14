@@ -492,12 +492,12 @@ export default function EditEventScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete Event",
-      "Are you sure you want to delete this event? This action cannot be undone.",
+      "Delete event",
+      "This will permanently remove the event. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Delete event",
           style: "destructive",
           onPress: async () => {
             if (!params.id) return;
@@ -506,7 +506,7 @@ export default function EditEventScreen() {
             try {
               await deleteEvent(params.id);
               await fetchEvents();
-              Alert.alert("Event Deleted", "Your event has been deleted.", [
+              Alert.alert("Event deleted", "Your event has been permanently removed.", [
                 {
                   text: "OK",
                   onPress: () => {
@@ -1503,7 +1503,7 @@ export default function EditEventScreen() {
               color: colors.error,
             }}
           >
-            {deleting ? "Deleting..." : "Delete Event"}
+            {deleting ? "Deleting…" : "Delete event"}
           </Text>
         </Pressable>
       </ScrollView>
