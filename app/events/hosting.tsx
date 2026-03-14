@@ -58,7 +58,8 @@ export default function HostingScreen() {
   );
 
   useEffect(() => {
-    setSortBy(segmentVal === "past" ? "newest" : "soonest");
+    if (segmentVal === "past") setSortBy((prev) => (prev === "cancelled" ? "cancelled" : "newest"));
+    else setSortBy((prev) => (prev === "cancelled" ? "cancelled" : "soonest"));
   }, [segmentVal]);
 
   const nowMs = Date.now();
@@ -68,29 +69,27 @@ export default function HostingScreen() {
     return isPast ? ms < nowMs : ms >= nowMs;
   });
   const hosting = bySegment.filter((e) => e.hostPhone === userPhone);
+  const hostingFiltered =
+    sortBy === "cancelled" ? hosting.filter((e) => e.status === "cancelled") : hosting;
   const bySearch = searchQuery.trim()
-    ? hosting.filter((e) =>
+    ? hostingFiltered.filter((e) =>
         e.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
       )
-    : hosting;
+    : hostingFiltered;
   const sorted = [...bySearch].sort((a, b) => {
-    if (sortBy === "soonest") {
-      return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+    if (isPast) {
+      return new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
     }
-    const tA =
-      a.createdAt && a.createdAt !== ""
-        ? new Date(a.createdAt).getTime()
-        : new Date(a.dateTime).getTime();
-    const tB =
-      b.createdAt && b.createdAt !== ""
-        ? new Date(b.createdAt).getTime()
-        : new Date(b.dateTime).getTime();
-    return tB - tA;
+    const aActive = a.status !== "cancelled";
+    const bActive = b.status !== "cancelled";
+    if (aActive !== bActive) return aActive ? -1 : 1;
+    return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
   });
 
+  const activeUpcomingCount = hosting.filter((e) => e.status !== "cancelled").length;
   const countLabel =
     segmentVal === "upcoming"
-      ? `${sorted.length} upcoming event${sorted.length === 1 ? "" : "s"}`
+      ? `${activeUpcomingCount} upcoming event${activeUpcomingCount === 1 ? "" : "s"}`
       : `${sorted.length} event${sorted.length === 1 ? "" : "s"}`;
 
   const handleEventPress = (event: Event) => {
@@ -232,6 +231,7 @@ export default function HostingScreen() {
                 coverUrl={event.coverUrl}
                 onPress={() => handleEventPress(event)}
                 statusPill={userPhone ? getStatusPill(event, userPhone) : undefined}
+                cancelled={event.status === "cancelled"}
                 width="100%"
               />
             </View>
@@ -243,6 +243,7 @@ export default function HostingScreen() {
         onClose={() => setShowSortModal(false)}
         value={sortBy}
         onSelect={setSortBy}
+        showCancelledOption
       />
     </>
   );

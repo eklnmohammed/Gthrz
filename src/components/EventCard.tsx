@@ -197,48 +197,51 @@ export function EventCard({
           {dateTime}
         </Text>
         {(statusPill || showPendingStatus || cancelled) && (
-          <View style={{ flexDirection: "row", gap: spacing.xs, marginTop: 4, flexWrap: "wrap" }}>
-            {statusPill && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: 6 }}>
+            {cancelled ? (
               <View
                 style={{
-                  paddingVertical: 2,
-                  paddingHorizontal: 7,
+                  paddingVertical: 3,
+                  paddingHorizontal: 8,
                   borderRadius: radius.full,
-                  backgroundColor: statusPill.bg,
+                  backgroundColor: "rgba(255,71,87,0.2)",
                 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: statusPill.color }}>
-                  {statusPill.label}
-                </Text>
-              </View>
-            )}
-            {showPendingStatus && (
-              <View
-                style={{
-                  paddingVertical: 2,
-                  paddingHorizontal: 7,
-                  borderRadius: radius.full,
-                  backgroundColor: "rgba(78,205,196,0.18)",
-                }}
-              >
-                <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: colors.mint }}>
-                  Pending approval
-                </Text>
-              </View>
-            )}
-            {cancelled && (
-              <View
-                style={{
-                  paddingVertical: 2,
-                  paddingHorizontal: 7,
-                  borderRadius: radius.full,
-                  backgroundColor: "rgba(255,90,90,0.18)",
-                }}
-              >
-                <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: "#ff5a5a" }}>
+                <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: colors.error }}>
                   Cancelled
                 </Text>
               </View>
+            ) : (
+              <>
+                {statusPill && (
+                  <View
+                    style={{
+                      paddingVertical: 3,
+                      paddingHorizontal: 8,
+                      borderRadius: radius.full,
+                      backgroundColor: statusPill.bg,
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: statusPill.color }}>
+                      {statusPill.label}
+                    </Text>
+                  </View>
+                )}
+                {showPendingStatus && (
+                  <View
+                    style={{
+                      paddingVertical: 3,
+                      paddingHorizontal: 8,
+                      borderRadius: radius.full,
+                      backgroundColor: "rgba(78,205,196,0.18)",
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: colors.mint }}>
+                      Pending approval
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}

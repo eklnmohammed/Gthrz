@@ -62,12 +62,24 @@ export default function EventsScreen() {
 
   const validEvents = events.filter((e): e is Event => Boolean(e?.id && e?.dateTime));
 
+  const sortUpcoming = (a: Event, b: Event) => {
+    const aActive = a.status !== "cancelled";
+    const bActive = b.status !== "cancelled";
+    if (aActive !== bActive) return aActive ? -1 : 1;
+    return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+  };
+
+  const hasAnyUpcomingHosting = validEvents.some((e) => {
+    const isFuture = new Date(e.dateTime).getTime() >= nowMs;
+    return isFuture && e.hostPhone === userPhone;
+  });
+
   const upcomingHosting = validEvents
     .filter((e) => {
       const isFuture = new Date(e.dateTime).getTime() >= nowMs;
-      return isFuture && e.hostPhone === userPhone;
+      return isFuture && e.hostPhone === userPhone && e.status !== "cancelled";
     })
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    .sort(sortUpcoming);
 
   const upcomingGoingOrPending = validEvents
     .filter((e) => {
@@ -76,7 +88,7 @@ export default function EventsScreen() {
       const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
       return isFuture && isGuest && rsvp;
     })
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    .sort(sortUpcoming);
 
   const past = validEvents
     .filter((e) => new Date(e.dateTime).getTime() < nowMs)
@@ -203,7 +215,7 @@ export default function EventsScreen() {
               <HomeSectionHeader
                 title="Hosting"
                 action={
-                  upcomingHosting.length > 0
+                  hasAnyUpcomingHosting
                     ? { label: "See all", onPress: () => router.push({ pathname: "/events/hosting", params: { segment } }) }
                     : undefined
                 }
@@ -218,32 +230,65 @@ export default function EventsScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.lg,
-                      fontWeight: typography.weights.semibold,
-                      color: colors.text,
-                      marginBottom: spacing.xs,
-                    }}
-                  >
-                    No events yet
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      color: colors.textMuted,
-                      marginBottom: spacing.lg,
-                      textAlign: "center",
-                    }}
-                  >
-                    Create your first event to start inviting people.
-                  </Text>
-                  <AppButton
-                    title="Create event"
-                    onPress={() => router.push("/events/create")}
-                    variant="coral"
-                    size="md"
-                  />
+                  {hasAnyUpcomingHosting ? (
+                    <>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.lg,
+                          fontWeight: typography.weights.semibold,
+                          color: colors.text,
+                          marginBottom: spacing.xs,
+                        }}
+                      >
+                        No active events
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.sm,
+                          color: colors.textMuted,
+                          marginBottom: spacing.lg,
+                          textAlign: "center",
+                        }}
+                      >
+                        View your cancelled events in See all.
+                      </Text>
+                      <AppButton
+                        title="See all"
+                        onPress={() => router.push({ pathname: "/events/hosting", params: { segment } })}
+                        variant="coral"
+                        size="md"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.lg,
+                          fontWeight: typography.weights.semibold,
+                          color: colors.text,
+                          marginBottom: spacing.xs,
+                        }}
+                      >
+                        No events yet
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.sm,
+                          color: colors.textMuted,
+                          marginBottom: spacing.lg,
+                          textAlign: "center",
+                        }}
+                      >
+                        Create your first event to start inviting people.
+                      </Text>
+                      <AppButton
+                        title="Create event"
+                        onPress={() => router.push("/events/create")}
+                        variant="coral"
+                        size="md"
+                      />
+                    </>
+                  )}
                 </Card>
               ) : (
                 <ScrollView

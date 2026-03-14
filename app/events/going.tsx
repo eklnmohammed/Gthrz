@@ -82,18 +82,13 @@ export default function GoingScreen() {
       )
     : goingPending;
   const sorted = [...bySearch].sort((a, b) => {
-    if (sortBy === "soonest") {
-      return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+    if (isPast) {
+      return new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
     }
-    const tA =
-      a.createdAt && a.createdAt !== ""
-        ? new Date(a.createdAt).getTime()
-        : new Date(a.dateTime).getTime();
-    const tB =
-      b.createdAt && b.createdAt !== ""
-        ? new Date(b.createdAt).getTime()
-        : new Date(b.dateTime).getTime();
-    return tB - tA;
+    const aActive = a.status !== "cancelled";
+    const bActive = b.status !== "cancelled";
+    if (aActive !== bActive) return aActive ? -1 : 1;
+    return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
   });
 
   const countLabel =
@@ -241,6 +236,7 @@ export default function GoingScreen() {
                 onPress={() => handleEventPress(event)}
                 statusPill={userPhone ? getStatusPill(event, userPhone) : undefined}
                 showPendingStatus={event.attendingStatus === "pending"}
+                cancelled={event.status === "cancelled"}
                 width="100%"
               />
             </View>

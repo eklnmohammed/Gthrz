@@ -4,20 +4,22 @@ import { spacing } from "../theme/spacing";
 import { radius } from "../theme/radius";
 import { typography } from "../theme/typography";
 
-export type SortOption = "soonest" | "newest";
+export type SortOption = "soonest" | "newest" | "cancelled";
 
 export interface SortSheetProps {
   visible: boolean;
   onClose: () => void;
   value: SortOption;
   onSelect: (value: SortOption) => void;
+  /** When true, show "Cancelled only" filter option (e.g. Hosting screen). */
+  showCancelledOption?: boolean;
 }
 
 /**
  * Bottom-sheet style modal for sort options (Soonest / Newest).
  * Matches Discover screen style.
  */
-export function SortSheet({ visible, onClose, value, onSelect }: SortSheetProps) {
+export function SortSheet({ visible, onClose, value, onSelect, showCancelledOption }: SortSheetProps) {
   return (
     <Modal
       visible={visible}
@@ -94,6 +96,7 @@ export function SortSheet({ visible, onClose, value, onSelect }: SortSheetProps)
               paddingVertical: spacing.md,
               borderRadius: radius.lg,
               backgroundColor: value === "newest" ? colors.surfaceLight : "transparent",
+              marginBottom: showCancelledOption ? spacing.sm : 0,
             }}
           >
             <Text
@@ -106,6 +109,31 @@ export function SortSheet({ visible, onClose, value, onSelect }: SortSheetProps)
               Newest
             </Text>
           </Pressable>
+          {showCancelledOption && (
+            <Pressable
+              onPress={() => {
+                onSelect("cancelled");
+                onClose();
+              }}
+              style={{
+                width: "100%",
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+                borderRadius: radius.lg,
+                backgroundColor: value === "cancelled" ? colors.surfaceLight : "transparent",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: typography.sizes.md,
+                  color: value === "cancelled" ? colors.primary : colors.text,
+                  fontWeight: typography.weights.medium,
+                }}
+              >
+                Cancelled
+              </Text>
+            </Pressable>
+          )}
         </Pressable>
       </Pressable>
     </Modal>
