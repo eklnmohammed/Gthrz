@@ -68,9 +68,10 @@ export default function Home() {
 
   const upNextFiltered = upNextEvents.filter(
     (e) =>
-      e.hostPhone === userPhone ||
-      e.attendingStatus === "going" ||
-      e.attendingStatus === "pending"
+      e.status !== "cancelled" &&
+      (e.hostPhone === userPhone ||
+        e.attendingStatus === "going" ||
+        e.attendingStatus === "pending")
   );
 
   const recommendedEvents = (() => {
@@ -437,6 +438,7 @@ export default function Home() {
                     coverUrl={event.coverUrl}
                     onPress={() => handleEventPress(event)}
                     showPendingStatus={event.attendingStatus === "pending"}
+                    cancelled={event.status === "cancelled"}
                     width={CARD_WIDTH}
                     isHost={event.hostPhone === userPhone}
                   />

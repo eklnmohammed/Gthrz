@@ -81,12 +81,19 @@ export default function EventsScreen() {
     })
     .sort(sortUpcoming);
 
+  const hasAnyUpcomingGoingOrPending = validEvents.some((e) => {
+    const isFuture = new Date(e.dateTime).getTime() >= nowMs;
+    const isGuest = e.hostPhone !== userPhone;
+    const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
+    return isFuture && isGuest && rsvp;
+  });
+
   const upcomingGoingOrPending = validEvents
     .filter((e) => {
       const isFuture = new Date(e.dateTime).getTime() >= nowMs;
       const isGuest = e.hostPhone !== userPhone;
       const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
-      return isFuture && isGuest && rsvp;
+      return isFuture && isGuest && rsvp && e.status !== "cancelled";
     })
     .sort(sortUpcoming);
 
@@ -321,7 +328,7 @@ export default function EventsScreen() {
               <HomeSectionHeader
                 title="Going / Pending"
                 action={
-                  upcomingGoingOrPending.length > 0
+                  hasAnyUpcomingGoingOrPending
                     ? { label: "See all", onPress: () => router.push({ pathname: "/events/going", params: { segment } }) }
                     : undefined
                 }
@@ -336,32 +343,65 @@ export default function EventsScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.lg,
-                      fontWeight: typography.weights.semibold,
-                      color: colors.text,
-                      marginBottom: spacing.xs,
-                    }}
-                  >
-                    No invites yet
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      color: colors.textMuted,
-                      marginBottom: spacing.lg,
-                      textAlign: "center",
-                    }}
-                  >
-                    Join with a code or discover public events.
-                  </Text>
-                  <AppButton
-                    title="Join with code"
-                    onPress={() => setShowJoinModal(true)}
-                    variant="coral"
-                    size="md"
-                  />
+                  {hasAnyUpcomingGoingOrPending ? (
+                    <>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.lg,
+                          fontWeight: typography.weights.semibold,
+                          color: colors.text,
+                          marginBottom: spacing.xs,
+                        }}
+                      >
+                        No active events
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.sm,
+                          color: colors.textMuted,
+                          marginBottom: spacing.lg,
+                          textAlign: "center",
+                        }}
+                      >
+                        View your cancelled events in See all.
+                      </Text>
+                      <AppButton
+                        title="See all"
+                        onPress={() => router.push({ pathname: "/events/going", params: { segment } })}
+                        variant="coral"
+                        size="md"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.lg,
+                          fontWeight: typography.weights.semibold,
+                          color: colors.text,
+                          marginBottom: spacing.xs,
+                        }}
+                      >
+                        No invites yet
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.sm,
+                          color: colors.textMuted,
+                          marginBottom: spacing.lg,
+                          textAlign: "center",
+                        }}
+                      >
+                        Join with a code or discover public events.
+                      </Text>
+                      <AppButton
+                        title="Join with code"
+                        onPress={() => setShowJoinModal(true)}
+                        variant="coral"
+                        size="md"
+                      />
+                    </>
+                  )}
                 </Card>
               ) : (
                 <ScrollView

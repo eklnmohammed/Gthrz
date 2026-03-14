@@ -62,7 +62,8 @@ export default function GoingScreen() {
   );
 
   useEffect(() => {
-    setSortBy(segmentVal === "past" ? "newest" : "soonest");
+    if (segmentVal === "past") setSortBy((prev) => (prev === "cancelled" ? "cancelled" : "newest"));
+    else setSortBy((prev) => (prev === "cancelled" ? "cancelled" : "soonest"));
   }, [segmentVal]);
 
   const nowMs = Date.now();
@@ -76,11 +77,13 @@ export default function GoingScreen() {
     const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
     return isGuest && rsvp;
   });
+  const goingPendingFiltered =
+    sortBy === "cancelled" ? goingPending.filter((e) => e.status === "cancelled") : goingPending;
   const bySearch = searchQuery.trim()
-    ? goingPending.filter((e) =>
+    ? goingPendingFiltered.filter((e) =>
         e.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
       )
-    : goingPending;
+    : goingPendingFiltered;
   const sorted = [...bySearch].sort((a, b) => {
     if (isPast) {
       return new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
@@ -91,9 +94,10 @@ export default function GoingScreen() {
     return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
   });
 
+  const activeUpcomingCount = goingPending.filter((e) => e.status !== "cancelled").length;
   const countLabel =
     segmentVal === "upcoming"
-      ? `${sorted.length} upcoming event${sorted.length === 1 ? "" : "s"}`
+      ? `${activeUpcomingCount} upcoming event${activeUpcomingCount === 1 ? "" : "s"}`
       : `${sorted.length} event${sorted.length === 1 ? "" : "s"}`;
 
   const handleEventPress = (event: Event) => {
@@ -248,6 +252,7 @@ export default function GoingScreen() {
         onClose={() => setShowSortModal(false)}
         value={sortBy}
         onSelect={setSortBy}
+        showCancelledOption
       />
     </>
   );
