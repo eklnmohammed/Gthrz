@@ -313,27 +313,6 @@ export default function ProfileScreen() {
                   isHost
                 />
               ))}
-              <Pressable
-                onPress={() => router.push("/events")}
-                style={({ pressed }) => ({
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                  borderRadius: radius.lg,
-                  backgroundColor: colors.surfaceLight,
-                  borderWidth: 0.5,
-                  borderColor: colors.border,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  opacity: pressed ? 0.9 : 1,
-                })}
-              >
-                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.primary, marginBottom: spacing.xs }}>
-                  See all
-                </Text>
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted }}>
-                  {createdEvents.length} event{createdEvents.length === 1 ? "" : "s"}
-                </Text>
-              </Pressable>
             </ScrollView>
           )}
         </View>

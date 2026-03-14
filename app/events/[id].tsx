@@ -59,9 +59,9 @@ export default function EventDetailScreen() {
     capacity?: string;
   }>();
 
-  const { submitRsvp, getRsvp, getRsvpsForEvent, approveRsvp, declineRsvp,
+  const { submitRsvp, removeRsvp, getRsvp, getRsvpsForEvent, approveRsvp, declineRsvp,
     getContributions, addContribution, removeContribution,
-    assignContribution, toggleContributionStatus, cancelEvent } = useEvents();
+    assignContribution, toggleContributionStatus, cancelEvent, fetchEvents } = useEvents();
   const { isFavorited, toggleFavorite } = useFavorites();
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>(null);
   const [userPhone, setUserPhone] = useState<string>("guest");
@@ -108,6 +108,7 @@ export default function EventDetailScreen() {
   const [goingProfiles, setGoingProfiles] = useState<Record<string, UserProfile | null>>({});
   const [guestProfiles, setGuestProfiles] = useState<Record<string, UserProfile | null>>({});
   const [avatarRowWidth, setAvatarRowWidth] = useState<number>(280);
+  const rsvpChangeGenerationRef = useRef(0);
 
   // Host mode: user owns the event (host_phone matches current user)
   const isHostMode =
@@ -140,11 +141,13 @@ export default function EventDetailScreen() {
 
   const insets = useSafeAreaInsets();
 
-  // Fetch latest event data and going count when screen comes into focus
+  // Fetch latest event data and going count when screen comes into focus.
+  // If the user just did an RSVP change (set/undo), don't overwrite with stale focus-fetch data.
   useFocusEffect(
     useCallback(() => {
       const fetchEventData = async () => {
         if (!params.id) return;
+        const focusGeneration = rsvpChangeGenerationRef.current;
 
         try {
           const [{ data, error }, { count }] = await Promise.all([
@@ -183,26 +186,37 @@ export default function EventDetailScreen() {
               status: data.status === "cancelled" ? "cancelled" : "active",
             });
           }
-          setGoingCount(count ?? 0);
 
           const [rsvps, fetchedContribs] = await Promise.all([
             getRsvpsForEvent(params.id!),
             getContributions(params.id!),
           ]);
-          setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
+
+          if (rsvpChangeGenerationRef.current === focusGeneration) {
+            setGoingCount(count ?? 0);
+            setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
+          }
+
           setContributions(fetchedContribs.map((c) => ({
             id: c.id, title: c.title, assigned_user_phone: c.assigned_user_phone, status: c.status,
           })));
+
+          const phone = (await onboardingStore.getPhone()) || (await onboardingStore.getProfile())?.phone || "guest";
+          setUserPhone(phone);
+          if (rsvpChangeGenerationRef.current === focusGeneration) {
+            const savedRsvp = await getRsvp(params.id!, phone);
+            setRsvpStatus(savedRsvp ?? null);
+          }
         } catch (err) {
           console.error("Failed to fetch event:", err);
         }
       };
 
       fetchEventData();
-    }, [params.id, getRsvpsForEvent, getContributions])
+    }, [params.id, getRsvpsForEvent, getContributions, getRsvp])
   );
 
-  // Load user phone (needed for host check and RSVP) and existing RSVP
+  // Load user phone and existing RSVP on mount / params.id change (fallback when focus effect hasn't run yet)
   useEffect(() => {
     if (!params.id) return;
 
@@ -211,9 +225,7 @@ export default function EventDetailScreen() {
       setUserPhone(phone);
 
       const existingStatus = await getRsvp(params.id!, phone);
-      if (existingStatus) {
-        setRsvpStatus(existingStatus);
-      }
+      setRsvpStatus(existingStatus ?? null);
     };
     loadUserAndRsvp();
   }, [params.id, getRsvp]);
@@ -315,18 +327,58 @@ export default function EventDetailScreen() {
     })));
   }, [params.id, getContributions]);
 
-  // Persist RSVP when status changes (guest mode only)
+  const performRemoveRsvp = useCallback(async () => {
+    if (!params.id) return;
+    rsvpChangeGenerationRef.current += 1;
+    try {
+      await removeRsvp(params.id, userPhone);
+      setRsvpStatus(null);
+      await refetchGoingCount();
+      await fetchEvents();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to clear RSVP";
+      Alert.alert("RSVP", message);
+    }
+  }, [params.id, userPhone, removeRsvp, refetchGoingCount, fetchEvents]);
+
+  // Persist RSVP when status changes (guest mode only). Tapping same state again = undo with confirmation.
+  // Source of truth: DB (rsvps table). We refetch and sync store so all UI stays correct.
   const handleRsvpChange = async (status: RsvpStatus) => {
     if (!status || !params.id) return;
+    const isSameState =
+      rsvpStatus === status || (status === "going" && rsvpStatus === "pending");
+    if (isSameState) {
+      if (rsvpStatus === "pending") {
+        Alert.alert(
+          "Cancel request?",
+          "Your join request will be removed.",
+          [
+            { text: "Keep waiting", style: "cancel" },
+            { text: "Cancel request", style: "destructive", onPress: performRemoveRsvp },
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Leave event?",
+          "You'll be removed from the guest list.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Leave", style: "destructive", onPress: performRemoveRsvp },
+          ]
+        );
+      }
+      return;
+    }
+    rsvpChangeGenerationRef.current += 1;
     try {
       await submitRsvp(params.id, userPhone, status);
       const savedStatus = await getRsvp(params.id, userPhone);
       setRsvpStatus(savedStatus ?? status);
-      refetchGoingCount();
+      await refetchGoingCount();
+      await fetchEvents();
       if (status === "going" && savedStatus === "pending") {
         Alert.alert("Waiting for approval", "You need to wait for the host to approve you.");
       }
-      // Record preference signal for RSVP
       if ((status === "going" || status === "maybe") && eventData.eventType) {
         recordRsvp(eventData.eventType as EventType, status as "going" | "maybe", userPhone);
       }
@@ -1132,7 +1184,7 @@ export default function EventDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Sticky RSVP bar - guest only; BlurView, flush to bottom */}
+      {/* Sticky RSVP bar - guest only; public = Going only, private = Going / Maybe / Not going */}
       {!isHostMode && !isCancelled && (
         <View
           style={{
@@ -1159,74 +1211,83 @@ export default function EventDetailScreen() {
                     height: spacing.buttonHeightMd,
                     borderRadius: radius.lg,
                     backgroundColor:
-                      rsvpStatus === "going" || rsvpStatus === "pending" ? colors.primary : colors.surfaceLight,
+                      rsvpStatus === "going" || rsvpStatus === "pending" ? colors.surfaceLight : colors.primary,
                     opacity: pressed ? 0.85 : 1,
                     borderWidth: 1,
                     borderColor:
-                      rsvpStatus === "going" || rsvpStatus === "pending" ? colors.primary : colors.border,
+                      rsvpStatus === "going" || rsvpStatus === "pending" ? colors.border : colors.primary,
                     alignItems: "center",
                     justifyContent: "center",
+                    flexDirection: "row",
+                    gap: spacing.xs,
                   })}
                 >
+                  {rsvpStatus === "going" ? (
+                    <Ionicons name="checkmark" size={18} color={colors.text} />
+                  ) : null}
                   <Text
                     style={{
                       fontSize: typography.sizes.sm,
                       fontWeight: typography.weights.semibold,
                       color:
-                        rsvpStatus === "going" || rsvpStatus === "pending" ? colors.text : colors.textMuted,
+                        rsvpStatus === "going" || rsvpStatus === "pending" ? colors.text : colors.text,
                     }}
                   >
-                    {rsvpStatus === "pending" ? "Pending…" : "Going"}
+                    {rsvpStatus === "pending" ? "Pending…" : rsvpStatus === "going" ? "✓ Going" : "Going"}
                   </Text>
                 </Pressable>
-                <Pressable
-                  onPress={() => handleRsvpChange("maybe")}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    height: spacing.buttonHeightMd,
-                    borderRadius: radius.lg,
-                    backgroundColor: rsvpStatus === "maybe" ? colors.surfaceLighter : colors.surfaceLight,
-                    opacity: pressed ? 0.85 : 1,
-                    borderWidth: 1,
-                    borderColor: rsvpStatus === "maybe" ? colors.textMuted : colors.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  })}
-                >
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      fontWeight: typography.weights.semibold,
-                      color: rsvpStatus === "maybe" ? colors.text : colors.textMuted,
-                    }}
-                  >
-                    Maybe
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => handleRsvpChange("cant")}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    height: spacing.buttonHeightMd,
-                    borderRadius: radius.lg,
-                    backgroundColor: rsvpStatus === "cant" ? colors.surfaceLighter : colors.surfaceLight,
-                    opacity: pressed ? 0.85 : 1,
-                    borderWidth: 1,
-                    borderColor: rsvpStatus === "cant" ? colors.textMuted : colors.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  })}
-                >
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      fontWeight: typography.weights.semibold,
-                      color: rsvpStatus === "cant" ? colors.text : colors.textMuted,
-                    }}
-                  >
-                    Not going
-                  </Text>
-                </Pressable>
+                {eventData.visibility !== "public" && (
+                  <>
+                    <Pressable
+                      onPress={() => handleRsvpChange("maybe")}
+                      style={({ pressed }) => ({
+                        flex: 1,
+                        height: spacing.buttonHeightMd,
+                        borderRadius: radius.lg,
+                        backgroundColor: rsvpStatus === "maybe" ? colors.surfaceLighter : colors.surfaceLight,
+                        opacity: pressed ? 0.85 : 1,
+                        borderWidth: 1,
+                        borderColor: rsvpStatus === "maybe" ? colors.textMuted : colors.border,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.sm,
+                          fontWeight: typography.weights.semibold,
+                          color: rsvpStatus === "maybe" ? colors.text : colors.textMuted,
+                        }}
+                      >
+                        Maybe
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleRsvpChange("cant")}
+                      style={({ pressed }) => ({
+                        flex: 1,
+                        height: spacing.buttonHeightMd,
+                        borderRadius: radius.lg,
+                        backgroundColor: rsvpStatus === "cant" ? colors.surfaceLighter : colors.surfaceLight,
+                        opacity: pressed ? 0.85 : 1,
+                        borderWidth: 1,
+                        borderColor: rsvpStatus === "cant" ? colors.textMuted : colors.border,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      })}
+                    >
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.sm,
+                          fontWeight: typography.weights.semibold,
+                          color: rsvpStatus === "cant" ? colors.text : colors.textMuted,
+                        }}
+                      >
+                        Not going
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
               </View>
             </BlurView>
           ) : (
@@ -1248,74 +1309,83 @@ export default function EventDetailScreen() {
                   height: spacing.buttonHeightMd,
                   borderRadius: radius.lg,
                   backgroundColor:
-                    rsvpStatus === "going" || rsvpStatus === "pending" ? colors.primary : colors.surfaceLight,
+                    rsvpStatus === "going" || rsvpStatus === "pending" ? colors.surfaceLight : colors.primary,
                   opacity: pressed ? 0.85 : 1,
                   borderWidth: 1,
                   borderColor:
-                    rsvpStatus === "going" || rsvpStatus === "pending" ? colors.primary : colors.border,
+                    rsvpStatus === "going" || rsvpStatus === "pending" ? colors.border : colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
+                  flexDirection: "row",
+                  gap: spacing.xs,
                 })}
               >
+                {rsvpStatus === "going" ? (
+                  <Ionicons name="checkmark" size={18} color={colors.text} />
+                ) : null}
                 <Text
-                  style={{
-                    fontSize: typography.sizes.sm,
-                    fontWeight: typography.weights.semibold,
-                    color:
-                      rsvpStatus === "going" || rsvpStatus === "pending" ? colors.text : colors.textMuted,
-                  }}
-                >
-                  {rsvpStatus === "pending" ? "Pending…" : "Going"}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleRsvpChange("maybe")}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: spacing.buttonHeightMd,
-                  borderRadius: radius.lg,
-                  backgroundColor: rsvpStatus === "maybe" ? colors.surfaceLighter : colors.surfaceLight,
-                  opacity: pressed ? 0.85 : 1,
-                  borderWidth: 1,
-                  borderColor: rsvpStatus === "maybe" ? colors.textMuted : colors.border,
-                  alignItems: "center",
-                  justifyContent: "center",
-                })}
-              >
-                <Text
-                  style={{
-                    fontSize: typography.sizes.sm,
-                    fontWeight: typography.weights.semibold,
-                    color: rsvpStatus === "maybe" ? colors.text : colors.textMuted,
-                  }}
-                >
-                  Maybe
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleRsvpChange("cant")}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: spacing.buttonHeightMd,
-                  borderRadius: radius.lg,
-                  backgroundColor: rsvpStatus === "cant" ? colors.surfaceLighter : colors.surfaceLight,
-                  opacity: pressed ? 0.85 : 1,
-                  borderWidth: 1,
-                  borderColor: rsvpStatus === "cant" ? colors.textMuted : colors.border,
-                  alignItems: "center",
-                  justifyContent: "center",
-                })}
-              >
-                <Text
-                  style={{
-                    fontSize: typography.sizes.sm,
-                    fontWeight: typography.weights.semibold,
-                    color: rsvpStatus === "cant" ? colors.text : colors.textMuted,
-                  }}
-                >
-                  Not going
-                </Text>
-              </Pressable>
+                    style={{
+                      fontSize: typography.sizes.sm,
+                      fontWeight: typography.weights.semibold,
+                      color:
+                        rsvpStatus === "going" || rsvpStatus === "pending" ? colors.text : colors.text,
+                    }}
+                  >
+                    {rsvpStatus === "pending" ? "Pending…" : rsvpStatus === "going" ? "✓ Going" : "Going"}
+                  </Text>
+                </Pressable>
+                {eventData.visibility !== "public" && (
+                  <>
+                    <Pressable
+                      onPress={() => handleRsvpChange("maybe")}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      height: spacing.buttonHeightMd,
+                      borderRadius: radius.lg,
+                      backgroundColor: rsvpStatus === "maybe" ? colors.surfaceLighter : colors.surfaceLight,
+                      opacity: pressed ? 0.85 : 1,
+                      borderWidth: 1,
+                      borderColor: rsvpStatus === "maybe" ? colors.textMuted : colors.border,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    })}
+                  >
+                    <Text
+                      style={{
+                        fontSize: typography.sizes.sm,
+                        fontWeight: typography.weights.semibold,
+                        color: rsvpStatus === "maybe" ? colors.text : colors.textMuted,
+                      }}
+                    >
+                      Maybe
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleRsvpChange("cant")}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      height: spacing.buttonHeightMd,
+                      borderRadius: radius.lg,
+                      backgroundColor: rsvpStatus === "cant" ? colors.surfaceLighter : colors.surfaceLight,
+                      opacity: pressed ? 0.85 : 1,
+                      borderWidth: 1,
+                      borderColor: rsvpStatus === "cant" ? colors.textMuted : colors.border,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    })}
+                  >
+                    <Text
+                      style={{
+                        fontSize: typography.sizes.sm,
+                        fontWeight: typography.weights.semibold,
+                        color: rsvpStatus === "cant" ? colors.text : colors.textMuted,
+                      }}
+                    >
+                      Not going
+                    </Text>
+                  </Pressable>
+                </>
+              )}
             </View>
           )}
         </View>

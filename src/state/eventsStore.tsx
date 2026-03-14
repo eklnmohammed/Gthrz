@@ -101,6 +101,7 @@ interface EventsContextType {
   cancelEvent: (id: string) => Promise<void>;
   fetchPublicEvents: () => Promise<Event[]>;
   submitRsvp: (eventId: string, userPhone: string, status: "going" | "maybe" | "cant" | "pending") => Promise<void>;
+  removeRsvp: (eventId: string, userPhone: string) => Promise<void>;
   getRsvp: (eventId: string, userPhone: string) => Promise<"going" | "maybe" | "cant" | "pending" | null>;
   getRsvpsForEvent: (eventId: string) => Promise<RsvpByStatus>;
   approveRsvp: (eventId: string, userPhone: string) => Promise<void>;
@@ -612,6 +613,19 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
+  const removeRsvp = useCallback(async (eventId: string, userPhone: string) => {
+    const { data, error } = await supabase
+      .from("rsvps")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("user_phone", userPhone)
+      .select("event_id");
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("RSVP could not be removed.");
+    }
+  }, []);
+
   const fetchEventByInviteCode = useCallback(
     async (code: string): Promise<Event | null> => {
       try {
@@ -677,6 +691,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         cancelEvent,
         fetchPublicEvents,
         submitRsvp,
+        removeRsvp,
         getRsvp,
         getRsvpsForEvent,
         approveRsvp,

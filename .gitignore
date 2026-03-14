@@ -43,7 +43,11 @@ yarn-error.*
 
 .cursor/
 
+
 # private / internal docs (do not commit to public repo)
 MVP_PROGRESS.md
 BUILD_NOTES.md
 AUTH_NOTES.md
+RUN.md
+CLAUDE.md
+.claude/
