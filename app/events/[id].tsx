@@ -1212,17 +1212,25 @@ export default function EventDetailScreen() {
             >
               <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
                 <Pressable
-                  onPress={() => handleRsvpChange("going")}
+                  onPress={rsvpStatus === "pending" ? undefined : () => handleRsvpChange("going")}
                   style={({ pressed }) => ({
                     flex: 1,
                     height: spacing.buttonHeightMd,
                     borderRadius: radius.lg,
                     backgroundColor:
-                      rsvpStatus === "going" || rsvpStatus === "pending" ? colors.surfaceLight : colors.primary,
-                    opacity: pressed ? 0.85 : 1,
+                      rsvpStatus === "pending"
+                        ? colors.warning
+                        : rsvpStatus === "going"
+                          ? colors.surfaceLight
+                          : colors.primary,
+                    opacity: rsvpStatus === "pending" ? 1 : pressed ? 0.85 : 1,
                     borderWidth: 1,
                     borderColor:
-                      rsvpStatus === "going" || rsvpStatus === "pending" ? colors.border : colors.primary,
+                      rsvpStatus === "pending"
+                        ? colors.warning
+                        : rsvpStatus === "going"
+                          ? colors.border
+                          : colors.primary,
                     alignItems: "center",
                     justifyContent: "center",
                     flexDirection: "row",
@@ -1236,11 +1244,10 @@ export default function EventDetailScreen() {
                     style={{
                       fontSize: typography.sizes.sm,
                       fontWeight: typography.weights.semibold,
-                      color:
-                        rsvpStatus === "going" || rsvpStatus === "pending" ? colors.text : colors.text,
+                      color: colors.text,
                     }}
                   >
-                    {rsvpStatus === "pending" ? "Pending…" : rsvpStatus === "going" ? "✓ Going" : "Going"}
+                    {rsvpStatus === "pending" ? "Pending" : rsvpStatus === "going" ? "Going" : "Going"}
                   </Text>
                 </Pressable>
                 {eventData.visibility !== "public" && (
@@ -1310,17 +1317,25 @@ export default function EventDetailScreen() {
               }}
             >
               <Pressable
-                onPress={() => handleRsvpChange("going")}
+                onPress={rsvpStatus === "pending" ? undefined : () => handleRsvpChange("going")}
                 style={({ pressed }) => ({
                   flex: 1,
                   height: spacing.buttonHeightMd,
                   borderRadius: radius.lg,
                   backgroundColor:
-                    rsvpStatus === "going" || rsvpStatus === "pending" ? colors.surfaceLight : colors.primary,
-                  opacity: pressed ? 0.85 : 1,
+                    rsvpStatus === "pending"
+                      ? colors.warning
+                      : rsvpStatus === "going"
+                        ? colors.surfaceLight
+                        : colors.primary,
+                  opacity: rsvpStatus === "pending" ? 1 : pressed ? 0.85 : 1,
                   borderWidth: 1,
                   borderColor:
-                    rsvpStatus === "going" || rsvpStatus === "pending" ? colors.border : colors.primary,
+                    rsvpStatus === "pending"
+                      ? colors.warning
+                      : rsvpStatus === "going"
+                        ? colors.border
+                        : colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
                   flexDirection: "row",
@@ -1331,16 +1346,15 @@ export default function EventDetailScreen() {
                   <Ionicons name="checkmark" size={18} color={colors.text} />
                 ) : null}
                 <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      fontWeight: typography.weights.semibold,
-                      color:
-                        rsvpStatus === "going" || rsvpStatus === "pending" ? colors.text : colors.text,
-                    }}
-                  >
-                    {rsvpStatus === "pending" ? "Pending…" : rsvpStatus === "going" ? "✓ Going" : "Going"}
-                  </Text>
-                </Pressable>
+                  style={{
+                    fontSize: typography.sizes.sm,
+                    fontWeight: typography.weights.semibold,
+                    color: colors.text,
+                  }}
+                >
+                  {rsvpStatus === "pending" ? "Pending" : rsvpStatus === "going" ? "Going" : "Going"}
+                </Text>
+              </Pressable>
                 {eventData.visibility !== "public" && (
                   <>
                     <Pressable

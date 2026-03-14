@@ -16,6 +16,7 @@ import { EventType } from "../src/lib/supabase";
 import { recordEventView, recordJoinWithCode, getPreferenceScores, getTopEventTypes } from "../src/utils/preferences";
 import { onboardingStore } from "../src/state/onboardingStore";
 import { formatEventDate } from "../src/utils/formatEventDate";
+import { getEventStatusPill } from "../src/utils/eventStatusPill";
 
 const LIST_PADDING_H = 16;
 const GRID_GAP = 12;
@@ -47,10 +48,11 @@ export default function DiscoverScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const gridCardWidth = (screenWidth - LIST_PADDING_H * 2 - GRID_GAP) / 2;
 
-  const { fetchPublicEvents } = useEvents();
+  const { fetchPublicEvents, events: userEvents, fetchEvents } = useEvents();
   const params = useLocalSearchParams<{ type?: string }>();
   const [publicEvents, setPublicEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
+  const userEventsById = new Map((userEvents ?? []).map((e) => [e.id, e]));
 
   const initialType =
     params.type && VALID_EVENT_TYPES.has(params.type as EventType) && params.type !== "all"
@@ -90,6 +92,7 @@ export default function DiscoverScreen() {
           fetchPublicEvents(),
           getPreferenceScores(phone),
           getTopEventTypes(phone, 3),
+          fetchEvents(),
         ]);
         if (active) {
           setPublicEvents(events);
@@ -402,23 +405,28 @@ export default function DiscoverScreen() {
             </Card>
           )
         }
-        renderItem={({ item: event }) => (
-          <View style={{ width: gridCardWidth }}>
-            <EventCard
-              eventId={event.id}
-              title={event.title}
-              dateTime={formatEventDate(event.dateTime)}
-              eventType={event.eventType}
-              coverKey={event.coverKey}
-              coverUrl={event.coverUrl}
-              onPress={() => handleEventPress(event)}
-              cancelled={event.status === "cancelled"}
-              width={gridCardWidth}
-              posterHeight={215}
-              compact
-            />
-          </View>
-        )}
+        renderItem={({ item: event }) => {
+          const eventForCard = userEventsById.get(event.id) ?? event;
+          return (
+            <View style={{ width: gridCardWidth }}>
+              <EventCard
+                eventId={event.id}
+                title={event.title}
+                dateTime={formatEventDate(event.dateTime)}
+                eventType={event.eventType}
+                coverKey={event.coverKey}
+                coverUrl={event.coverUrl}
+                onPress={() => handleEventPress(event)}
+                statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
+                cancelled={eventForCard.status === "cancelled"}
+                isHost={eventForCard.hostPhone === userPhone}
+                width={gridCardWidth}
+                posterHeight={215}
+                compact
+              />
+            </View>
+          );
+        }}
       />
 
       <JoinWithCodeModal

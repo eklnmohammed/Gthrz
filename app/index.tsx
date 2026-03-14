@@ -18,6 +18,7 @@ import { spacing } from "../src/theme/spacing";
 import { radius } from "../src/theme/radius";
 import { typography } from "../src/theme/typography";
 import { formatEventDate } from "../src/utils/formatEventDate";
+import { getEventStatusPill } from "../src/utils/eventStatusPill";
 
 const CARD_WIDTH = 260;
 const POSTER_HEIGHT = 260;
@@ -65,6 +66,7 @@ export default function Home() {
   );
 
   const now = Date.now();
+  const userEventsById = new Map(upNextEvents.map((e) => [e.id, e]));
 
   const upNextFiltered = upNextEvents.filter(
     (e) =>
@@ -303,22 +305,28 @@ export default function Home() {
                 decelerationRate="fast"
                 contentContainerStyle={{ gap: spacing.lg, paddingRight: spacing.xxl }}
               >
-                {featuredEvents.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    eventId={event.id}
-                    title={event.title}
-                    dateTime={formatEventDate(event.dateTime)}
-                    eventType={event.eventType}
-                    coverKey={event.coverKey}
-                    coverUrl={event.coverUrl}
-                    onPress={() => {
-                      if (event.eventType) recordEventView(event.eventType, userPhone);
-                      router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
-                    }}
-                    width={CARD_WIDTH}
-                  />
-                ))}
+                {featuredEvents.map((event) => {
+                  const eventForCard = userEventsById.get(event.id) ?? event;
+                  return (
+                    <EventCard
+                      key={event.id}
+                      eventId={event.id}
+                      title={event.title}
+                      dateTime={formatEventDate(event.dateTime)}
+                      eventType={event.eventType}
+                      coverKey={event.coverKey}
+                      coverUrl={event.coverUrl}
+                      onPress={() => {
+                        if (event.eventType) recordEventView(event.eventType, userPhone);
+                        router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
+                      }}
+                      statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
+                      cancelled={eventForCard.status === "cancelled"}
+                      isHost={eventForCard.hostPhone === userPhone}
+                      width={CARD_WIDTH}
+                    />
+                  );
+                })}
                 {featuredEvents.length > 0 && (
                   <Animated.View
                     style={{
@@ -437,7 +445,7 @@ export default function Home() {
                     coverKey={event.coverKey}
                     coverUrl={event.coverUrl}
                     onPress={() => handleEventPress(event)}
-                    showPendingStatus={event.attendingStatus === "pending"}
+                    statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                     cancelled={event.status === "cancelled"}
                     width={CARD_WIDTH}
                     isHost={event.hostPhone === userPhone}
@@ -554,22 +562,28 @@ export default function Home() {
                   decelerationRate="fast"
                   contentContainerStyle={{ gap: spacing.lg, paddingRight: spacing.xxl }}
                 >
-                  {recommendedEvents.slice(0, 3).map((event) => (
-                    <EventCard
-                      key={event.id}
-                      eventId={event.id}
-                      title={event.title}
-                      dateTime={formatEventDate(event.dateTime)}
-                      eventType={event.eventType}
-                      coverKey={event.coverKey}
-                      coverUrl={event.coverUrl}
-                      onPress={() => {
-                        if (event.eventType) recordEventView(event.eventType, userPhone);
-                        router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
-                      }}
-                      width={CARD_WIDTH}
-                    />
-                  ))}
+                  {recommendedEvents.slice(0, 3).map((event) => {
+                    const eventForCard = userEventsById.get(event.id) ?? event;
+                    return (
+                      <EventCard
+                        key={event.id}
+                        eventId={event.id}
+                        title={event.title}
+                        dateTime={formatEventDate(event.dateTime)}
+                        eventType={event.eventType}
+                        coverKey={event.coverKey}
+                        coverUrl={event.coverUrl}
+                        onPress={() => {
+                          if (event.eventType) recordEventView(event.eventType, userPhone);
+                          router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
+                        }}
+                        statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
+                        cancelled={eventForCard.status === "cancelled"}
+                        isHost={eventForCard.hostPhone === userPhone}
+                        width={CARD_WIDTH}
+                      />
+                    );
+                  })}
                   {recommendedEvents.length > 0 && (
                   <Animated.View
                     style={{
@@ -676,22 +690,28 @@ export default function Home() {
                     decelerationRate="fast"
                     contentContainerStyle={{ gap: spacing.lg, paddingRight: spacing.xxl }}
                   >
-                    {featuredEvents.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        eventId={event.id}
-                        title={event.title}
-                        dateTime={formatEventDate(event.dateTime)}
-                        eventType={event.eventType}
-                        coverKey={event.coverKey}
-                        coverUrl={event.coverUrl}
-                        onPress={() => {
-                          if (event.eventType) recordEventView(event.eventType, userPhone);
-                          router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
-                        }}
-                        width={CARD_WIDTH}
-                      />
-                    ))}
+                    {featuredEvents.map((event) => {
+                      const eventForCard = userEventsById.get(event.id) ?? event;
+                      return (
+                        <EventCard
+                          key={event.id}
+                          eventId={event.id}
+                          title={event.title}
+                          dateTime={formatEventDate(event.dateTime)}
+                          eventType={event.eventType}
+                          coverKey={event.coverKey}
+                          coverUrl={event.coverUrl}
+                          onPress={() => {
+                            if (event.eventType) recordEventView(event.eventType, userPhone);
+                            router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
+                          }}
+                          statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
+                          cancelled={eventForCard.status === "cancelled"}
+                          isHost={eventForCard.hostPhone === userPhone}
+                          width={CARD_WIDTH}
+                        />
+                      );
+                    })}
                     {featuredEvents.length > 0 && (
                       <Animated.View
                         style={{

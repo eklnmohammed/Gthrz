@@ -27,7 +27,6 @@ interface EventCardProps {
   coverKey?: string;
   coverUrl?: string;
   onPress: () => void;
-  showPendingStatus?: boolean;
   statusPill?: { label: string; color: string; bg: string };
   width?: number | string;
   posterHeight?: number;
@@ -51,7 +50,6 @@ export function EventCard({
   coverKey,
   coverUrl,
   onPress,
-  showPendingStatus,
   statusPill,
   width = "100%",
   posterHeight = DEFAULT_POSTER_HEIGHT,
@@ -196,7 +194,7 @@ export function EventCard({
         >
           {dateTime}
         </Text>
-        {(statusPill || showPendingStatus || cancelled) && (
+        {(statusPill || cancelled) && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: 6 }}>
             {cancelled ? (
               <View
@@ -212,36 +210,20 @@ export function EventCard({
                 </Text>
               </View>
             ) : (
-              <>
-                {statusPill && (
-                  <View
-                    style={{
-                      paddingVertical: 3,
-                      paddingHorizontal: 8,
-                      borderRadius: radius.full,
-                      backgroundColor: statusPill.bg,
-                    }}
-                  >
-                    <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: statusPill.color }}>
-                      {statusPill.label}
-                    </Text>
-                  </View>
-                )}
-                {showPendingStatus && (
-                  <View
-                    style={{
-                      paddingVertical: 3,
-                      paddingHorizontal: 8,
-                      borderRadius: radius.full,
-                      backgroundColor: "rgba(78,205,196,0.18)",
-                    }}
-                  >
-                    <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: colors.mint }}>
-                      Pending approval
-                    </Text>
-                  </View>
-                )}
-              </>
+              statusPill && (
+                <View
+                  style={{
+                    paddingVertical: 3,
+                    paddingHorizontal: 8,
+                    borderRadius: radius.full,
+                    backgroundColor: statusPill.bg,
+                  }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: statusPill.color }}>
+                    {statusPill.label}
+                  </Text>
+                </View>
+              )
             )}
           </View>
         )}

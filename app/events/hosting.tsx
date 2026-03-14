@@ -18,24 +18,9 @@ import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 import { formatEventDate } from "../../src/utils/formatEventDate";
+import { getEventStatusPill } from "../../src/utils/eventStatusPill";
 
 type Segment = "upcoming" | "past";
-
-type StatusPill = { label: string; color: string; bg: string };
-
-function getStatusPill(event: Event, userPhone: string): StatusPill {
-  if (event.hostPhone === userPhone) {
-    return { label: "Host", color: colors.primary, bg: colors.primaryLight20 };
-  }
-  switch (event.attendingStatus) {
-    case "going":
-      return { label: "Going", color: colors.mint, bg: "rgba(78,205,196,0.15)" };
-    case "pending":
-      return { label: "Pending", color: colors.warning, bg: "rgba(255,165,2,0.15)" };
-    default:
-      return { label: "Host", color: colors.primary, bg: colors.primaryLight20 };
-  }
-}
 
 export default function HostingScreen() {
   const { segment } = useLocalSearchParams<{ segment?: Segment }>();
@@ -230,7 +215,7 @@ export default function HostingScreen() {
                 coverKey={event.coverKey}
                 coverUrl={event.coverUrl}
                 onPress={() => handleEventPress(event)}
-                statusPill={userPhone ? getStatusPill(event, userPhone) : undefined}
+                statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                 cancelled={event.status === "cancelled"}
                 width="100%"
               />

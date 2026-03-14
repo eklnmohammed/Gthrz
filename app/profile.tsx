@@ -24,6 +24,7 @@ import { spacing } from "../src/theme/spacing";
 import { radius } from "../src/theme/radius";
 import { typography } from "../src/theme/typography";
 import { formatEventDate } from "../src/utils/formatEventDate";
+import { getEventStatusPill } from "../src/utils/eventStatusPill";
 import { clearPreferencesForPhone, clearPreferences } from "../src/utils/preferences";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -44,7 +45,7 @@ export default function ProfileScreen() {
         .filter((e) => e.hostPhone === phone)
         .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     : [];
-  const eventsById = new Map<string, Event>([...events, ...publicEvents].map((e) => [e.id, e]));
+  const eventsById = new Map<string, Event>([...publicEvents, ...events].map((e) => [e.id, e]));
   const savedEvents = [...eventsById.values()].filter((e) => favoriteIds.has(e.id));
 
   const loadProfile = useCallback(async () => {
@@ -232,6 +233,9 @@ export default function ProfileScreen() {
                   coverKey={event.coverKey}
                   coverUrl={event.coverUrl}
                   onPress={() => handleEventPress(event)}
+                  statusPill={phone ? getEventStatusPill(event, phone) : undefined}
+                  cancelled={event.status === "cancelled"}
+                  isHost={event.hostPhone === phone}
                   width={TILE_SIZE}
                   posterHeight={TILE_SIZE}
                   hideTypeChip
@@ -307,6 +311,8 @@ export default function ProfileScreen() {
                   coverKey={event.coverKey}
                   coverUrl={event.coverUrl}
                   onPress={() => handleEventPress(event)}
+                  statusPill={phone ? getEventStatusPill(event, phone) : undefined}
+                  cancelled={event.status === "cancelled"}
                   width={TILE_SIZE}
                   posterHeight={TILE_SIZE}
                   hideTypeChip

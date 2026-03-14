@@ -18,6 +18,7 @@ import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 import { formatEventDate } from "../../src/utils/formatEventDate";
+import { getEventStatusPill } from "../../src/utils/eventStatusPill";
 
 export default function SavedScreen() {
   const { favoriteIds } = useFavorites();
@@ -50,7 +51,7 @@ export default function SavedScreen() {
     }, [fetchEvents, fetchPublicEvents])
   );
 
-  const eventsById = new Map<string, Event>([...events, ...publicEvents].map((e) => [e.id, e]));
+  const eventsById = new Map<string, Event>([...publicEvents, ...events].map((e) => [e.id, e]));
   const savedEvents = [...eventsById.values()].filter((e) => favoriteIds.has(e.id));
 
   const bySearch = searchQuery.trim()
@@ -193,6 +194,9 @@ export default function SavedScreen() {
                 coverKey={event.coverKey}
                 coverUrl={event.coverUrl}
                 onPress={() => handleEventPress(event)}
+                statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
+                cancelled={event.status === "cancelled"}
+                isHost={event.hostPhone === userPhone}
                 width="100%"
               />
             </View>
