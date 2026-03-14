@@ -56,7 +56,6 @@ const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] =
 ];
 
 const HERO_PADDING_H = spacing.xxl;
-const HERO_HEIGHT = 260;
 const HERO_RADIUS = 24;
 
 export default function CreateEventScreen() {
@@ -459,12 +458,12 @@ export default function CreateEventScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Hero poster: full-width, 300px height, strong bottom scrim ── */}
+        {/* ── Hero poster: square cover (same as event detail) ── */}
         <View
           style={{
             width: heroWidth,
             alignSelf: "center",
-            height: HERO_HEIGHT,
+            aspectRatio: 1,
             borderRadius: HERO_RADIUS,
             overflow: "hidden",
             marginTop: spacing.lg,
