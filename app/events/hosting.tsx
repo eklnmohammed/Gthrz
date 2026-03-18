@@ -71,9 +71,10 @@ export default function HostingScreen() {
     return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
   });
 
+  const upcomingActiveCount = sorted.filter((e) => e.status !== "cancelled").length;
   const countLabel =
     segmentVal === "upcoming"
-      ? `${sorted.length} upcoming event${sorted.length === 1 ? "" : "s"}`
+      ? `${upcomingActiveCount} upcoming event${upcomingActiveCount === 1 ? "" : "s"}`
       : `${sorted.length} event${sorted.length === 1 ? "" : "s"}`;
 
   const handleEventPress = (event: Event) => {
