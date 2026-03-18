@@ -108,7 +108,7 @@ export default function CreateEventScreen() {
   const [dressCodeSheetTemp, setDressCodeSheetTemp] = useState<string>("");
   const [dressCodeSheetCustom, setDressCodeSheetCustom] = useState<string>("");
 
-  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Other"];
+  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Thobe", "Abaya", "Traditional", "Other"];
   const dressCodeValue = dressCode === "Other" ? dressCodeCustom.trim() : dressCode;
 
   const DRAFT_INDEX = -1;
@@ -633,7 +633,7 @@ export default function CreateEventScreen() {
               label="Title *"
               value={title}
               onChangeText={setTitle}
-              placeholder="e.g., Community BBQ"
+              placeholder="e.g., Eid gathering, Istiraha night..."
               error={showValidationErrors && !title.trim() ? "Title is required" : undefined}
             />
             <View style={{ gap: spacing.sm }}>
@@ -1657,7 +1657,7 @@ export default function CreateEventScreen() {
             </View>
             {dressCodeSheetTemp === "Other" && (
               <AppInput
-                placeholder="e.g. themed, beach casual..."
+                placeholder="e.g. traditional, all white..."
                 value={dressCodeSheetCustom}
                 onChangeText={setDressCodeSheetCustom}
                 maxLength={60}

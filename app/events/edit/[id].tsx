@@ -137,7 +137,7 @@ export default function EditEventScreen() {
   const [dressCodeSheetTemp, setDressCodeSheetTemp] = useState<string>("");
   const [dressCodeSheetCustom, setDressCodeSheetCustom] = useState<string>("");
 
-  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Other"];
+  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Thobe", "Abaya", "Traditional", "Other"];
   const dressCodeValue = dressCode === "Other" ? dressCodeCustom.trim() : dressCode;
 
   const DRAFT_INDEX = -1;
@@ -818,7 +818,7 @@ export default function EditEventScreen() {
             label="Title *"
             value={title}
             onChangeText={setTitle}
-            placeholder="e.g., Community BBQ"
+            placeholder="e.g., Eid gathering, Istiraha night..."
           />
 
           {/* Event type — one row, compact chips */}
@@ -1939,7 +1939,7 @@ export default function EditEventScreen() {
             </View>
             {dressCodeSheetTemp === "Other" && (
               <AppInput
-                placeholder="e.g. themed, beach casual..."
+                placeholder="e.g. traditional, all white..."
                 value={dressCodeSheetCustom}
                 onChangeText={setDressCodeSheetCustom}
                 maxLength={60}

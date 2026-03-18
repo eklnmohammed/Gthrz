@@ -22,21 +22,21 @@ const VALUE_PROPS: ValueProp[] = [
     gradient: colors.primaryGradient,
     title: "Beautiful invites",
     description:
-      "Create stunning event pages that impress your guests and make every gathering feel special.",
+      "Create a polished event page for any occasion — from an istiraha night to an engagement dinner.",
   },
   {
     icon: "📋",
     gradient: colors.coralGradient,
     title: "Easy guest management",
     description:
-      "Approve guests, manage capacity, and keep track of who's coming with ease.",
+      "Approve guests, set a capacity, and always know who's coming before the night starts.",
   },
   {
     icon: "🎉",
     gradient: ["#11998E", "#38EF7D"] as const,
     title: "Host with confidence",
     description:
-      "Get RSVPs, send updates, and make every gathering memorable.",
+      "Share invite links, collect RSVPs, and keep your guest list exactly as you planned.",
   },
 ];
 

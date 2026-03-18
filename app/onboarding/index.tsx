@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
               lineHeight: 24,
             }}
           >
-            Social gatherings, simplified.{"\n"}The new way to host and hang.
+            Your events, your way.{"\n"}The smarter way to host and invite.
           </Text>
         </View>
 

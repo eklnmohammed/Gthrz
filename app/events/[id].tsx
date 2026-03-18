@@ -777,7 +777,7 @@ export default function EventDetailScreen() {
                 lineHeight: 24,
               }}
             >
-              {eventData.details || "We're excited to have you! Come hang out, catch up, and friends meet friends!"}
+              {eventData.details || "Looking forward to seeing you there. Come enjoy the evening with us."}
             </Text>
           </View>
 
