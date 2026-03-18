@@ -91,6 +91,8 @@ export interface Event {
   cancellation_reason?: string | null;
   /** Optional dress code specified by the host */
   dress_code?: string | null;
+  /** Optional audience type: mixed, men, women */
+  audience?: string | null;
 }
 
 export interface Rsvp {

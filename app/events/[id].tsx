@@ -92,6 +92,7 @@ export default function EventDetailScreen() {
     status: "active" as "active" | "cancelled",
     cancellationReason: null as string | null,
     dressCode: "" as string,
+    audience: "" as string,
   });
   const [goingCount, setGoingCount] = useState<number>(0);
   const [rsvpsByStatus, setRsvpsByStatus] = useState<{
@@ -190,6 +191,7 @@ export default function EventDetailScreen() {
               status: data.status === "cancelled" ? "cancelled" : "active",
               cancellationReason: data.cancellation_reason ?? null,
               dressCode: data.dress_code ?? "",
+              audience: data.audience ?? "",
             });
           }
 
@@ -848,6 +850,18 @@ export default function EventDetailScreen() {
               </Text>
               <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
                 {eventData.dressCode}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Audience — only shown if set */}
+          {eventData.audience ? (
+            <View style={{ marginBottom: spacing.xl }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
+                Audience
+              </Text>
+              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
+                {eventData.audience}
               </Text>
             </View>
           ) : null}

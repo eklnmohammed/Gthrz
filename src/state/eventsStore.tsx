@@ -41,6 +41,7 @@ export interface Event {
   status?: "active" | "cancelled";
   cancellationReason?: string | null;
   dressCode?: string;
+  audience?: string;
 }
 
 export interface RsvpByStatus {
@@ -76,6 +77,7 @@ interface EventsContextType {
     hideGuestNames?: boolean;
     hideGuestAvatars?: boolean;
     dressCode?: string;
+    audience?: string;
   }) => Promise<void>;
   updateEvent: (
     id: string,
@@ -99,6 +101,7 @@ interface EventsContextType {
       revealHoursBefore?: number | null;
       hideGuestNames?: boolean;
       dressCode?: string;
+      audience?: string;
     }
   ) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -155,6 +158,7 @@ function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
     status: dbEvent.status === "cancelled" ? "cancelled" : "active",
     cancellationReason: dbEvent.cancellation_reason ?? undefined,
     dressCode: dbEvent.dress_code ?? undefined,
+    audience: dbEvent.audience ?? undefined,
   };
 }
 
@@ -247,6 +251,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       revealHoursBefore?: number | null;
       hideGuestNames?: boolean;
       dressCode?: string;
+      audience?: string;
     }) => {
       setError(null);
       try {
@@ -297,6 +302,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
               hide_guest_names: event.hideGuestNames ?? false,
               hide_guest_avatars: event.hideGuestAvatars ?? false,
               dress_code: event.dressCode || null,
+              audience: event.audience || null,
             })
             .select("*")
             .single();
@@ -352,6 +358,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         revealHoursBefore?: number | null;
         hideGuestNames?: boolean;
         dressCode?: string;
+        audience?: string;
       }
     ) => {
       setError(null);
@@ -391,6 +398,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           hide_guest_names: event.hideGuestNames ?? false,
           hide_guest_avatars: event.hideGuestAvatars ?? false,
           dress_code: event.dressCode || null,
+          audience: event.audience || null,
         };
         const { data, error: updateError } = await supabase
           .from("events")

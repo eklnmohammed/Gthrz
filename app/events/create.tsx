@@ -107,6 +107,9 @@ export default function CreateEventScreen() {
   const [showDressCodeSheet, setShowDressCodeSheet] = useState(false);
   const [dressCodeSheetTemp, setDressCodeSheetTemp] = useState<string>("");
   const [dressCodeSheetCustom, setDressCodeSheetCustom] = useState<string>("");
+  const [audience, setAudience] = useState<string>("");
+
+  const AUDIENCE_OPTIONS = ["Men only", "Mixed", "Women only"];
 
   const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Thobe", "Abaya", "Traditional", "Other"];
   const dressCodeValue = dressCode === "Other" ? dressCodeCustom.trim() : dressCode;
@@ -317,6 +320,7 @@ export default function CreateEventScreen() {
         hideGuestNames,
         hideGuestAvatars,
         dressCode: dressCodeValue || undefined,
+        audience: audience || undefined,
       });
       setCreating(false);
       Alert.alert("Event created", "Your event is ready.", [
@@ -838,6 +842,35 @@ export default function CreateEventScreen() {
                     {dressCodeValue !== "" ? dressCodeValue : "Set dress code"}
                   </Text>
                 </Pressable>
+              </View>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Audience
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                {AUDIENCE_OPTIONS.map((opt) => {
+                  const selected = audience === opt;
+                  return (
+                    <Pressable
+                      key={opt}
+                      onPress={() => setAudience(selected ? "" : opt)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: spacing.md,
+                        borderRadius: radius.md,
+                        backgroundColor: selected ? colors.primary : colors.surfaceLight,
+                        borderWidth: 0.5,
+                        borderColor: selected ? colors.primary : colors.border,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
+                        {opt}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           </>

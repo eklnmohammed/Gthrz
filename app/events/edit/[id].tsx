@@ -136,6 +136,9 @@ export default function EditEventScreen() {
   const [showDressCodeSheet, setShowDressCodeSheet] = useState(false);
   const [dressCodeSheetTemp, setDressCodeSheetTemp] = useState<string>("");
   const [dressCodeSheetCustom, setDressCodeSheetCustom] = useState<string>("");
+  const [audience, setAudience] = useState<string>("");
+
+  const AUDIENCE_OPTIONS = ["Men only", "Mixed", "Women only"];
 
   const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Thobe", "Abaya", "Traditional", "Other"];
   const dressCodeValue = dressCode === "Other" ? dressCodeCustom.trim() : dressCode;
@@ -366,6 +369,7 @@ export default function EditEventScreen() {
             setDressCode("Other");
             setDressCodeCustom(existingDressCode);
           }
+          setAudience(data.audience ?? "");
           const sanitizedCoverUrl = isValidCoverUrl(data.cover_url) ? data.cover_url : null;
           initialValuesRef.current = {
             title: data.title || "",
@@ -491,6 +495,7 @@ export default function EditEventScreen() {
         hideGuestNames,
         hideGuestAvatars,
         dressCode: dressCodeValue || undefined,
+        audience: audience || undefined,
       });
       Alert.alert("Event Updated", "Your changes have been saved.", [
         {
@@ -1168,6 +1173,38 @@ export default function EditEventScreen() {
                       {dressCodeValue !== "" ? dressCodeValue : "Set dress code"}
                     </Text>
                   </Pressable>
+                </View>
+              </View>
+
+              {/* Audience */}
+              <View style={{ gap: spacing.xs }}>
+                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                  Audience
+                </Text>
+                <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                  {AUDIENCE_OPTIONS.map((opt) => {
+                    const selected = audience === opt;
+                    return (
+                      <Pressable
+                        key={opt}
+                        onPress={() => setAudience(selected ? "" : opt)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: spacing.md,
+                          paddingHorizontal: spacing.md,
+                          borderRadius: radius.md,
+                          backgroundColor: selected ? colors.primary : colors.surfaceLight,
+                          borderWidth: 0.5,
+                          borderColor: selected ? colors.primary : colors.border,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
+                          {opt}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
 
