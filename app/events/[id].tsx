@@ -431,15 +431,16 @@ export default function EventDetailScreen() {
       lines.push(formatEventDate(dateTime));
     }
 
-    if (eventData.location && (isHostMode || isLocationRevealed)) {
-      lines.push(eventData.location);
-    } else if (
-      eventData.locationVisibility === "reveal" &&
-      eventData.revealHoursBefore != null &&
-      eventData.revealHoursBefore > 0 &&
-      !isLocationRevealed
-    ) {
-      lines.push(`📍 Location will be revealed ${revealTimeLabel(eventData.revealHoursBefore)}`);
+    const locationVisible = isHostMode || isLocationRevealed;
+    if (locationVisible && eventData.location) {
+      lines.push(`📍 ${eventData.location}`);
+      const mapQuery =
+        eventData.locationLat != null && eventData.locationLng != null
+          ? `${eventData.locationLat},${eventData.locationLng}`
+          : encodeURIComponent(eventData.location);
+      lines.push(`https://maps.google.com/?q=${mapQuery}`);
+    } else {
+      lines.push("📍 Location will be revealed later");
     }
 
     const inviteCode = eventData.inviteCode?.trim();
