@@ -820,7 +820,7 @@ export default function EventDetailScreen() {
           )}
 
           {/* About (top-level, always visible) */}
-          <View style={{ marginTop: spacing.md, marginBottom: spacing.xxl }}>
+          <View style={{ marginTop: spacing.md, marginBottom: spacing.xl }}>
             <Text
               style={{
                 fontSize: typography.sizes.sm,
@@ -842,27 +842,54 @@ export default function EventDetailScreen() {
             </Text>
           </View>
 
+          {/* Subtle divider for visual rhythm */}
+          <View
+            style={{
+              height: 1,
+              backgroundColor: colors.overlayWhite10,
+              marginVertical: spacing.md,
+            }}
+          />
+
           {/* Dress code — only shown if set */}
           {eventData.dressCode ? (
-            <View style={{ marginBottom: spacing.xl }}>
+            <View style={{ marginBottom: spacing.lg }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
                 Dress code
               </Text>
               <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
                 {eventData.dressCode}
               </Text>
+              {!eventData.audience ? (
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: colors.overlayWhite10,
+                    marginTop: spacing.md,
+                    marginBottom: spacing.lg,
+                  }}
+                />
+              ) : null}
             </View>
           ) : null}
 
           {/* Audience — only shown if set */}
           {eventData.audience ? (
-            <View style={{ marginBottom: spacing.xl }}>
+            <View style={{ marginBottom: spacing.lg }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
                 Audience
               </Text>
               <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
                 {eventData.audience}
               </Text>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: colors.overlayWhite10,
+                  marginTop: spacing.md,
+                  marginBottom: 0,
+                }}
+              />
             </View>
           ) : null}
 
@@ -1000,8 +1027,8 @@ export default function EventDetailScreen() {
               justifyContent: "space-between",
               paddingVertical: spacing.md,
               marginBottom: detailsCollapsed ? 0 : spacing.lg,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
+              borderTopWidth: 0.5,
+              borderTopColor: colors.overlayWhite10,
             }}
           >
             <Text
