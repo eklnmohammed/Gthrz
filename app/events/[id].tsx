@@ -507,43 +507,6 @@ export default function EventDetailScreen() {
               >
                 <Ionicons name="share-outline" size={22} color="#fff" />
               </Pressable>
-              {isHostMode ? (
-                <Pressable
-                  onPress={() => params.id && router.push(`/events/edit/${params.id}`)}
-                  hitSlop={10}
-                  style={({ pressed }) => ({
-                    backgroundColor: colors.surfaceLight,
-                    borderRadius: radius.full,
-                    paddingHorizontal: spacing.lg,
-                    paddingVertical: spacing.sm,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    opacity: pressed ? 0.6 : 1,
-                  })}
-                >
-                  <Ionicons name="pencil" size={22} color="#fff" />
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={() => eventId && toggleFavorite(eventId)}
-                  hitSlop={10}
-                  style={({ pressed }) => ({
-                    backgroundColor: colors.surfaceLight,
-                    borderRadius: radius.full,
-                    paddingHorizontal: spacing.lg,
-                    paddingVertical: spacing.sm,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    opacity: pressed ? 0.6 : 1,
-                  })}
-                >
-                  <Ionicons
-                    name={favorited ? "heart" : "heart-outline"}
-                    size={22}
-                    color="#fff"
-                  />
-                </Pressable>
-              )}
             </View>
           ),
         }}
@@ -562,6 +525,7 @@ export default function EventDetailScreen() {
         <View style={{ paddingHorizontal: spacing.xxl, paddingTop: (insets.top || 0) + spacing.xl + 10 }}>
           <View
             style={{
+              position: "relative",
               borderRadius: radius.xl,
               overflow: "hidden",
               borderWidth: 0.5,
@@ -597,6 +561,40 @@ export default function EventDetailScreen() {
                 {posterScrim}
               </LinearGradient>
             )}
+
+            {!isHostMode && eventId ? (
+              <BlurView
+                intensity={80}
+                tint="dark"
+                style={{
+                  position: "absolute",
+                  top: spacing.md,
+                  right: spacing.md,
+                  borderRadius: radius.full,
+                  overflow: "hidden",
+                  backgroundColor: "rgba(0,0,0,0.22)",
+                }}
+              >
+                <Pressable
+                  onPress={() => toggleFavorite(eventId)}
+                  hitSlop={10}
+                  style={({ pressed }) => ({
+                    width: 44,
+                    height: 44,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: pressed ? 0.85 : 1,
+                    backgroundColor: "transparent",
+                  })}
+                >
+                  <Ionicons
+                    name={favorited ? "heart" : "heart-outline"}
+                    size={22}
+                    color="#fff"
+                  />
+                </Pressable>
+              </BlurView>
+            ) : null}
           </View>
         </View>
 
