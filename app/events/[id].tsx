@@ -70,7 +70,7 @@ export default function EventDetailScreen() {
   const [eventData, setEventData] = useState({
     title: params.title || "Untitled Event",
     dateTime: params.dateTime || "—",
-    location: params.location || "",
+    location: "",
     details: params.details || "",
     capacity: params.capacity || "",
     hostPhone: "" as string | undefined,
@@ -126,11 +126,14 @@ export default function EventDetailScreen() {
 
   // Location reveal: if "reveal later", hide location until reveal time (revealHoursBefore event start)
   const isLocationRevealed = (() => {
-    if (eventData.locationVisibility !== "reveal" || eventData.revealHoursBefore == null) return true;
+    if (eventData.locationVisibility !== "reveal") return true;
+    // Reveal enabled but no hours configured → keep hidden (safe default)
+    if (eventData.revealHoursBefore == null || eventData.revealHoursBefore <= 0) return false;
     const eventMs = typeof eventData.dateTime === "string" && eventData.dateTime !== "—"
       ? new Date(eventData.dateTime).getTime()
       : 0;
-    if (!eventMs) return true;
+    // Can't determine event time → keep hidden
+    if (!eventMs) return false;
     const revealAt = eventMs - eventData.revealHoursBefore * 60 * 60 * 1000;
     return Date.now() >= revealAt;
   })();
@@ -428,8 +431,15 @@ export default function EventDetailScreen() {
       lines.push(formatEventDate(dateTime));
     }
 
-    if (eventData.location) {
+    if (eventData.location && (isHostMode || isLocationRevealed)) {
       lines.push(eventData.location);
+    } else if (
+      eventData.locationVisibility === "reveal" &&
+      eventData.revealHoursBefore != null &&
+      eventData.revealHoursBefore > 0 &&
+      !isLocationRevealed
+    ) {
+      lines.push(`📍 Location will be revealed ${revealTimeLabel(eventData.revealHoursBefore)}`);
     }
 
     const inviteCode = eventData.inviteCode?.trim();
