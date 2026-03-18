@@ -91,6 +91,7 @@ export default function EventDetailScreen() {
     hideGuestAvatars: false as boolean,
     status: "active" as "active" | "cancelled",
     cancellationReason: null as string | null,
+    dressCode: "" as string,
   });
   const [goingCount, setGoingCount] = useState<number>(0);
   const [rsvpsByStatus, setRsvpsByStatus] = useState<{
@@ -188,6 +189,7 @@ export default function EventDetailScreen() {
               hideGuestAvatars: data.hide_guest_avatars ?? false,
               status: data.status === "cancelled" ? "cancelled" : "active",
               cancellationReason: data.cancellation_reason ?? null,
+              dressCode: data.dress_code ?? "",
             });
           }
 
@@ -778,6 +780,18 @@ export default function EventDetailScreen() {
               {eventData.details || "We're excited to have you! Come hang out, catch up, and friends meet friends!"}
             </Text>
           </View>
+
+          {/* Dress code — only shown if set */}
+          {eventData.dressCode ? (
+            <View style={{ marginBottom: spacing.xl }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
+                Dress code
+              </Text>
+              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
+                {eventData.dressCode}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Who's coming — as many avatars as fit before "See all" (right-aligned) */}
           <Pressable

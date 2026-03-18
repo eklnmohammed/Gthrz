@@ -89,6 +89,8 @@ export interface Event {
   status?: "active" | "cancelled" | null;
   /** Optional reason when event was cancelled (visible to guests) */
   cancellation_reason?: string | null;
+  /** Optional dress code specified by the host */
+  dress_code?: string | null;
 }
 
 export interface Rsvp {

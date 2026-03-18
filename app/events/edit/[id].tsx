@@ -131,6 +131,15 @@ export default function EditEventScreen() {
     return d;
   });
 
+  const [dressCode, setDressCode] = useState<string>("");
+  const [dressCodeCustom, setDressCodeCustom] = useState<string>("");
+  const [showDressCodeSheet, setShowDressCodeSheet] = useState(false);
+  const [dressCodeSheetTemp, setDressCodeSheetTemp] = useState<string>("");
+  const [dressCodeSheetCustom, setDressCodeSheetCustom] = useState<string>("");
+
+  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Other"];
+  const dressCodeValue = dressCode === "Other" ? dressCodeCustom.trim() : dressCode;
+
   const DRAFT_INDEX = -1;
   const showLineup = eventType === "party" || eventType === "wedding";
 
@@ -349,6 +358,14 @@ export default function EditEventScreen() {
           );
           const loadedLineup: LineupEntry[] = Array.isArray(data.lineup) ? data.lineup : [];
           setLineup(loadedLineup);
+          const existingDressCode = data.dress_code ?? "";
+          const presets = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Other"];
+          if (presets.includes(existingDressCode)) {
+            setDressCode(existingDressCode);
+          } else if (existingDressCode) {
+            setDressCode("Other");
+            setDressCodeCustom(existingDressCode);
+          }
           const sanitizedCoverUrl = isValidCoverUrl(data.cover_url) ? data.cover_url : null;
           initialValuesRef.current = {
             title: data.title || "",
@@ -473,6 +490,7 @@ export default function EditEventScreen() {
           locationVisibility === "reveal" && revealHoursBefore != null && revealHoursBefore > 0 ? revealHoursBefore : undefined,
         hideGuestNames,
         hideGuestAvatars,
+        dressCode: dressCodeValue || undefined,
       });
       Alert.alert("Event Updated", "Your changes have been saved.", [
         {
@@ -1101,6 +1119,53 @@ export default function EditEventScreen() {
                       {locationVisibility === "reveal" && revealHoursBefore != null && revealHoursBefore > 0
                         ? `${revealHoursBefore}h before`
                         : "Reveal later"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Dress code */}
+              <View style={{ gap: spacing.xs }}>
+                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                  Dress code
+                </Text>
+                <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                  <Pressable
+                    onPress={() => { setDressCode(""); setDressCodeCustom(""); }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.md,
+                      borderRadius: radius.md,
+                      backgroundColor: dressCode === "" ? colors.primary : colors.surfaceLight,
+                      borderWidth: 0.5,
+                      borderColor: dressCode === "" ? colors.primary : colors.border,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode === "" ? colors.text : colors.textMuted }}>
+                      None
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setDressCodeSheetTemp(dressCode || "");
+                      setDressCodeSheetCustom(dressCode === "Other" ? dressCodeCustom : "");
+                      setShowDressCodeSheet(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.md,
+                      borderRadius: radius.md,
+                      backgroundColor: dressCode !== "" ? colors.primary : colors.surfaceLight,
+                      borderWidth: 0.5,
+                      borderColor: dressCode !== "" ? colors.primary : colors.border,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode !== "" ? colors.text : colors.textMuted }} numberOfLines={1}>
+                      {dressCodeValue !== "" ? dressCodeValue : "Set dress code"}
                     </Text>
                   </Pressable>
                 </View>
@@ -1789,6 +1854,142 @@ export default function EditEventScreen() {
                   Apply
                 </Text>
               </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── Dress code bottom sheet ── */}
+      <Modal
+        visible={showDressCodeSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDressCodeSheet(false)}
+      >
+        <Pressable
+          style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}
+          onPress={() => setShowDressCodeSheet(false)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              paddingHorizontal: spacing.lg,
+              paddingTop: spacing.xl,
+              paddingBottom: spacing.xxl + (insets?.bottom ?? 0),
+              borderWidth: 0.5,
+              borderColor: "rgba(255,255,255,0.08)",
+              gap: spacing.xl,
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={{ alignItems: "center", gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text }}>
+                Dress code
+              </Text>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
+                Choose a preset or enter a custom style
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, justifyContent: "center" }}>
+              {DRESS_CODE_PRESETS.filter((p) => p !== "Other").map((preset) => {
+                const selected = dressCodeSheetTemp === preset;
+                return (
+                  <Pressable
+                    key={preset}
+                    onPress={() => { setDressCodeSheetTemp(preset); setDressCodeSheetCustom(""); }}
+                    style={{
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      borderRadius: radius.md,
+                      backgroundColor: selected ? colors.primary : colors.surfaceLight,
+                      borderWidth: 0.5,
+                      borderColor: selected ? colors.primary : colors.border,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
+                      {preset}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {(() => {
+                const selected = dressCodeSheetTemp === "Other";
+                return (
+                  <Pressable
+                    onPress={() => setDressCodeSheetTemp("Other")}
+                    style={{
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      borderRadius: radius.md,
+                      backgroundColor: selected ? colors.primary : colors.surfaceLight,
+                      borderWidth: 0.5,
+                      borderColor: selected ? colors.primary : colors.border,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
+                      Other
+                    </Text>
+                  </Pressable>
+                );
+              })()}
+            </View>
+            {dressCodeSheetTemp === "Other" && (
+              <AppInput
+                placeholder="e.g. themed, beach casual..."
+                value={dressCodeSheetCustom}
+                onChangeText={setDressCodeSheetCustom}
+                maxLength={60}
+              />
+            )}
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <Pressable
+                onPress={() => setShowDressCodeSheet(false)}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  paddingVertical: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.surfaceLight,
+                  borderWidth: 0.5,
+                  borderColor: colors.border,
+                  alignItems: "center",
+                  opacity: pressed ? 0.9 : 1,
+                })}
+              >
+                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
+                  Cancel
+                </Text>
+              </Pressable>
+              {(() => {
+                const applyValid = dressCodeSheetTemp !== "" && (dressCodeSheetTemp !== "Other" || dressCodeSheetCustom.trim() !== "");
+                return (
+                  <Pressable
+                    onPress={() => {
+                      if (applyValid) {
+                        setDressCode(dressCodeSheetTemp);
+                        setDressCodeCustom(dressCodeSheetCustom.trim());
+                        setShowDressCodeSheet(false);
+                      }
+                    }}
+                    disabled={!applyValid}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      paddingVertical: spacing.md,
+                      borderRadius: radius.md,
+                      backgroundColor: applyValid ? colors.primary : colors.surfaceLight,
+                      alignItems: "center",
+                      opacity: pressed && applyValid ? 0.9 : 1,
+                    })}
+                  >
+                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: applyValid ? colors.text : colors.textMuted }}>
+                      Apply
+                    </Text>
+                  </Pressable>
+                );
+              })()}
             </View>
           </Pressable>
         </Pressable>

@@ -40,6 +40,7 @@ export interface Event {
   hideGuestAvatars?: boolean;
   status?: "active" | "cancelled";
   cancellationReason?: string | null;
+  dressCode?: string;
 }
 
 export interface RsvpByStatus {
@@ -74,6 +75,7 @@ interface EventsContextType {
     revealHoursBefore?: number | null;
     hideGuestNames?: boolean;
     hideGuestAvatars?: boolean;
+    dressCode?: string;
   }) => Promise<void>;
   updateEvent: (
     id: string,
@@ -96,6 +98,7 @@ interface EventsContextType {
       locationVisibility?: "now" | "reveal";
       revealHoursBefore?: number | null;
       hideGuestNames?: boolean;
+      dressCode?: string;
     }
   ) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -151,6 +154,7 @@ function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
     hideGuestAvatars: dbEvent.hide_guest_avatars ?? false,
     status: dbEvent.status === "cancelled" ? "cancelled" : "active",
     cancellationReason: dbEvent.cancellation_reason ?? undefined,
+    dressCode: dbEvent.dress_code ?? undefined,
   };
 }
 
@@ -242,6 +246,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       locationVisibility?: "now" | "reveal";
       revealHoursBefore?: number | null;
       hideGuestNames?: boolean;
+      dressCode?: string;
     }) => {
       setError(null);
       try {
@@ -291,6 +296,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
               reveal_hours_before: event.revealHoursBefore ?? null,
               hide_guest_names: event.hideGuestNames ?? false,
               hide_guest_avatars: event.hideGuestAvatars ?? false,
+              dress_code: event.dressCode || null,
             })
             .select("*")
             .single();
@@ -345,6 +351,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         locationVisibility?: "now" | "reveal";
         revealHoursBefore?: number | null;
         hideGuestNames?: boolean;
+        dressCode?: string;
       }
     ) => {
       setError(null);
@@ -383,6 +390,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           reveal_hours_before: event.revealHoursBefore ?? null,
           hide_guest_names: event.hideGuestNames ?? false,
           hide_guest_avatars: event.hideGuestAvatars ?? false,
+          dress_code: event.dressCode || null,
         };
         // Public events must have no invite_code (DB constraint public_events_no_invite_code)
         if (visibility === "public") {
