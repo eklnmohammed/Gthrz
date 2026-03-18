@@ -423,10 +423,7 @@ export default function EventDetailScreen() {
     lines.push(title);
 
     if (dateTime) {
-      const d = new Date(dateTime);
-      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const day = isNaN(d.getTime()) ? "" : dayNames[d.getDay()];
-      lines.push(day ? `${day}, ${formatEventDate(dateTime)}` : formatEventDate(dateTime));
+      lines.push(formatEventDate(dateTime));
     }
 
     if (eventData.location) {

@@ -6,15 +6,18 @@ export function formatEventDate(dateTime: string): string {
   try {
     const d = new Date(dateTime);
     if (isNaN(d.getTime())) return dateTime;
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayOfWeek = dayNames[d.getDay()];
     const months = "JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC";
     const month = months.split(" ")[d.getMonth()];
-    const day = d.getDate();
+    const dayOfMonth = d.getDate();
     const hours = d.getHours();
     const mins = d.getMinutes();
     const ampm = hours >= 12 ? "PM" : "AM";
     const h = hours % 12 || 12;
     const m = mins < 10 ? "0" + mins : mins;
-    return `${month} ${day} • ${h}:${m} ${ampm}`;
+    // Example: Thu · MAR 19 · 8:30 PM
+    return `${dayOfWeek} · ${month} ${dayOfMonth} · ${h}:${m} ${ampm}`;
   } catch {
     return dateTime;
   }

@@ -191,6 +191,8 @@ export function EventCard({
             fontSize: typography.sizes.xs,
             color: "rgba(255,255,255,0.75)",
           }}
+          numberOfLines={1}
+          ellipsizeMode="tail"
         >
           {dateTime}
         </Text>
