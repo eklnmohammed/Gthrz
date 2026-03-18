@@ -263,12 +263,12 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         const eventType = event.eventType || "party";
         const coverKey = event.coverKey ?? getDefaultCoverKey(eventType);
 
-        // Retry up to 3 times if invite_code collision (for private events only)
+        // Retry up to 3 times if invite_code collision
         const maxRetries = 3;
         let lastError: unknown = null;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
-          const inviteCode = isPrivate ? generateInviteCode() : null;
+          const inviteCode = generateInviteCode();
 
           const locationName = event.locationName || event.location || null;
           const { data, error: insertError } = await supabase
@@ -392,10 +392,6 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           hide_guest_avatars: event.hideGuestAvatars ?? false,
           dress_code: event.dressCode || null,
         };
-        // Public events must have no invite_code (DB constraint public_events_no_invite_code)
-        if (visibility === "public") {
-          updatePayload.invite_code = null;
-        }
         const { data, error: updateError } = await supabase
           .from("events")
           .update(updatePayload)

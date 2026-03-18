@@ -944,8 +944,8 @@ export default function EditEventScreen() {
             </View>
             <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
               {visibility === "private"
-                ? "Only people with the invite code can join"
-                : "Visible in Discover"}
+                ? "Only people with the code can find this event."
+                : "Visible in Discover. Share the code for quick access."}
             </Text>
           </View>
 

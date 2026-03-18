@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, ScrollView, Pressable, Alert, Platform, ImageBackground, Image, Dimensions, Linking, TextInput } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, Platform, ImageBackground, Image, Dimensions, Linking, TextInput, Share } from "react-native";
 import { useLocalSearchParams, router, Stack, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -415,6 +415,50 @@ export default function EventDetailScreen() {
   const eventId = params.id ?? "";
   const favorited = eventId ? isFavorited(eventId) : false;
 
+  const handleShare = async () => {
+    const lines: string[] = [];
+    const title = eventData.title || "Untitled Event";
+    const dateTime = eventData.dateTime && eventData.dateTime !== "—" ? eventData.dateTime : "";
+
+    lines.push(title);
+
+    if (dateTime) {
+      const d = new Date(dateTime);
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const day = isNaN(d.getTime()) ? "" : dayNames[d.getDay()];
+      lines.push(day ? `${day}, ${formatEventDate(dateTime)}` : formatEventDate(dateTime));
+    }
+
+    if (eventData.location) {
+      lines.push(eventData.location);
+    }
+
+    const inviteCode = eventData.inviteCode?.trim();
+    if (inviteCode) {
+      lines.push("");
+      lines.push(`Join link: gthrz.app/join/${inviteCode}`);
+      lines.push(`Invite code: ${inviteCode}`);
+    }
+
+    lines.push("");
+    lines.push("Sent via Gthrz");
+
+    const message = lines.join("\n").trim();
+
+    // Try WhatsApp first, fallback to system share sheet
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+    try {
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+        return;
+      }
+    } catch {}
+    try {
+      await Share.share({ message });
+    } catch {}
+  };
+
   const posterScrim = (
     <LinearGradient
       colors={["transparent", "rgba(0,0,0,0.7)"]}
@@ -436,10 +480,10 @@ export default function EventDetailScreen() {
           headerLeft: () => (
             <HeaderBackTextButton label="Back" onPress={() => router.back()} />
           ),
-          headerRight: () =>
-            isHostMode ? (
+          headerRight: () => (
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <Pressable
-                onPress={() => params.id && router.push(`/events/edit/${params.id}`)}
+                onPress={handleShare}
                 hitSlop={10}
                 style={({ pressed }) => ({
                   backgroundColor: colors.surfaceLight,
@@ -451,29 +495,47 @@ export default function EventDetailScreen() {
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
-                <Ionicons name="pencil" size={22} color="#fff" />
+                <Ionicons name="share-outline" size={22} color="#fff" />
               </Pressable>
-            ) : (
-              <Pressable
-                onPress={() => eventId && toggleFavorite(eventId)}
-                hitSlop={10}
-                style={({ pressed }) => ({
-                  backgroundColor: colors.surfaceLight,
-                  borderRadius: radius.full,
-                  paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.sm,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Ionicons
-                  name={favorited ? "heart" : "heart-outline"}
-                  size={22}
-                  color="#fff"
-                />
-              </Pressable>
-            ),
+              {isHostMode ? (
+                <Pressable
+                  onPress={() => params.id && router.push(`/events/edit/${params.id}`)}
+                  hitSlop={10}
+                  style={({ pressed }) => ({
+                    backgroundColor: colors.surfaceLight,
+                    borderRadius: radius.full,
+                    paddingHorizontal: spacing.lg,
+                    paddingVertical: spacing.sm,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Ionicons name="pencil" size={22} color="#fff" />
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={() => eventId && toggleFavorite(eventId)}
+                  hitSlop={10}
+                  style={({ pressed }) => ({
+                    backgroundColor: colors.surfaceLight,
+                    borderRadius: radius.full,
+                    paddingHorizontal: spacing.lg,
+                    paddingVertical: spacing.sm,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                >
+                  <Ionicons
+                    name={favorited ? "heart" : "heart-outline"}
+                    size={22}
+                    color="#fff"
+                  />
+                </Pressable>
+              )}
+            </View>
+          ),
         }}
       />
 
@@ -1475,7 +1537,7 @@ export default function EventDetailScreen() {
               Manage event
             </Text>
             <View style={{ gap: spacing.md }}>
-              {eventData.visibility === "private" && eventData.inviteCode && (
+              {eventData.inviteCode && (
                 <View
                   style={{
                     backgroundColor: colors.surfaceLight,
@@ -1488,7 +1550,7 @@ export default function EventDetailScreen() {
                   }}
                 >
                   <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 1, textTransform: "uppercase" }}>
-                    Invite Code
+                    Share Code
                   </Text>
                   <Text style={{ fontSize: 32, fontWeight: typography.weights.bold, color: colors.text, letterSpacing: 6 }}>
                     {eventData.inviteCode}
@@ -1497,7 +1559,7 @@ export default function EventDetailScreen() {
                     onPress={async () => {
                       if (eventData.inviteCode) {
                         await Clipboard.setStringAsync(eventData.inviteCode);
-                        Alert.alert("Copied", "Invite code copied to clipboard");
+                        Alert.alert("Copied", "Code copied to clipboard");
                       }
                     }}
                     style={({ pressed }) => ({
