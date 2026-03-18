@@ -1322,7 +1322,7 @@ export default function EventDetailScreen() {
             >
               <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
                 <Pressable
-                  onPress={rsvpStatus === "pending" ? undefined : () => handleRsvpChange("going")}
+                  onPress={() => handleRsvpChange("going")}
                   style={({ pressed }) => ({
                     flex: 1,
                     height: spacing.buttonHeightMd,
@@ -1427,7 +1427,7 @@ export default function EventDetailScreen() {
               }}
             >
               <Pressable
-                onPress={rsvpStatus === "pending" ? undefined : () => handleRsvpChange("going")}
+                onPress={() => handleRsvpChange("going")}
                 style={({ pressed }) => ({
                   flex: 1,
                   height: spacing.buttonHeightMd,
