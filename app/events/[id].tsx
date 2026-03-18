@@ -573,6 +573,8 @@ export default function EventDetailScreen() {
                   borderRadius: radius.full,
                   overflow: "hidden",
                   backgroundColor: "rgba(0,0,0,0.22)",
+                  zIndex: 20,
+                  elevation: 20,
                 }}
               >
                 <Pressable
@@ -590,7 +592,7 @@ export default function EventDetailScreen() {
                   <Ionicons
                     name={favorited ? "heart" : "heart-outline"}
                     size={22}
-                    color="#fff"
+                    color={favorited ? colors.coral : "rgba(255,255,255,0.9)"}
                   />
                 </Pressable>
               </BlurView>
