@@ -29,6 +29,6 @@ export function getEventStatusPill(
     case "cant":
       return { label: "Not going", color: colors.error, bg: "rgba(255,71,87,0.12)" };
     default:
-      return { label: "Going", color: colors.mint, bg: "rgba(78,205,196,0.15)" };
+      return undefined;
   }
 }
