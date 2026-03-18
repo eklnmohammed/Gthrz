@@ -23,7 +23,7 @@ import { colors } from "../src/theme/colors";
 import { spacing } from "../src/theme/spacing";
 import { radius } from "../src/theme/radius";
 import { typography } from "../src/theme/typography";
-import { formatEventDate } from "../src/utils/formatEventDate";
+import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
 import { clearPreferencesForPhone, clearPreferences } from "../src/utils/preferences";
 
@@ -228,7 +228,7 @@ export default function ProfileScreen() {
                   key={event.id}
                   eventId={event.id}
                   title={event.title}
-                  dateTime={formatEventDate(event.dateTime)}
+                  dateTime={formatEventDateForCards(event.dateTime)}
                   eventType={event.eventType}
                   coverKey={event.coverKey}
                   coverUrl={event.coverUrl}
@@ -306,7 +306,7 @@ export default function ProfileScreen() {
                   key={event.id}
                   eventId={event.id}
                   title={event.title}
-                  dateTime={formatEventDate(event.dateTime)}
+                  dateTime={formatEventDateForCards(event.dateTime)}
                   eventType={event.eventType}
                   coverKey={event.coverKey}
                   coverUrl={event.coverUrl}

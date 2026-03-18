@@ -15,7 +15,7 @@ import { radius } from "../src/theme/radius";
 import { EventType } from "../src/lib/supabase";
 import { recordEventView, recordJoinWithCode, getPreferenceScores, getTopEventTypes } from "../src/utils/preferences";
 import { onboardingStore } from "../src/state/onboardingStore";
-import { formatEventDate } from "../src/utils/formatEventDate";
+import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
 
 const LIST_PADDING_H = 16;
@@ -412,7 +412,7 @@ export default function DiscoverScreen() {
               <EventCard
                 eventId={event.id}
                 title={event.title}
-                dateTime={formatEventDate(event.dateTime)}
+                dateTime={formatEventDateForCards(event.dateTime)}
                 eventType={event.eventType}
                 coverKey={event.coverKey}
                 coverUrl={event.coverUrl}

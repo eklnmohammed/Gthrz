@@ -196,39 +196,40 @@ export function EventCard({
         >
           {dateTime}
         </Text>
-        {(statusPill || cancelled) && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: 6 }}>
-            {cancelled ? (
+        {/* Reserve space so cards with/without RSVP badges stay aligned */}
+        <View style={{ marginTop: 4, minHeight: 20, flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+          {(statusPill || cancelled) ? (
+            cancelled ? (
               <View
                 style={{
-                  paddingVertical: 3,
-                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  paddingHorizontal: 7,
                   borderRadius: radius.full,
-                  backgroundColor: "rgba(255,71,87,0.2)",
+                  backgroundColor: "rgba(255,71,87,0.16)",
                 }}
               >
-                <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: colors.error }}>
+                <Text style={{ fontSize: 9, fontWeight: typography.weights.medium, color: colors.error }}>
                   Cancelled
                 </Text>
               </View>
             ) : (
-              statusPill && (
+              statusPill && statusPill.label !== "Host" ? (
                 <View
                   style={{
-                    paddingVertical: 3,
-                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    paddingHorizontal: 7,
                     borderRadius: radius.full,
                     backgroundColor: statusPill.bg,
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: typography.weights.semibold, color: statusPill.color }}>
+                  <Text style={{ fontSize: 9, fontWeight: typography.weights.medium, color: statusPill.color }}>
                     {statusPill.label}
                   </Text>
                 </View>
-              )
-            )}
-          </View>
-        )}
+              ) : null
+            )
+          ) : null}
+        </View>
       </View>
     </>
   );

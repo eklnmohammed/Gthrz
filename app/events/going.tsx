@@ -17,7 +17,7 @@ import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
-import { formatEventDate } from "../../src/utils/formatEventDate";
+import { formatEventDateForCards } from "../../src/utils/formatEventDate";
 import { getEventStatusPill } from "../../src/utils/eventStatusPill";
 
 type Segment = "upcoming" | "past";
@@ -218,7 +218,7 @@ export default function GoingScreen() {
               <EventCard
                 eventId={event.id}
                 title={event.title}
-                dateTime={formatEventDate(event.dateTime)}
+                dateTime={formatEventDateForCards(event.dateTime)}
                 eventType={event.eventType}
                 coverKey={event.coverKey}
                 coverUrl={event.coverUrl}

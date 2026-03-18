@@ -22,3 +22,28 @@ export function formatEventDate(dateTime: string): string {
     return dateTime;
   }
 }
+
+/**
+ * Shorter date/time format for event cards.
+ * Example: "MAR 19 · 8:30 PM"
+ */
+export function formatEventDateForCards(dateTime: string): string {
+  try {
+    const d = new Date(dateTime);
+    if (isNaN(d.getTime())) return dateTime;
+
+    const months = "JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC";
+    const month = months.split(" ")[d.getMonth()];
+    const dayOfMonth = d.getDate();
+
+    const hours = d.getHours();
+    const mins = d.getMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const h = hours % 12 || 12;
+    const m = mins < 10 ? "0" + mins : mins;
+
+    return `${month} ${dayOfMonth} · ${h}:${m} ${ampm}`;
+  } catch {
+    return dateTime;
+  }
+}

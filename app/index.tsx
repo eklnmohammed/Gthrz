@@ -17,7 +17,7 @@ import { colors } from "../src/theme/colors";
 import { spacing } from "../src/theme/spacing";
 import { radius } from "../src/theme/radius";
 import { typography } from "../src/theme/typography";
-import { formatEventDate } from "../src/utils/formatEventDate";
+import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
 
 const CARD_WIDTH = 260;
@@ -312,7 +312,7 @@ export default function Home() {
                       key={event.id}
                       eventId={event.id}
                       title={event.title}
-                      dateTime={formatEventDate(event.dateTime)}
+                      dateTime={formatEventDateForCards(event.dateTime)}
                       eventType={event.eventType}
                       coverKey={event.coverKey}
                       coverUrl={event.coverUrl}
@@ -440,7 +440,7 @@ export default function Home() {
                     key={event.id}
                     eventId={event.id}
                     title={event.title}
-                    dateTime={formatEventDate(event.dateTime)}
+                    dateTime={formatEventDateForCards(event.dateTime)}
                     eventType={event.eventType}
                     coverKey={event.coverKey}
                     coverUrl={event.coverUrl}
@@ -569,7 +569,7 @@ export default function Home() {
                         key={event.id}
                         eventId={event.id}
                         title={event.title}
-                        dateTime={formatEventDate(event.dateTime)}
+                        dateTime={formatEventDateForCards(event.dateTime)}
                         eventType={event.eventType}
                         coverKey={event.coverKey}
                         coverUrl={event.coverUrl}
@@ -697,7 +697,7 @@ export default function Home() {
                           key={event.id}
                           eventId={event.id}
                           title={event.title}
-                          dateTime={formatEventDate(event.dateTime)}
+                          dateTime={formatEventDateForCards(event.dateTime)}
                           eventType={event.eventType}
                           coverKey={event.coverKey}
                           coverUrl={event.coverUrl}
