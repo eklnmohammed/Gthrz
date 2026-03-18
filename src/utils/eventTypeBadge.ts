@@ -16,6 +16,6 @@ export function getEventTypeLabel(eventType?: EventType): { emoji: string; label
       return { emoji: "🌙", label: "Ramadan" };
     case "party":
     default:
-      return { emoji: "🎉", label: "Gathering" };
+      return { emoji: "🎉", label: "Party" };
   }
 }

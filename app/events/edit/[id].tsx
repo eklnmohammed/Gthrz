@@ -821,7 +821,7 @@ export default function EditEventScreen() {
             placeholder="e.g., Community BBQ"
           />
 
-          {/* Event type — one row, compact chips (store as party/birthday/...; UI shows Gathering for party) */}
+          {/* Event type — one row, compact chips */}
           <View style={{ gap: spacing.sm }}>
             <Text
               style={{

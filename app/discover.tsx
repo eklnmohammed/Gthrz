@@ -24,7 +24,7 @@ const GRID_GAP = 12;
 /** Tab order for Discover: All + event types (Open-style). */
 const DISCOVER_TABS: Array<{ value: EventType | "all"; label: string }> = [
   { value: "all", label: "All" },
-  { value: "party", label: "Gathering" },
+  { value: "party", label: "Party" },
   { value: "birthday", label: "Birthday" },
   { value: "wedding", label: "Wedding" },
   { value: "graduation", label: "Graduation" },
