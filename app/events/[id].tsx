@@ -110,6 +110,9 @@ export default function EventDetailScreen() {
   const [detailsCollapsed, setDetailsCollapsed] = useState(true);
   const [contributions, setContributions] = useState<{ id: string; title: string; assigned_user_phone: string | null; status: "open" | "done" }[]>([]);
   const [newContribTitle, setNewContribTitle] = useState("");
+  const CONTRIB_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
+  const [bringToast, setBringToast] = useState<null | { contribId: string; itemTitle: string }>(null);
+  const bringToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [goingProfiles, setGoingProfiles] = useState<Record<string, UserProfile | null>>({});
   const [guestProfiles, setGuestProfiles] = useState<Record<string, UserProfile | null>>({});
   const [avatarRowWidth, setAvatarRowWidth] = useState<number>(280);
@@ -338,6 +341,31 @@ export default function EventDetailScreen() {
     })));
   }, [params.id, getContributions]);
 
+  const clearBringToast = () => {
+    if (bringToastTimeoutRef.current) {
+      clearTimeout(bringToastTimeoutRef.current);
+      bringToastTimeoutRef.current = null;
+    }
+    setBringToast(null);
+  };
+
+  const showBringToast = (contribId: string, itemTitle: string) => {
+    clearBringToast();
+    setBringToast({ contribId, itemTitle });
+    bringToastTimeoutRef.current = setTimeout(() => {
+      setBringToast(null);
+      bringToastTimeoutRef.current = null;
+    }, 5000);
+  };
+
+  const undoBringToast = async () => {
+    if (!bringToast) return;
+    const contribId = bringToast.contribId;
+    clearBringToast();
+    await assignContribution(contribId, null);
+    await refetchContribs();
+  };
+
   const performRemoveRsvp = useCallback(async () => {
     if (!params.id) return;
     rsvpChangeGenerationRef.current += 1;
@@ -511,6 +539,47 @@ export default function EventDetailScreen() {
           ),
         }}
       />
+
+      {bringToast && (
+        <View
+          style={{
+            position: "absolute",
+            left: spacing.xxl,
+            right: spacing.xxl,
+            bottom: isHostMode || isCancelled ? insets.bottom + spacing.xl : RSVP_BAR_HEIGHT + insets.bottom + spacing.md,
+            zIndex: 80,
+          }}
+          pointerEvents="box-none"
+        >
+          <View
+            style={{
+              backgroundColor: colors.surfaceLight,
+              borderRadius: radius.xl,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md,
+              borderWidth: 0.5,
+              borderColor: colors.border,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: spacing.md,
+            }}
+          >
+            <Text style={{ flex: 1, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }} numberOfLines={1}>
+              You'll bring {bringToast.itemTitle}
+            </Text>
+            <Pressable
+              onPress={() => { undoBringToast(); }}
+              hitSlop={10}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            >
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.primary }}>
+                Undo
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       <ScrollView
         style={{ flex: 1 }}
@@ -1155,7 +1224,7 @@ export default function EventDetailScreen() {
             </View>
           )}
 
-          {/* Contributions */}
+          {/* Bring */}
           {(isHostMode || rsvpsByStatus.going.some((r) => r.user_phone === userPhone)) && (
             <View style={{ marginBottom: spacing.lg }}>
               <Text
@@ -1166,16 +1235,15 @@ export default function EventDetailScreen() {
                   marginBottom: spacing.sm,
                 }}
               >
-                Contributions
+                Bring
               </Text>
               {contributions.length === 0 && (
                 <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, marginBottom: spacing.sm }}>
-                  No items yet{isHostMode ? " — add one below" : ""}
+                  No items yet
                 </Text>
               )}
               {contributions.map((c) => {
                 const isAssignedToMe = c.assigned_user_phone === userPhone;
-                const isOpen = c.status === "open";
                 const assigneeName = c.assigned_user_phone
                   ? (goingProfiles[c.assigned_user_phone] ? getDisplayName(goingProfiles[c.assigned_user_phone] ?? null, c.assigned_user_phone) : c.assigned_user_phone)
                   : null;
@@ -1183,20 +1251,43 @@ export default function EventDetailScreen() {
                   ? "Done"
                   : assigneeName
                     ? `Assigned to ${assigneeName}`
-                    : "Unassigned";
-                return (
-                  <View
-                    key={c.id}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingVertical: spacing.md,
-                      borderBottomWidth: 0.5,
-                      borderBottomColor: colors.border,
-                      gap: spacing.sm,
-                    }}
-                  >
+                    : "No one yet";
+
+                const rowBaseStyle = {
+                  flexDirection: "row" as const,
+                  alignItems: "center" as const,
+                  justifyContent: "space-between" as const,
+                  paddingVertical: spacing.lg,
+                  borderBottomWidth: 0.5,
+                  borderBottomColor: colors.border,
+                  gap: spacing.sm,
+                };
+
+                const openContribSheet = () => {
+                  setSelectedContribId(c.id);
+                  setShowContribManageSheet(true);
+                };
+
+                const guestActionPillStyle = {
+                  minHeight: 24,
+                  paddingVertical: spacing.xs,
+                  paddingHorizontal: spacing.sm,
+                  borderRadius: radius.sm,
+                  backgroundColor: colors.surfaceLight,
+                  borderWidth: 0.5,
+                  borderColor: colors.border,
+                  alignItems: "center" as const,
+                  justifyContent: "center" as const,
+                };
+
+                const guestActionPillTextStyle = {
+                  fontSize: typography.sizes.xs,
+                  fontWeight: typography.weights.medium,
+                  color: colors.textMuted,
+                };
+
+                const rowContent = (
+                  <>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text
                         style={{
@@ -1220,36 +1311,104 @@ export default function EventDetailScreen() {
                         {statusText}
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() => {
-                        setSelectedContribId(c.id);
-                        setShowContribManageSheet(true);
-                      }}
-                      style={({ pressed }) => ({
-                        paddingVertical: spacing.xs,
-                        paddingHorizontal: spacing.sm,
-                        borderRadius: radius.sm,
-                        backgroundColor: colors.surfaceLight,
-                        borderWidth: 0.5,
-                        borderColor: colors.border,
-                        opacity: pressed ? 0.8 : 1,
-                      })}
-                    >
-                      <Text
-                        style={{
-                          fontSize: typography.sizes.xs,
-                          fontWeight: typography.weights.medium,
-                          color: colors.textMuted,
-                        }}
+
+                    {!isHostMode && (
+                      <View style={{ alignItems: "flex-end", justifyContent: "center", minWidth: 84 }}>
+                        {!c.assigned_user_phone && c.status === "open" ? (
+                          <Pressable
+                            onPress={openContribSheet}
+                            style={({ pressed }) => [guestActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
+                          >
+                            <Text style={guestActionPillTextStyle}>Claim</Text>
+                          </Pressable>
+                        ) : c.assigned_user_phone === userPhone && c.status === "open" ? (
+                          <Pressable
+                            onPress={openContribSheet}
+                            style={({ pressed }) => [guestActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
+                          >
+                            <Text style={guestActionPillTextStyle}>✓ Claimed</Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    )}
+
+                    {isHostMode && (
+                      <Pressable
+                        onPress={openContribSheet}
+                        style={({ pressed }) => ({
+                          paddingVertical: spacing.xs,
+                          paddingHorizontal: spacing.sm,
+                          borderRadius: radius.sm,
+                          backgroundColor: colors.surfaceLight,
+                          borderWidth: 0.5,
+                          borderColor: colors.border,
+                          opacity: pressed ? 0.8 : 1,
+                        })}
                       >
-                        Manage
-                      </Text>
+                        <Text
+                          style={{
+                            fontSize: typography.sizes.xs,
+                            fontWeight: typography.weights.medium,
+                            color: colors.textMuted,
+                          }}
+                        >
+                          Manage
+                        </Text>
+                      </Pressable>
+                    )}
+                  </>
+                );
+
+                // Guests: tap the whole row to open the same sheet (which shows "Claim").
+                // Hosts: keep the explicit "Manage" button to avoid tap+button duplication.
+                if (!isHostMode) {
+                  return (
+                    <Pressable
+                      key={c.id}
+                      onPress={openContribSheet}
+                      style={({ pressed }) => [
+                        rowBaseStyle,
+                        {
+                          opacity: pressed ? 0.9 : 1,
+                        },
+                      ]}
+                    >
+                      {rowContent}
                     </Pressable>
+                  );
+                }
+
+                return (
+                  <View key={c.id} style={rowBaseStyle}>
+                    {rowContent}
                   </View>
                 );
               })}
               {isHostMode && (
-                <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs }}>
+                <View style={{ marginTop: spacing.xs, gap: spacing.xs }}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xs }}
+                  >
+                    {CONTRIB_SUGGESTIONS.map((s) => (
+                      <Pressable
+                        key={s}
+                        onPress={() => setNewContribTitle(s)}
+                        style={({ pressed }) => ({
+                          paddingVertical: spacing.xs,
+                          paddingHorizontal: spacing.sm,
+                          borderRadius: 999,
+                          backgroundColor: newContribTitle === s ? colors.primary : (pressed ? colors.surfaceLight : colors.surfaceLight),
+                          borderWidth: 0.5,
+                          borderColor: newContribTitle === s ? colors.primary : colors.border,
+                        })}
+                      >
+                        <Text style={{ fontSize: typography.sizes.xs, color: newContribTitle === s ? colors.text : colors.textMuted }}>{s}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                <View style={{ flexDirection: "row", gap: spacing.sm }}>
                   <TextInput
                     value={newContribTitle}
                     onChangeText={setNewContribTitle}
@@ -1289,6 +1448,7 @@ export default function EventDetailScreen() {
                   >
                     <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Add</Text>
                   </Pressable>
+                </View>
                 </View>
               )}
             </View>
@@ -1649,7 +1809,6 @@ export default function EventDetailScreen() {
                     setCancelReasonInput("");
                     setShowCancelReasonModal(true);
                   }}
-                  variant="secondary"
                   fullWidth
                 />
               )}
@@ -1973,7 +2132,7 @@ export default function EventDetailScreen() {
                   <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg }} />
                   <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.sm }} numberOfLines={2}>{c.title}</Text>
                   <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginBottom: spacing.lg }}>
-                    {c.status === "done" ? "Done" : assigneeName ? `Assigned to ${assigneeName}` : "Unassigned"}
+                    {c.status === "done" ? "Done" : assigneeName ? `Assigned to ${assigneeName}` : "No one yet"}
                   </Text>
                   <View style={{ gap: spacing.sm }}>
                     {isHostMode && (
@@ -2006,10 +2165,32 @@ export default function EventDetailScreen() {
                     )}
                     {!isHostMode && isOpen && !c.assigned_user_phone && (
                       <Pressable
-                        onPress={() => assignContribution(c.id, userPhone).then(() => { refetchContribs(); setShowContribManageSheet(false); setSelectedContribId(null); })}
+                        onPress={() =>
+                          assignContribution(c.id, userPhone).then(() => {
+                            refetchContribs();
+                            showBringToast(c.id, c.title);
+                            setShowContribManageSheet(false);
+                            setSelectedContribId(null);
+                          })
+                        }
                         style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.primary }}
                       >
                         <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Claim</Text>
+                      </Pressable>
+                    )}
+                    {!isHostMode && isAssignedToMe && (
+                      <Pressable
+                        onPress={() =>
+                          assignContribution(c.id, null).then(() => {
+                            refetchContribs();
+                            clearBringToast();
+                            setShowContribManageSheet(false);
+                            setSelectedContribId(null);
+                          })
+                        }
+                        style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border }}
+                      >
+                        <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted }}>Unclaim</Text>
                       </Pressable>
                     )}
                     {isHostMode && (
