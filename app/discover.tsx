@@ -118,7 +118,11 @@ export default function DiscoverScreen() {
 
   // Filter and sort logic
   const getFilteredAndSortedEvents = (): Event[] => {
-    let filtered = publicEvents;
+    // Hide current user's own hosted public events (Discover is for others' events only)
+    let filtered =
+      userPhone.length > 0
+        ? publicEvents.filter((e) => e.hostPhone !== userPhone)
+        : publicEvents;
 
     // 1. Apply search filter (title or location)
     if (searchQuery.trim()) {
