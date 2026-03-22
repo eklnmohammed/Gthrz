@@ -1268,8 +1268,10 @@ export default function EventDetailScreen() {
                   setShowContribManageSheet(true);
                 };
 
-                const guestActionPillStyle = {
-                  minHeight: 24,
+                /** Shared Bring row action pill (host Manage + guest Claim / Claimed). */
+                const bringActionPillStyle = {
+                  minHeight: 28,
+                  minWidth: 88,
                   paddingVertical: spacing.xs,
                   paddingHorizontal: spacing.sm,
                   borderRadius: radius.sm,
@@ -1278,12 +1280,15 @@ export default function EventDetailScreen() {
                   borderColor: colors.border,
                   alignItems: "center" as const,
                   justifyContent: "center" as const,
+                  alignSelf: "center" as const,
                 };
 
-                const guestActionPillTextStyle = {
+                const bringActionPillTextStyle = {
                   fontSize: typography.sizes.xs,
                   fontWeight: typography.weights.medium,
                   color: colors.textMuted,
+                  textAlign: "center" as const,
+                  includeFontPadding: false,
                 };
 
                 const rowContent = (
@@ -1317,44 +1322,30 @@ export default function EventDetailScreen() {
                         {!c.assigned_user_phone && c.status === "open" ? (
                           <Pressable
                             onPress={openContribSheet}
-                            style={({ pressed }) => [guestActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
+                            style={({ pressed }) => [bringActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
                           >
-                            <Text style={guestActionPillTextStyle}>Claim</Text>
+                            <Text style={bringActionPillTextStyle}>Claim</Text>
                           </Pressable>
                         ) : c.assigned_user_phone === userPhone && c.status === "open" ? (
                           <Pressable
                             onPress={openContribSheet}
-                            style={({ pressed }) => [guestActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
+                            style={({ pressed }) => [bringActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
                           >
-                            <Text style={guestActionPillTextStyle}>✓ Claimed</Text>
+                            <Text style={bringActionPillTextStyle}>Claimed</Text>
                           </Pressable>
                         ) : null}
                       </View>
                     )}
 
                     {isHostMode && (
-                      <Pressable
-                        onPress={openContribSheet}
-                        style={({ pressed }) => ({
-                          paddingVertical: spacing.xs,
-                          paddingHorizontal: spacing.sm,
-                          borderRadius: radius.sm,
-                          backgroundColor: colors.surfaceLight,
-                          borderWidth: 0.5,
-                          borderColor: colors.border,
-                          opacity: pressed ? 0.8 : 1,
-                        })}
-                      >
-                        <Text
-                          style={{
-                            fontSize: typography.sizes.xs,
-                            fontWeight: typography.weights.medium,
-                            color: colors.textMuted,
-                          }}
+                      <View style={{ alignItems: "flex-end", justifyContent: "center", minWidth: 84 }}>
+                        <Pressable
+                          onPress={openContribSheet}
+                          style={({ pressed }) => [bringActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
                         >
-                          Manage
-                        </Text>
-                      </Pressable>
+                          <Text style={bringActionPillTextStyle}>Manage</Text>
+                        </Pressable>
+                      </View>
                     )}
                   </>
                 );

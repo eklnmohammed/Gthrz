@@ -15,6 +15,7 @@ import {
   StatusBar,
   Switch,
   useWindowDimensions,
+  TextInput,
 } from "react-native";
 import { router, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -59,7 +60,7 @@ const HERO_PADDING_H = spacing.xxl;
 const HERO_RADIUS = 24;
 
 export default function CreateEventScreen() {
-  const { createEvent } = useEvents();
+  const { createEvent, addContribution } = useEvents();
   const insets = useSafeAreaInsets();
 
   const [title, setTitle] = useState("");
@@ -108,8 +109,11 @@ export default function CreateEventScreen() {
   const [dressCodeSheetTemp, setDressCodeSheetTemp] = useState<string>("");
   const [dressCodeSheetCustom, setDressCodeSheetCustom] = useState<string>("");
   const [audience, setAudience] = useState<string>("");
+  const [bringItems, setBringItems] = useState<string[]>([]);
+  const [bringInput, setBringInput] = useState("");
 
   const AUDIENCE_OPTIONS = ["Men only", "Mixed", "Women only"];
+  const BRING_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
 
   const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Thobe", "Abaya", "Traditional", "Other"];
   const dressCodeValue = dressCode === "Other" ? dressCodeCustom.trim() : dressCode;
@@ -292,7 +296,7 @@ export default function CreateEventScreen() {
     setCreating(true);
     try {
       const phone = await onboardingStore.getPhone();
-      await createEvent({
+      const eventId = await createEvent({
         title: title.trim(),
         dateTime: selectedDate.toISOString(),
         locationName: locationData.name.trim() || undefined,
@@ -322,6 +326,9 @@ export default function CreateEventScreen() {
         dressCode: dressCodeValue || undefined,
         audience: audience || undefined,
       });
+      if (eventId && bringItems.length > 0) {
+        await Promise.all(bringItems.map((item) => addContribution(eventId, item)));
+      }
       setCreating(false);
       Alert.alert("Event created", "Your event is ready.", [
         { text: "OK", onPress: () => router.replace("/events") },
@@ -1270,6 +1277,92 @@ export default function CreateEventScreen() {
                 </View>
               </>
             ))}
+
+        {/* ── Bring ── */}
+        {sectionCard("Bring", (
+          <>
+            <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
+              Add items guests can bring
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xs }}
+            >
+              {BRING_SUGGESTIONS.map((s) => {
+                const alreadyAdded = bringItems.includes(s);
+                return (
+                  <Pressable
+                    key={s}
+                    onPress={() => {
+                      if (!alreadyAdded) setBringItems((prev) => [...prev, s]);
+                    }}
+                    style={({ pressed }) => ({
+                      paddingVertical: spacing.xs,
+                      paddingHorizontal: spacing.sm,
+                      borderRadius: 999,
+                      backgroundColor: alreadyAdded ? colors.primary : (pressed ? colors.surfaceLight : colors.surfaceLight),
+                      borderWidth: 0.5,
+                      borderColor: alreadyAdded ? colors.primary : colors.border,
+                    })}
+                  >
+                    <Text style={{ fontSize: typography.sizes.xs, color: alreadyAdded ? colors.text : colors.textMuted }}>
+                      {s}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs }}>
+              <TextInput
+                value={bringInput}
+                onChangeText={setBringInput}
+                placeholder="Add custom item"
+                placeholderTextColor={colors.textDim}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.surfaceLight,
+                  borderRadius: radius.md,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  fontSize: typography.sizes.sm,
+                  color: colors.text,
+                  borderWidth: 0.5,
+                  borderColor: colors.border,
+                }}
+              />
+              <Pressable
+                onPress={() => {
+                  const t = bringInput.trim();
+                  if (!t) return;
+                  if (!bringItems.includes(t)) setBringItems((prev) => [...prev, t]);
+                  setBringInput("");
+                }}
+                style={({ pressed }) => ({
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: pressed ? colors.primaryDark : colors.primary,
+                  justifyContent: "center",
+                })}
+              >
+                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Add</Text>
+              </Pressable>
+            </View>
+            {bringItems.length > 0 && (
+              <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
+                {bringItems.map((item) => (
+                  <View key={item} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.surfaceLight, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderWidth: 0.5, borderColor: colors.border }}>
+                    <Text style={{ fontSize: typography.sizes.sm, color: colors.text }}>{item}</Text>
+                    <Pressable onPress={() => setBringItems((prev) => prev.filter((x) => x !== item))}>
+                      <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>✕</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        ))}
       </ScrollView>
 
       {/* ── Sticky CTA: Create event → ── */}

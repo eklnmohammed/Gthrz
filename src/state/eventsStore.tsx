@@ -78,7 +78,7 @@ interface EventsContextType {
     hideGuestAvatars?: boolean;
     dressCode?: string;
     audience?: string;
-  }) => Promise<void>;
+  }) => Promise<string | undefined>;
   updateEvent: (
     id: string,
     event: {
@@ -310,7 +310,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           if (!insertError && data) {
             const newEvent = convertSupabaseEvent(data);
             setEvents((prev) => [newEvent, ...prev]);
-            return;
+            return data.id as string;
           }
 
           // Check if error is unique constraint violation on invite_code
