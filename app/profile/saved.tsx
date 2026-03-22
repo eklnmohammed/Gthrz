@@ -76,10 +76,9 @@ export default function SavedScreen() {
   });
 
   const handleEventPress = (event: Event) => {
-    const isHost = event.hostPhone === userPhone;
     router.push({
       pathname: "/events/[id]",
-      params: { id: event.id, mode: isHost ? "host" : "guest" },
+      params: { id: event.id },
     });
   };
 

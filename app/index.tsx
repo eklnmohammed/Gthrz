@@ -117,12 +117,10 @@ export default function Home() {
     hostPhone?: string;
     attendingStatus?: "going" | "pending" | "maybe" | "cant";
   }) => {
-    const isHost = event.hostPhone === userPhone;
     router.push({
       pathname: "/events/[id]",
       params: {
         id: event.id,
-        mode: isHost ? "host" : "guest",
         title: event.title,
         dateTime: event.dateTime,
         location: event.location || "",
@@ -318,7 +316,7 @@ export default function Home() {
                       coverUrl={event.coverUrl}
                       onPress={() => {
                         if (event.eventType) recordEventView(event.eventType, userPhone);
-                        router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
+                        router.push({ pathname: "/events/[id]", params: { id: event.id } });
                       }}
                       statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
                       cancelled={eventForCard.status === "cancelled"}
@@ -575,7 +573,7 @@ export default function Home() {
                         coverUrl={event.coverUrl}
                         onPress={() => {
                           if (event.eventType) recordEventView(event.eventType, userPhone);
-                          router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
+                          router.push({ pathname: "/events/[id]", params: { id: event.id } });
                         }}
                         statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
                         cancelled={eventForCard.status === "cancelled"}
@@ -703,7 +701,7 @@ export default function Home() {
                           coverUrl={event.coverUrl}
                           onPress={() => {
                             if (event.eventType) recordEventView(event.eventType, userPhone);
-                            router.push({ pathname: "/events/[id]", params: { id: event.id, mode: "guest" } });
+                            router.push({ pathname: "/events/[id]", params: { id: event.id } });
                           }}
                           statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
                           cancelled={eventForCard.status === "cancelled"}
@@ -815,7 +813,7 @@ export default function Home() {
         onClose={() => setShowJoinModal(false)}
         onJoined={(id, eventType) => {
           if (eventType && userPhone) recordJoinWithCode(eventType as EventType, userPhone);
-          router.push({ pathname: "/events/[id]", params: { id, mode: "guest" } });
+          router.push({ pathname: "/events/[id]", params: { id } });
         }}
       />
 

@@ -72,11 +72,10 @@ export default function ProfileScreen() {
     : "—";
   const displayPhone = phone || profile?.phone || "—";
 
-  const handleEventPress = (event: { id: string; hostPhone?: string }) => {
-    const isHost = event.hostPhone === phone;
+  const handleEventPress = (event: { id: string }) => {
     router.push({
       pathname: "/events/[id]",
-      params: { id: event.id, mode: isHost ? "host" : "guest" },
+      params: { id: event.id },
     });
   };
 

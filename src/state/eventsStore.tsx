@@ -526,11 +526,12 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       try {
         const { data: eventRow } = await supabase
           .from("events")
-          .select("capacity, approval_required")
+          .select("capacity, approval_required, visibility")
           .eq("id", eventId)
           .single();
 
         const approvalRequired = eventRow?.approval_required ?? false;
+        const isPublic = eventRow?.visibility === "public";
         const effectiveStatus: "going" | "maybe" | "cant" | "pending" =
           status === "going" && approvalRequired ? "pending" : status;
 
@@ -557,7 +558,11 @@ export function EventsProvider({ children }: { children: ReactNode }) {
                 (sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0
               );
               if (goingCount >= capacity) {
-                throw new Error("This event is full. You can RSVP as Maybe to stay updated.");
+                throw new Error(
+                  isPublic
+                    ? "This event is full."
+                    : "This event is full. You can RSVP as Maybe to stay updated."
+                );
               }
             }
           }

@@ -83,12 +83,10 @@ export default function EventsScreen() {
     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
 
   const handleEventPress = (event: Event) => {
-    const isHost = event.hostPhone === userPhone;
     router.push({
       pathname: "/events/[id]",
       params: {
         id: event.id,
-        mode: isHost ? "host" : "guest",
         title: event.title,
         dateTime: event.dateTime,
         location: event.location || "",
@@ -464,9 +462,10 @@ export default function EventsScreen() {
       <JoinWithCodeModal
         visible={showJoinModal}
         onClose={() => setShowJoinModal(false)}
-        onJoined={() => {
+        onJoined={(id) => {
           setShowJoinModal(false);
           fetchEvents();
+          router.push({ pathname: "/events/[id]", params: { id } });
         }}
       />
     </Screen>

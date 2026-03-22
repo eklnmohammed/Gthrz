@@ -49,9 +49,9 @@ function getDisplayName(profile: UserProfile | null | undefined, phone: string):
 type RsvpStatus = "cant" | "maybe" | "going" | "pending" | null;
 
 export default function EventDetailScreen() {
+  // Host vs guest rendering is derived from `eventData.hostPhone === userPhone` (DB source of truth).
   const params = useLocalSearchParams<{
     id?: string;
-    mode?: string;
     title?: string;
     dateTime?: string;
     location?: string;
@@ -402,17 +402,17 @@ export default function EventDetailScreen() {
     if (isSameState) {
       if (rsvpStatus === "pending") {
         Alert.alert(
-          "Cancel request?",
-          "Your join request will be removed.",
+          "Cancel your request?",
+          "Your pending request will be removed.",
           [
-            { text: "Keep waiting", style: "cancel" },
+            { text: "Keep request", style: "cancel" },
             { text: "Cancel request", style: "destructive", onPress: performRemoveRsvp },
           ]
         );
       } else {
         Alert.alert(
-          "Leave event?",
-          "You'll be removed from the guest list.",
+          "Leave this event?",
+          "You'll be removed from the going list.",
           [
             { text: "Cancel", style: "cancel" },
             { text: "Leave", style: "destructive", onPress: performRemoveRsvp },
@@ -447,7 +447,6 @@ export default function EventDetailScreen() {
       pathname: "/events/[id]",
       params: {
         id: params.id,
-        mode: "guest",
         title: eventData.title,
         dateTime: eventData.dateTime,
         location: eventData.location,
@@ -1577,25 +1576,27 @@ export default function EventDetailScreen() {
             >
               {rsvpStatus && !showRsvpOptions ? (
                 <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
-                  <View
-                    style={{
+                  <Pressable
+                    onPress={() => handleRsvpChange(rsvpStatus)}
+                    style={({ pressed }) => ({
                       flex: 1,
                       height: spacing.buttonHeightMd,
                       borderRadius: radius.lg,
                       backgroundColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : rsvpStatus === "going" ? colors.surfaceLight
+                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.surfaceLight
                             : colors.surfaceLighter,
                       borderWidth: 1,
                       borderColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : rsvpStatus === "going" ? colors.border
+                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.border
                             : colors.textMuted,
                       alignItems: "center",
                       justifyContent: "center",
                       flexDirection: "row",
                       gap: spacing.xs,
-                    }}
+                      opacity: pressed ? 0.85 : 1,
+                    })}
                   >
                     {rsvpStatus !== "pending" && (
                       <Ionicons name="checkmark" size={18} color={colors.text} />
@@ -1608,12 +1609,13 @@ export default function EventDetailScreen() {
                       }}
                     >
                       {rsvpStatus === "pending" ? "Pending"
-                        : rsvpStatus === "going" ? "Going"
-                          : rsvpStatus === "maybe" ? "Maybe"
-                            : "Not going"}
+                        : eventData.visibility === "public" ? "Going"
+                          : rsvpStatus === "going" ? "Going"
+                            : rsvpStatus === "maybe" ? "Maybe"
+                              : "Not going"}
                     </Text>
-                  </View>
-                  {rsvpStatus !== "pending" && (
+                  </Pressable>
+                  {rsvpStatus !== "pending" && eventData.visibility !== "public" && (
                     <Pressable
                       onPress={() => setShowRsvpOptions(true)}
                       style={({ pressed }) => ({
@@ -1732,25 +1734,27 @@ export default function EventDetailScreen() {
             >
               {rsvpStatus && !showRsvpOptions ? (
                 <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
-                  <View
-                    style={{
+                  <Pressable
+                    onPress={() => handleRsvpChange(rsvpStatus)}
+                    style={({ pressed }) => ({
                       flex: 1,
                       height: spacing.buttonHeightMd,
                       borderRadius: radius.lg,
                       backgroundColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : rsvpStatus === "going" ? colors.surfaceLight
+                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.surfaceLight
                             : colors.surfaceLighter,
                       borderWidth: 1,
                       borderColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : rsvpStatus === "going" ? colors.border
+                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.border
                             : colors.textMuted,
                       alignItems: "center",
                       justifyContent: "center",
                       flexDirection: "row",
                       gap: spacing.xs,
-                    }}
+                      opacity: pressed ? 0.85 : 1,
+                    })}
                   >
                     {rsvpStatus !== "pending" && (
                       <Ionicons name="checkmark" size={18} color={colors.text} />
@@ -1763,12 +1767,13 @@ export default function EventDetailScreen() {
                       }}
                     >
                       {rsvpStatus === "pending" ? "Pending"
-                        : rsvpStatus === "going" ? "Going"
-                          : rsvpStatus === "maybe" ? "Maybe"
-                            : "Not going"}
+                        : eventData.visibility === "public" ? "Going"
+                          : rsvpStatus === "going" ? "Going"
+                            : rsvpStatus === "maybe" ? "Maybe"
+                              : "Not going"}
                     </Text>
-                  </View>
-                  {rsvpStatus !== "pending" && (
+                  </Pressable>
+                  {rsvpStatus !== "pending" && eventData.visibility !== "public" && (
                     <Pressable
                       onPress={() => setShowRsvpOptions(true)}
                       style={({ pressed }) => ({
