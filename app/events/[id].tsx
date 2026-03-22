@@ -1,5 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, ScrollView, Pressable, Alert, Platform, ImageBackground, Image, Dimensions, Linking, TextInput, Share, Switch } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  Alert,
+  ImageBackground,
+  Image,
+  Dimensions,
+  Linking,
+  TextInput,
+  Share,
+  Platform,
+  Modal,
+} from "react-native";
 import { useLocalSearchParams, router, Stack, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,7 +40,6 @@ import { formatEventDate } from "../../src/utils/formatEventDate";
 import { getCoverSource } from "../../src/utils/covers";
 import { isValidCoverUrl } from "../../src/utils/coverUrl";
 import { formatLineupTimeRange } from "../../src/utils/lineupTime";
-import { Modal } from "react-native";
 
 const RSVP_BAR_HEIGHT = spacing.buttonHeightMd + spacing.sm * 2;
 const SHEET_RADIUS = 24;
@@ -882,161 +895,20 @@ export default function EventDetailScreen() {
             style={{
               fontSize: typography.sizes.sm,
               color: colors.textMuted,
-              marginBottom: spacing.xl,
+              marginBottom: 0,
             }}
           >
             {typeLabel.emoji} {typeLabel.label} · {formatEventDate(eventDateTime)}
           </Text>
 
-          {/* Cancelled banner */}
-          {isCancelled && (
-            <View
-              style={{
-                backgroundColor: "rgba(255,90,90,0.1)",
-                borderRadius: radius.md,
-                borderWidth: 0.5,
-                borderColor: "rgba(255,90,90,0.3)",
-                paddingVertical: spacing.md,
-                paddingHorizontal: spacing.lg,
-                marginBottom: spacing.lg,
-                gap: spacing.xs,
-              }}
-            >
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.error }}>
-                This event has been cancelled.
-              </Text>
-              {eventData.cancellationReason && eventData.cancellationReason.trim() && (
-                <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, lineHeight: 20 }}>
-                  {eventData.cancellationReason.trim()}
-                </Text>
-              )}
-            </View>
-          )}
-
-          {/* About (top-level, always visible) */}
-          <View style={{ marginTop: spacing.md, marginBottom: spacing.xl }}>
-            <Text
-              style={{
-                fontSize: typography.sizes.sm,
-                fontWeight: typography.weights.semibold,
-                color: colors.textMuted,
-                marginBottom: spacing.xs,
-              }}
-            >
-              About
-            </Text>
-            <Text
-              style={{
-                fontSize: typography.sizes.md,
-                color: colors.text,
-                lineHeight: 24,
-              }}
-            >
-              {eventData.details || "Looking forward to seeing you there. Come enjoy the evening with us."}
-            </Text>
-          </View>
-
-          {/* Subtle divider for visual rhythm */}
           <View
             style={{
               height: 1,
               backgroundColor: colors.overlayWhite10,
-              marginVertical: spacing.md,
+              marginTop: spacing.lg,
+              marginBottom: spacing.sm,
             }}
           />
-
-          {/* Dress code — only shown if set */}
-          {eventData.dressCode ? (
-            <View style={{ marginBottom: spacing.lg }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
-                Dress code
-              </Text>
-              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
-                {eventData.dressCode}
-              </Text>
-              {!eventData.audience ? (
-                <View
-                  style={{
-                    height: 1,
-                    backgroundColor: colors.overlayWhite10,
-                    marginTop: spacing.md,
-                    marginBottom: spacing.lg,
-                  }}
-                />
-              ) : null}
-            </View>
-          ) : null}
-
-          {/* Audience — only shown if set */}
-          {eventData.audience ? (
-            <View style={{ marginBottom: spacing.lg }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
-                Audience
-              </Text>
-              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
-                {eventData.audience}
-              </Text>
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: colors.overlayWhite10,
-                  marginTop: spacing.md,
-                  marginBottom: 0,
-                }}
-              />
-            </View>
-          ) : null}
-
-          {/* Bring a guest (+1) — event detail row; toggle only when guest is Going */}
-          {eventData.allowPlusOne ? (
-            <View style={{ marginBottom: spacing.lg }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: spacing.md,
-                }}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.md,
-                      fontWeight: typography.weights.semibold,
-                      color: colors.text,
-                    }}
-                  >
-                    Bring a guest
-                  </Text>
-                </View>
-                {!isHostMode && !isCancelled && rsvpStatus === "going" ? (
-                  <Switch
-                    value={userPlusOne}
-                    onValueChange={async (next) => {
-                      if (!params.id) return;
-                      setUserPlusOne(next);
-                      try {
-                        await setPlusOne(params.id, userPhone, next);
-                        await refetchGoingCount();
-                      } catch {
-                        setUserPlusOne(!next);
-                      }
-                    }}
-                    trackColor={{ false: colors.surfaceLight, true: "rgba(78,205,196,0.35)" }}
-                    thumbColor={Platform.OS === "android" ? colors.text : undefined}
-                  />
-                ) : null}
-              </View>
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: colors.overlayWhite10,
-                  marginTop: spacing.md,
-                  marginBottom: 0,
-                }}
-              />
-            </View>
-          ) : null}
 
           {/* Who's coming — as many avatars as fit before "See all" (right-aligned) */}
           <Pressable
@@ -1045,8 +917,8 @@ export default function EventDetailScreen() {
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: spacing.xl,
-              paddingVertical: spacing.md,
+              marginBottom: spacing.sm,
+              paddingVertical: spacing.sm,
               opacity: pressed ? 0.7 : 1,
             })}
           >
@@ -1163,7 +1035,127 @@ export default function EventDetailScreen() {
             </Text>
           </Pressable>
 
-          {/* Details accordion (Lineup and other secondary info only) — collapsed by default */}
+          <View
+            style={{
+              height: 1,
+              backgroundColor: colors.overlayWhite10,
+              marginTop: spacing.sm,
+              marginBottom: spacing.lg,
+            }}
+          />
+
+          {/* Cancelled banner */}
+          {isCancelled && (
+            <View
+              style={{
+                backgroundColor: "rgba(255,90,90,0.1)",
+                borderRadius: radius.md,
+                borderWidth: 0.5,
+                borderColor: "rgba(255,90,90,0.3)",
+                paddingVertical: spacing.md,
+                paddingHorizontal: spacing.lg,
+                marginBottom: spacing.lg,
+                gap: spacing.xs,
+              }}
+            >
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.error }}>
+                This event has been cancelled.
+              </Text>
+              {eventData.cancellationReason && eventData.cancellationReason.trim() && (
+                <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, lineHeight: 20 }}>
+                  {eventData.cancellationReason.trim()}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* About first, then Details (grouped): dress, audience, lineup, bring, +1, guests — RSVP bar sticky below */}
+          {/* About (top-level, always visible) */}
+          <View style={{ marginTop: spacing.md, marginBottom: spacing.xl }}>
+            <Text
+              style={{
+                fontSize: typography.sizes.sm,
+                fontWeight: typography.weights.semibold,
+                color: colors.textMuted,
+                marginBottom: spacing.xs,
+              }}
+            >
+              About
+            </Text>
+            <Text
+              style={{
+                fontSize: typography.sizes.md,
+                color: colors.text,
+                lineHeight: 24,
+              }}
+            >
+              {eventData.details || "Looking forward to seeing you there. Come enjoy the evening with us."}
+            </Text>
+          </View>
+
+          {/* Details section: secondary info + social rows (grouped below About) */}
+          <View
+            style={{
+              marginTop: spacing.md,
+              paddingTop: spacing.lg,
+              borderTopWidth: 0.5,
+              borderTopColor: colors.overlayWhite10,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: typography.sizes.sm,
+                fontWeight: typography.weights.semibold,
+                color: colors.textMuted,
+                marginBottom: spacing.md,
+              }}
+            >
+              Details
+            </Text>
+
+          {/* Dress code — only shown if set */}
+          {eventData.dressCode ? (
+            <View style={{ marginBottom: spacing.lg }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
+                Dress code
+              </Text>
+              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
+                {eventData.dressCode}
+              </Text>
+              {!eventData.audience ? (
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: colors.overlayWhite10,
+                    marginTop: spacing.md,
+                    marginBottom: spacing.lg,
+                  }}
+                />
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* Audience — only shown if set */}
+          {eventData.audience ? (
+            <View style={{ marginBottom: spacing.lg }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
+                Audience
+              </Text>
+              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
+                {eventData.audience}
+              </Text>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: colors.overlayWhite10,
+                  marginTop: spacing.md,
+                  marginBottom: 0,
+                }}
+              />
+            </View>
+          ) : null}
+
+          {/* Lineup — collapsed by default */}
           <Pressable
             onPress={() => setDetailsCollapsed((c) => !c)}
             style={{
@@ -1183,7 +1175,7 @@ export default function EventDetailScreen() {
                 color: colors.textMuted,
               }}
             >
-              Details
+              Lineup
             </Text>
             <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
               {detailsCollapsed ? "▼" : "▲"}
@@ -1509,6 +1501,99 @@ export default function EventDetailScreen() {
               )}
             </View>
           )}
+
+          {/* Bring a guest (+1) — event detail row; toggle only when guest is Going — last detail row before guests row */}
+          {eventData.allowPlusOne ? (
+            <View style={{ marginBottom: spacing.sm }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: spacing.md,
+                }}
+              >
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={{
+                      fontSize: typography.sizes.md,
+                      fontWeight: typography.weights.semibold,
+                      color: colors.text,
+                    }}
+                  >
+                    Bring a guest
+                  </Text>
+                </View>
+                {!isHostMode && !isCancelled && rsvpStatus === "going" ? (
+                  <Pressable
+                    onPress={async () => {
+                      if (!params.id) return;
+                      if (!userPlusOne) {
+                        setUserPlusOne(true);
+                        try {
+                          await setPlusOne(params.id, userPhone, true);
+                          await refetchGoingCount();
+                        } catch {
+                          setUserPlusOne(false);
+                        }
+                        return;
+                      }
+                      Alert.alert("Remove guest?", "This will update your RSVP.", [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Remove",
+                          style: "destructive",
+                          onPress: async () => {
+                            setUserPlusOne(false);
+                            try {
+                              await setPlusOne(params.id!, userPhone, false);
+                              await refetchGoingCount();
+                            } catch {
+                              setUserPlusOne(true);
+                            }
+                          },
+                        },
+                      ]);
+                    }}
+                    style={({ pressed }) => ({
+                      minHeight: 28,
+                      minWidth: 100,
+                      paddingVertical: spacing.xs,
+                      paddingHorizontal: spacing.sm,
+                      borderRadius: radius.sm,
+                      backgroundColor: colors.surfaceLight,
+                      borderWidth: 0.5,
+                      borderColor: colors.border,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <Text
+                      style={{
+                        fontSize: typography.sizes.xs,
+                        fontWeight: typography.weights.medium,
+                        color: colors.textMuted,
+                        textAlign: "center",
+                        includeFontPadding: false,
+                      }}
+                    >
+                      {userPlusOne ? "Guest added" : "Bring guest"}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: colors.overlayWhite10,
+                  marginTop: spacing.sm,
+                  marginBottom: 0,
+                }}
+              />
+            </View>
+          ) : null}
+          </View>
 
           {/* Manage event (host only) — at bottom so event page feels first, manage second */}
           {isHostMode && (
