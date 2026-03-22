@@ -59,11 +59,12 @@ export default function EventDetailScreen() {
     capacity?: string;
   }>();
 
-  const { submitRsvp, removeRsvp, getRsvp, getRsvpsForEvent, approveRsvp, declineRsvp,
+  const { submitRsvp, setPlusOne, removeRsvp, getRsvp, getRsvpsForEvent, approveRsvp, declineRsvp,
     getContributions, addContribution, removeContribution,
     assignContribution, toggleContributionStatus, cancelEvent, fetchEvents } = useEvents();
   const { isFavorited, toggleFavorite } = useFavorites();
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>(null);
+  const [userPlusOne, setUserPlusOne] = useState(false);
   const [userPhone, setUserPhone] = useState<string>("guest");
 
   // Event data state - fetched from Supabase
@@ -93,14 +94,16 @@ export default function EventDetailScreen() {
     cancellationReason: null as string | null,
     dressCode: "" as string,
     audience: "" as string,
+    allowPlusOne: false as boolean,
   });
   const [goingCount, setGoingCount] = useState<number>(0);
   const [rsvpsByStatus, setRsvpsByStatus] = useState<{
-    going: { user_phone: string }[];
-    pending: { user_phone: string }[];
-    maybe: { user_phone: string }[];
-    cant: { user_phone: string }[];
+    going: { user_phone: string; plus_one?: boolean }[];
+    pending: { user_phone: string; plus_one?: boolean }[];
+    maybe: { user_phone: string; plus_one?: boolean }[];
+    cant: { user_phone: string; plus_one?: boolean }[];
   }>({ going: [], pending: [], maybe: [], cant: [] });
+  const plusOneCount = rsvpsByStatus.going.filter((r) => r.plus_one).length;
   const [showManageSheet, setShowManageSheet] = useState(false);
   const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
   const [cancelReasonInput, setCancelReasonInput] = useState("");
@@ -198,6 +201,7 @@ export default function EventDetailScreen() {
               cancellationReason: data.cancellation_reason ?? null,
               dressCode: data.dress_code ?? "",
               audience: data.audience ?? "",
+              allowPlusOne: data.allow_plus_one ?? false,
             });
           }
 
@@ -220,6 +224,8 @@ export default function EventDetailScreen() {
           if (rsvpChangeGenerationRef.current === focusGeneration) {
             const savedRsvp = await getRsvp(params.id!, phone);
             setRsvpStatus(savedRsvp ?? null);
+            const myGoingEntry = rsvps.going.find((r) => r.user_phone === phone);
+            setUserPlusOne(myGoingEntry?.plus_one ?? false);
           }
         } catch (err) {
           console.error("Failed to fetch event:", err);
@@ -372,6 +378,7 @@ export default function EventDetailScreen() {
     try {
       await removeRsvp(params.id, userPhone);
       setRsvpStatus(null);
+      setUserPlusOne(false);
       await refetchGoingCount();
       await fetchEvents();
     } catch (err) {
@@ -413,6 +420,7 @@ export default function EventDetailScreen() {
       await submitRsvp(params.id, userPhone, status);
       const savedStatus = await getRsvp(params.id, userPhone);
       setRsvpStatus(savedStatus ?? status);
+      if (savedStatus !== "going") setUserPlusOne(false);
       await refetchGoingCount();
       await fetchEvents();
       if (status === "going" && savedStatus === "pending") {
@@ -836,8 +844,8 @@ export default function EventDetailScreen() {
               {goingCount === 0
                 ? "Be the first to RSVP"
                 : eventData.capacity
-                  ? `${goingCount} going · ${goingCount}/${eventData.capacity}`
-                  : `${goingCount} going`}
+                  ? `${goingCount} going${plusOneCount > 0 ? ` (+${plusOneCount})` : ""} · ${goingCount + plusOneCount}/${eventData.capacity}`
+                  : `${goingCount} going${plusOneCount > 0 ? ` (+${plusOneCount} guests)` : ""}`}
             </Text>
           </View>
         </View>
@@ -1473,6 +1481,44 @@ export default function EventDetailScreen() {
             borderTopColor: colors.border,
           }}
         >
+          {rsvpStatus === "going" && eventData.allowPlusOne && !isHostMode && (
+            <Pressable
+              onPress={async () => {
+                if (!params.id) return;
+                const next = !userPlusOne;
+                setUserPlusOne(next);
+                try {
+                  await setPlusOne(params.id, userPhone, next);
+                  await refetchGoingCount();
+                } catch {
+                  setUserPlusOne(!next);
+                }
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+                marginHorizontal: spacing.lg,
+                marginTop: spacing.sm,
+                marginBottom: spacing.xs,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radius.md,
+                backgroundColor: userPlusOne ? "rgba(78,205,196,0.12)" : colors.surfaceLight,
+                borderWidth: 0.5,
+                borderColor: userPlusOne ? colors.mint : colors.border,
+              }}
+            >
+              <Ionicons
+                name={userPlusOne ? "checkmark-circle" : "person-add-outline"}
+                size={16}
+                color={userPlusOne ? colors.mint : colors.textMuted}
+              />
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: userPlusOne ? colors.text : colors.textMuted }}>
+                {userPlusOne ? "Bringing +1" : "Bring a +1?"}
+              </Text>
+            </Pressable>
+          )}
           {rsvpStatus === "pending" && (
             <View
               style={{
@@ -1924,7 +1970,7 @@ export default function EventDetailScreen() {
             <ScrollView style={{ paddingHorizontal: spacing.lg }} showsVerticalScrollIndicator={false}>
               {rsvpsByStatus.going.length > 0 && (
                 <View style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
-                  <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, marginBottom: spacing.sm }}>GOING ({rsvpsByStatus.going.length})</Text>
+                  <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, marginBottom: spacing.sm }}>GOING ({rsvpsByStatus.going.length}{plusOneCount > 0 ? ` +${plusOneCount}` : ""})</Text>
                   {rsvpsByStatus.going.map((r) => {
                     const profile = guestProfiles[r.user_phone] ?? goingProfiles[r.user_phone];
                     const displayName = getDisplayName(profile ?? null, r.user_phone);
@@ -1948,6 +1994,7 @@ export default function EventDetailScreen() {
                           </View>
                           <Text style={{ fontSize: typography.sizes.sm, color: colors.text, flex: 1 }} numberOfLines={1}>{nameToShow}</Text>
                         </View>
+                        {r.plus_one && <Badge label="+1" variant="secondary" />}
                         {isHostMode && isHost && <Badge label="Host" variant="primary" />}
                       </View>
                     );

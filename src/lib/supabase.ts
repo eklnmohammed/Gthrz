@@ -93,6 +93,8 @@ export interface Event {
   dress_code?: string | null;
   /** Optional audience type: mixed, men, women */
   audience?: string | null;
+  /** Whether guests can bring a +1 */
+  allow_plus_one?: boolean | null;
 }
 
 export interface Rsvp {
@@ -100,6 +102,7 @@ export interface Rsvp {
   event_id: string;
   user_phone: string;
   status: "going" | "maybe" | "cant" | "pending";
+  plus_one?: boolean;
   created_at: string;
 }
 

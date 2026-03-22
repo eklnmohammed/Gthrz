@@ -42,13 +42,14 @@ export interface Event {
   cancellationReason?: string | null;
   dressCode?: string;
   audience?: string;
+  allowPlusOne?: boolean;
 }
 
 export interface RsvpByStatus {
-  going: { user_phone: string }[];
-  pending: { user_phone: string }[];
-  maybe: { user_phone: string }[];
-  cant: { user_phone: string }[];
+  going: { user_phone: string; plus_one?: boolean }[];
+  pending: { user_phone: string; plus_one?: boolean }[];
+  maybe: { user_phone: string; plus_one?: boolean }[];
+  cant: { user_phone: string; plus_one?: boolean }[];
 }
 
 interface EventsContextType {
@@ -78,6 +79,7 @@ interface EventsContextType {
     hideGuestAvatars?: boolean;
     dressCode?: string;
     audience?: string;
+    allowPlusOne?: boolean;
   }) => Promise<string | undefined>;
   updateEvent: (
     id: string,
@@ -100,14 +102,17 @@ interface EventsContextType {
       locationVisibility?: "now" | "reveal";
       revealHoursBefore?: number | null;
       hideGuestNames?: boolean;
+      hideGuestAvatars?: boolean;
       dressCode?: string;
       audience?: string;
+      allowPlusOne?: boolean;
     }
   ) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   cancelEvent: (id: string, cancellationReason?: string | null) => Promise<void>;
   fetchPublicEvents: () => Promise<Event[]>;
   submitRsvp: (eventId: string, userPhone: string, status: "going" | "maybe" | "cant" | "pending") => Promise<void>;
+  setPlusOne: (eventId: string, userPhone: string, plusOne: boolean) => Promise<void>;
   removeRsvp: (eventId: string, userPhone: string) => Promise<void>;
   getRsvp: (eventId: string, userPhone: string) => Promise<"going" | "maybe" | "cant" | "pending" | null>;
   getRsvpsForEvent: (eventId: string) => Promise<RsvpByStatus>;
@@ -159,6 +164,7 @@ function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
     cancellationReason: dbEvent.cancellation_reason ?? undefined,
     dressCode: dbEvent.dress_code ?? undefined,
     audience: dbEvent.audience ?? undefined,
+    allowPlusOne: dbEvent.allow_plus_one ?? false,
   };
 }
 
@@ -250,8 +256,10 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       locationVisibility?: "now" | "reveal";
       revealHoursBefore?: number | null;
       hideGuestNames?: boolean;
+      hideGuestAvatars?: boolean;
       dressCode?: string;
       audience?: string;
+      allowPlusOne?: boolean;
     }) => {
       setError(null);
       try {
@@ -303,6 +311,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
               hide_guest_avatars: event.hideGuestAvatars ?? false,
               dress_code: event.dressCode || null,
               audience: event.audience || null,
+              allow_plus_one: event.allowPlusOne ?? false,
             })
             .select("*")
             .single();
@@ -357,8 +366,10 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         locationVisibility?: "now" | "reveal";
         revealHoursBefore?: number | null;
         hideGuestNames?: boolean;
+        hideGuestAvatars?: boolean;
         dressCode?: string;
         audience?: string;
+        allowPlusOne?: boolean;
       }
     ) => {
       setError(null);
@@ -399,6 +410,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           hide_guest_avatars: event.hideGuestAvatars ?? false,
           dress_code: event.dressCode || null,
           audience: event.audience || null,
+          allow_plus_one: event.allowPlusOne ?? false,
         };
         const { data, error: updateError } = await supabase
           .from("events")
@@ -500,6 +512,15 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setPlusOne = useCallback(async (eventId: string, userPhone: string, plusOne: boolean) => {
+    const { error } = await supabase
+      .from("rsvps")
+      .update({ plus_one: plusOne })
+      .eq("event_id", eventId)
+      .eq("user_phone", userPhone);
+    if (error) throw error;
+  }, []);
+
   const submitRsvp = useCallback(
     async (eventId: string, userPhone: string, status: "going" | "maybe" | "cant" | "pending") => {
       try {
@@ -526,13 +547,15 @@ export function EventsProvider({ children }: { children: ReactNode }) {
 
             const userAlreadyGoing = existingRsvp?.status === "going";
             if (!userAlreadyGoing) {
-              const { count, error: countErr } = await supabase
+              const { data: goingRsvps, error: countErr } = await supabase
                 .from("rsvps")
-                .select("*", { count: "exact", head: true })
+                .select("plus_one")
                 .eq("event_id", eventId)
                 .eq("status", "going");
               if (countErr) throw countErr;
-              const goingCount = count ?? 0;
+              const goingCount = (goingRsvps || []).reduce(
+                (sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0
+              );
               if (goingCount >= capacity) {
                 throw new Error("This event is full. You can RSVP as Maybe to stay updated.");
               }
@@ -540,12 +563,18 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        const upsertPayload: Record<string, unknown> = {
+          event_id: eventId,
+          user_phone: userPhone,
+          status: effectiveStatus,
+        };
+        // Reset plus_one when not going
+        if (effectiveStatus !== "going") {
+          upsertPayload.plus_one = false;
+        }
         const { error: upsertError } = await supabase
           .from("rsvps")
-          .upsert(
-            { event_id: eventId, user_phone: userPhone, status: effectiveStatus },
-            { onConflict: "event_id,user_phone" }
-          );
+          .upsert(upsertPayload, { onConflict: "event_id,user_phone" });
         if (upsertError) throw upsertError;
       } catch (err) {
         console.error("Error submitting RSVP:", err);
@@ -578,14 +607,14 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const getRsvpsForEvent = useCallback(async (eventId: string): Promise<RsvpByStatus> => {
     const { data } = await supabase
       .from("rsvps")
-      .select("status, user_phone")
+      .select("status, user_phone, plus_one")
       .eq("event_id", eventId);
-    const going: { user_phone: string }[] = [];
-    const pending: { user_phone: string }[] = [];
-    const maybe: { user_phone: string }[] = [];
-    const cant: { user_phone: string }[] = [];
+    const going: { user_phone: string; plus_one?: boolean }[] = [];
+    const pending: { user_phone: string; plus_one?: boolean }[] = [];
+    const maybe: { user_phone: string; plus_one?: boolean }[] = [];
+    const cant: { user_phone: string; plus_one?: boolean }[] = [];
     (data || []).forEach((r) => {
-      const row = { user_phone: r.user_phone };
+      const row = { user_phone: r.user_phone, plus_one: r.plus_one ?? false };
       if (r.status === "going") going.push(row);
       else if (r.status === "pending") pending.push(row);
       else if (r.status === "maybe") maybe.push(row);
@@ -602,12 +631,15 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       .single();
     const capacity = eventRow?.capacity;
     if (capacity != null && capacity > 0) {
-      const { count } = await supabase
+      const { data: goingRsvps } = await supabase
         .from("rsvps")
-        .select("*", { count: "exact", head: true })
+        .select("plus_one")
         .eq("event_id", eventId)
         .eq("status", "going");
-      if ((count ?? 0) >= capacity) {
+      const totalGoing = (goingRsvps || []).reduce(
+        (sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0
+      );
+      if (totalGoing >= capacity) {
         throw new Error("Event is at capacity. Cannot approve more guests.");
       }
     }
@@ -706,6 +738,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         cancelEvent,
         fetchPublicEvents,
         submitRsvp,
+        setPlusOne,
         removeRsvp,
         getRsvp,
         getRsvpsForEvent,

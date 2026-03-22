@@ -74,6 +74,7 @@ export default function CreateEventScreen() {
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [visibility, setVisibility] = useState<"private" | "public">("private");
   const [approvalRequired, setApprovalRequired] = useState(false);
+  const [allowPlusOne, setAllowPlusOne] = useState(false);
   const [hideGuestNames, setHideGuestNames] = useState(false);
   const [hideGuestAvatars, setHideGuestAvatars] = useState(false);
   const [eventType, setEventType] = useState<EventType>("party");
@@ -325,6 +326,7 @@ export default function CreateEventScreen() {
         hideGuestAvatars,
         dressCode: dressCodeValue || undefined,
         audience: audience || undefined,
+        allowPlusOne,
       });
       if (eventId && bringItems.length > 0) {
         await Promise.all(bringItems.map((item) => addContribution(eventId, item)));
@@ -762,6 +764,45 @@ export default function CreateEventScreen() {
                 >
                   <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: approvalRequired ? colors.text : colors.textMuted }}>
                     Approve guests
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Allow +1
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => setAllowPlusOne(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: !allowPlusOne ? colors.primary : colors.surfaceLight,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    alignItems: "center",
+                    borderWidth: 0.5,
+                    borderColor: !allowPlusOne ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !allowPlusOne ? colors.text : colors.textMuted }}>
+                    No
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setAllowPlusOne(true)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: allowPlusOne ? colors.primary : colors.surfaceLight,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    alignItems: "center",
+                    borderWidth: 0.5,
+                    borderColor: allowPlusOne ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: allowPlusOne ? colors.text : colors.textMuted }}>
+                    Yes
                   </Text>
                 </Pressable>
               </View>
