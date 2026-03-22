@@ -51,3 +51,10 @@ AUTH_NOTES.md
 RUN.md
 CLAUDE.md
 .claude/.agents/
+
+
+
+.agent/
+.agents/
+.claude/
+skills-lock.json
