@@ -50,4 +50,4 @@ BUILD_NOTES.md
 AUTH_NOTES.md
 RUN.md
 CLAUDE.md
-.claude/
+.claude/.agents/
