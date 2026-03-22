@@ -111,6 +111,8 @@ interface EventsContextType {
   deleteEvent: (id: string) => Promise<void>;
   cancelEvent: (id: string, cancellationReason?: string | null) => Promise<void>;
   fetchPublicEvents: () => Promise<Event[]>;
+  /** Going RSVP counts per event id (for Discover popularity sort). */
+  getGoingCountsForEventIds: (eventIds: string[]) => Promise<Record<string, number>>;
   submitRsvp: (eventId: string, userPhone: string, status: "going" | "maybe" | "cant" | "pending") => Promise<void>;
   setPlusOne: (eventId: string, userPhone: string, plusOne: boolean) => Promise<void>;
   removeRsvp: (eventId: string, userPhone: string) => Promise<void>;
@@ -512,6 +514,27 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const getGoingCountsForEventIds = useCallback(async (eventIds: string[]): Promise<Record<string, number>> => {
+    if (eventIds.length === 0) return {};
+    try {
+      const { data, error } = await supabase
+        .from("rsvps")
+        .select("event_id")
+        .eq("status", "going")
+        .in("event_id", eventIds);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) {
+        const id = (row as { event_id: string }).event_id;
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+      return counts;
+    } catch (err) {
+      console.error("Error fetching going counts:", err);
+      return {};
+    }
+  }, []);
+
   const setPlusOne = useCallback(async (eventId: string, userPhone: string, plusOne: boolean) => {
     const { error } = await supabase
       .from("rsvps")
@@ -742,6 +765,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         deleteEvent,
         cancelEvent,
         fetchPublicEvents,
+        getGoingCountsForEventIds,
         submitRsvp,
         setPlusOne,
         removeRsvp,

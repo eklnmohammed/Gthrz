@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, FlatList, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from "react-native";
 import { router, useFocusEffect, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useMemo, useEffect } from "react";
 import { useEvents, Event } from "../src/state/eventsStore";
 import { Screen } from "../src/components/Screen";
 import { HeaderBackTextButton } from "../src/components/HeaderBackTextButton";
@@ -13,13 +13,43 @@ import { spacing } from "../src/theme/spacing";
 import { typography } from "../src/theme/typography";
 import { radius } from "../src/theme/radius";
 import { EventType } from "../src/lib/supabase";
-import { recordEventView, recordJoinWithCode, getPreferenceScores, getTopEventTypes } from "../src/utils/preferences";
+import { recordEventView, recordJoinWithCode } from "../src/utils/preferences";
 import { onboardingStore } from "../src/state/onboardingStore";
 import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
 
 const LIST_PADDING_H = 16;
 const GRID_GAP = 12;
+
+/** Main feed: first batch + each scroll load */
+const DISCOVER_INITIAL_COUNT = 12;
+const DISCOVER_PAGE_SIZE = 12;
+/** Category tab preview (5–8 range) before "See all" */
+const CATEGORY_PREVIEW_COUNT = 6;
+
+function compareDiscoverSoonest(a: Event, b: Event, goingCounts: Record<string, number>): number {
+  const da = new Date(a.dateTime).getTime();
+  const db = new Date(b.dateTime).getTime();
+  if (da !== db) return da - db;
+  const ca = goingCounts[a.id] ?? 0;
+  const cb = goingCounts[b.id] ?? 0;
+  if (ca !== cb) return cb - ca;
+  const ta = new Date(a.createdAt || a.dateTime).getTime();
+  const tb = new Date(b.createdAt || b.dateTime).getTime();
+  return tb - ta;
+}
+
+function compareDiscoverNewest(a: Event, b: Event, goingCounts: Record<string, number>): number {
+  const ta = new Date(a.createdAt || a.dateTime).getTime();
+  const tb = new Date(b.createdAt || b.dateTime).getTime();
+  if (ta !== tb) return tb - ta;
+  const da = new Date(a.dateTime).getTime();
+  const db = new Date(b.dateTime).getTime();
+  if (da !== db) return da - db;
+  const ca = goingCounts[a.id] ?? 0;
+  const cb = goingCounts[b.id] ?? 0;
+  return cb - ca;
+}
 
 /** Tab order for Discover: All + event types (Open-style). */
 const DISCOVER_TABS: Array<{ value: EventType | "all"; label: string }> = [
@@ -48,10 +78,13 @@ export default function DiscoverScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const gridCardWidth = (screenWidth - LIST_PADDING_H * 2 - GRID_GAP) / 2;
 
-  const { fetchPublicEvents, events: userEvents, fetchEvents } = useEvents();
+  const { fetchPublicEvents, getGoingCountsForEventIds, events: userEvents, fetchEvents } = useEvents();
   const params = useLocalSearchParams<{ type?: string }>();
   const [publicEvents, setPublicEvents] = useState<Event[]>([]);
+  const [goingCounts, setGoingCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
+  const [listVisibleCount, setListVisibleCount] = useState(DISCOVER_INITIAL_COUNT);
+  const [seeAllCategory, setSeeAllCategory] = useState(false);
   const userEventsById = new Map((userEvents ?? []).map((e) => [e.id, e]));
 
   const initialType =
@@ -68,8 +101,6 @@ export default function DiscoverScreen() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
   const [userPhone, setUserPhone] = useState<string>("");
-  const [prefScores, setPrefScores] = useState<Partial<Record<EventType, number>>>({});
-  const [topEventTypes, setTopEventTypes] = useState<Array<{ type: EventType; score: number }>>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -88,16 +119,15 @@ export default function DiscoverScreen() {
         const phone = (await onboardingStore.getPhone()) ?? "";
         if (!active) return;
         setUserPhone(phone);
-        const [events, scores, topTypes] = await Promise.all([
-          fetchPublicEvents(),
-          getPreferenceScores(phone),
-          getTopEventTypes(phone, 3),
-          fetchEvents(),
-        ]);
+        const [events] = await Promise.all([fetchPublicEvents(), fetchEvents()]);
+        if (!active) return;
+        const ids = events.map((e) => e.id);
+        const counts = await getGoingCountsForEventIds(ids);
         if (active) {
           setPublicEvents(events);
-          setPrefScores(scores);
-          setTopEventTypes(topTypes);
+          setGoingCounts(counts);
+          setListVisibleCount(DISCOVER_INITIAL_COUNT);
+          setSeeAllCategory(false);
           setLoading(false);
         }
       })();
@@ -105,8 +135,13 @@ export default function DiscoverScreen() {
       return () => {
         active = false;
       };
-    }, [fetchPublicEvents, params.type])
+    }, [fetchPublicEvents, getGoingCountsForEventIds, params.type])
   );
+
+  useEffect(() => {
+    setListVisibleCount(DISCOVER_INITIAL_COUNT);
+    setSeeAllCategory(false);
+  }, [selectedType, searchQuery, sortBy]);
 
   const handleEventPress = (event: Event) => {
     if (event.eventType) recordEventView(event.eventType, userPhone);
@@ -116,15 +151,15 @@ export default function DiscoverScreen() {
     });
   };
 
-  // Filter and sort logic
-  const getFilteredAndSortedEvents = (): Event[] => {
-    // Hide current user's own hosted public events (Discover is for others' events only)
-    let filtered =
-      userPhone.length > 0
-        ? publicEvents.filter((e) => e.hostPhone !== userPhone)
-        : publicEvents;
-
-    // 1. Apply search filter (title or location)
+  /** Public, upcoming, active (not cancelled), not hosted by current user; search + type; sorted for Discover */
+  const discoverSortedEvents = useMemo(() => {
+    const nowMs = Date.now();
+    let filtered = publicEvents.filter((e) => e.visibility === "public");
+    filtered = filtered.filter((e) => e.status !== "cancelled");
+    filtered = filtered.filter((e) => new Date(e.dateTime).getTime() >= nowMs);
+    if (userPhone.length > 0) {
+      filtered = filtered.filter((e) => e.hostPhone !== userPhone);
+    }
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((event) => {
@@ -133,83 +168,44 @@ export default function DiscoverScreen() {
         return title.includes(query) || location.includes(query);
       });
     }
-
-    // 2. Apply type filter
     if (selectedType !== "all") {
       filtered = filtered.filter((event) => event.eventType === selectedType);
     }
+    const cmp =
+      sortBy === "soonest"
+        ? (a: Event, b: Event) => compareDiscoverSoonest(a, b, goingCounts)
+        : (a: Event, b: Event) => compareDiscoverNewest(a, b, goingCounts);
+    return [...filtered].sort(cmp);
+  }, [publicEvents, userPhone, searchQuery, selectedType, sortBy, goingCounts]);
 
-    // 3. Filter out past events only when sorting by "Soonest" (not for Newest)
-    if (sortBy === "soonest") {
-      const now = new Date();
-      filtered = filtered.filter((event) => new Date(event.dateTime) >= now);
+  const totalMatching = discoverSortedEvents.length;
+
+  const displayedEvents = useMemo(() => {
+    if (selectedType !== "all" && !seeAllCategory) {
+      return discoverSortedEvents.slice(0, CATEGORY_PREVIEW_COUNT);
     }
+    return discoverSortedEvents.slice(0, listVisibleCount);
+  }, [discoverSortedEvents, selectedType, seeAllCategory, listVisibleCount]);
 
-    // 4. Sort: Soonest = by dateTime ascending; Newest = by createdAt descending (fallback to dateTime if no createdAt)
-    const sorted = [...filtered].sort((a, b) => {
-      if (sortBy === "soonest") {
-        return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
-      }
-      const tA =
-        a.createdAt && a.createdAt !== ""
-          ? new Date(a.createdAt).getTime()
-          : new Date(a.dateTime).getTime();
-      const tB =
-        b.createdAt && b.createdAt !== ""
-          ? new Date(b.createdAt).getTime()
-          : new Date(b.dateTime).getTime();
-      return tB - tA;
-    });
+  const showCategorySeeAll =
+    selectedType !== "all" && !seeAllCategory && totalMatching > CATEGORY_PREVIEW_COUNT;
 
-    return sorted;
-  };
+  const showShowMore =
+    !loading &&
+    (selectedType === "all" || seeAllCategory) &&
+    totalMatching > listVisibleCount;
 
-  const filteredEvents = getFilteredAndSortedEvents();
+  const handleShowMore = useCallback(() => {
+    if (selectedType !== "all" && !seeAllCategory) return;
+    setListVisibleCount((c) =>
+      Math.min(c + DISCOVER_PAGE_SIZE, discoverSortedEvents.length)
+    );
+  }, [selectedType, seeAllCategory, discoverSortedEvents.length]);
 
-  /**
-   * Blended recommendations: only when selectedType === "All". Show 2 from T1, then 2 from T2
-   * (if T2 exists and score >= 3), then the rest in normal order. No duplicates. Types only count
-   * as preferred if score >= 3.
-   */
-  function applyPreferenceOrder(
-    events: Event[],
-    topTypes: Array<{ type: EventType; score: number }>,
-    typeFilter: EventType | "all",
-    search: string
-  ): Event[] {
-    if (typeFilter !== "all" || search.trim() !== "") return events;
-
-    const preferred = topTypes.filter((t) => t.score >= 3);
-    const t1 = preferred[0];
-    if (!t1) return events;
-    const t2 = preferred[1]; // may be undefined
-
-    const buckets = new Map<EventType, Event[]>();
-    for (const e of events) {
-      const t = e.eventType ?? "party";
-      if (!buckets.has(t)) buckets.set(t, []);
-      buckets.get(t)!.push(e);
-    }
-
-    const picked: Event[] = [];
-    const take = (type: EventType, n: number) => {
-      const list = buckets.get(type) ?? [];
-      for (let i = 0; i < n && i < list.length; i++) picked.push(list[i]);
-    };
-    take(t1.type, 2);
-    if (t2) take(t2.type, 2);
-
-    const pickedIds = new Set(picked.map((e) => e.id));
-    const remaining = events.filter((e) => !pickedIds.has(e.id));
-    return [...picked, ...remaining];
-  }
-
-  const displayedEvents = applyPreferenceOrder(
-    filteredEvents,
-    topEventTypes,
-    selectedType,
-    searchQuery
-  );
+  const handleSeeAllCategory = useCallback(() => {
+    setSeeAllCategory(true);
+    setListVisibleCount(DISCOVER_INITIAL_COUNT);
+  }, []);
 
   return (
     <Screen padding={false} topPadding={spacing.sm}>
@@ -257,6 +253,7 @@ export default function DiscoverScreen() {
         contentContainerStyle={{
           paddingHorizontal: LIST_PADDING_H,
           paddingBottom: spacing.xxl,
+          flexGrow: 1,
         }}
         ListHeaderComponent={
           <>
@@ -382,6 +379,52 @@ export default function DiscoverScreen() {
               </ScrollView>
             </View>
           </>
+        }
+        ListFooterComponent={
+          showCategorySeeAll || showShowMore ? (
+            <View style={{ width: "100%" }}>
+              {showCategorySeeAll ? (
+                <Pressable
+                  onPress={handleSeeAllCategory}
+                  style={{
+                    paddingVertical: spacing.lg,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: typography.sizes.sm,
+                      fontWeight: typography.weights.semibold,
+                      color: colors.primary,
+                    }}
+                  >
+                    See all
+                  </Text>
+                </Pressable>
+              ) : null}
+              {showShowMore ? (
+                <Pressable
+                  onPress={handleShowMore}
+                  style={{
+                    paddingVertical: spacing.lg,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: typography.sizes.sm,
+                      fontWeight: typography.weights.semibold,
+                      color: colors.primary,
+                    }}
+                  >
+                    Show more
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null
         }
         ListEmptyComponent={
           loading ? (
