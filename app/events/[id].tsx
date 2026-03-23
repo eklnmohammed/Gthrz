@@ -1422,8 +1422,8 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          {/* Bring a guest (+1) — event detail row; toggle only when guest is Going — last detail row before guests row */}
-          {eventData.allowPlusOne ? (
+          {/* Bring a guest (+1) — only for guests who allow +1 and are already Going (not before RSVP / not if Maybe etc.) */}
+          {eventData.allowPlusOne && !isHostMode && !isCancelled && rsvpStatus === "going" ? (
             <View style={{ marginBottom: spacing.sm }}>
               <View
                 style={{
@@ -1444,64 +1444,62 @@ export default function EventDetailScreen() {
                     Bring a guest
                   </Text>
                 </View>
-                {!isHostMode && !isCancelled && rsvpStatus === "going" ? (
-                  <Pressable
-                    onPress={async () => {
-                      if (!params.id) return;
-                      if (!userPlusOne) {
-                        setUserPlusOne(true);
-                        try {
-                          await setPlusOne(params.id, userPhone, true);
-                          await refetchGoingCount();
-                        } catch {
-                          setUserPlusOne(false);
-                        }
-                        return;
+                <Pressable
+                  onPress={async () => {
+                    if (!params.id) return;
+                    if (!userPlusOne) {
+                      setUserPlusOne(true);
+                      try {
+                        await setPlusOne(params.id, userPhone, true);
+                        await refetchGoingCount();
+                      } catch {
+                        setUserPlusOne(false);
                       }
-                      Alert.alert("Remove guest?", "This will update your RSVP.", [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Remove",
-                          style: "destructive",
-                          onPress: async () => {
-                            setUserPlusOne(false);
-                            try {
-                              await setPlusOne(params.id!, userPhone, false);
-                              await refetchGoingCount();
-                            } catch {
-                              setUserPlusOne(true);
-                            }
-                          },
+                      return;
+                    }
+                    Alert.alert("Remove guest?", "This will update your RSVP.", [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Remove",
+                        style: "destructive",
+                        onPress: async () => {
+                          setUserPlusOne(false);
+                          try {
+                            await setPlusOne(params.id!, userPhone, false);
+                            await refetchGoingCount();
+                          } catch {
+                            setUserPlusOne(true);
+                          }
                         },
-                      ]);
+                      },
+                    ]);
+                  }}
+                  style={({ pressed }) => ({
+                    minHeight: 28,
+                    minWidth: 100,
+                    paddingVertical: spacing.xs,
+                    paddingHorizontal: spacing.sm,
+                    borderRadius: radius.sm,
+                    backgroundColor: colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: colors.border,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Text
+                    style={{
+                      fontSize: typography.sizes.xs,
+                      fontWeight: typography.weights.medium,
+                      color: colors.textMuted,
+                      textAlign: "center",
+                      includeFontPadding: false,
                     }}
-                    style={({ pressed }) => ({
-                      minHeight: 28,
-                      minWidth: 100,
-                      paddingVertical: spacing.xs,
-                      paddingHorizontal: spacing.sm,
-                      borderRadius: radius.sm,
-                      backgroundColor: colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: colors.border,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      opacity: pressed ? 0.7 : 1,
-                    })}
                   >
-                    <Text
-                      style={{
-                        fontSize: typography.sizes.xs,
-                        fontWeight: typography.weights.medium,
-                        color: colors.textMuted,
-                        textAlign: "center",
-                        includeFontPadding: false,
-                      }}
-                    >
-                      {userPlusOne ? "Guest added" : "Bring guest"}
-                    </Text>
-                  </Pressable>
-                ) : null}
+                    {userPlusOne ? "Guest added" : "Bring guest"}
+                  </Text>
+                </Pressable>
               </View>
               <View
                 style={{
