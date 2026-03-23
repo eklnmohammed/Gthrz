@@ -1,9 +1,7 @@
-import { useState, useCallback, useRef } from "react";
-import { View, Text, ScrollView, Pressable, Image, Animated } from "react-native";
+import { useState, useCallback } from "react";
+import { View, Text, ScrollView, Pressable, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
-import { AppButton } from "../src/components/AppButton";
 import { BottomNavBar } from "../src/components/BottomNavBar";
 import { EventCard } from "../src/components/EventCard";
 import { HomeSectionHeader } from "../src/components/HomeSectionHeader";
@@ -21,7 +19,6 @@ import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
 
 const CARD_WIDTH = 260;
-const POSTER_HEIGHT = 260;
 const CTA_HEIGHT = 56;
 const SECTION_GAP = spacing.xxl; // 24px
 
@@ -130,10 +127,29 @@ export default function Home() {
     });
   };
 
-  const discoverScale = useRef(new Animated.Value(1)).current;
-
   const hasNoEvents = upNextEvents.length === 0;
   const showRecommended = recommendedEvents.length > 0;
+
+  const goToFeaturedDiscover = () => {
+    // Discover currently has no dedicated "featured" filter param.
+    router.push("/discover");
+  };
+
+  const recommendedSeeAllType = (() => {
+    if (recommendedEvents.length === 0) return null;
+    const firstType = recommendedEvents[0]?.eventType;
+    if (!firstType) return null;
+    const isSingleType = recommendedEvents.every((event) => event.eventType === firstType);
+    return isSingleType ? firstType : null;
+  })();
+
+  const goToRecommendedDiscover = () => {
+    if (recommendedSeeAllType) {
+      router.push({ pathname: "/discover", params: { type: recommendedSeeAllType } });
+      return;
+    }
+    router.push("/discover");
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -294,7 +310,7 @@ export default function Home() {
             <View style={{ marginBottom: SECTION_GAP }}>
               <HomeSectionHeader
                 title="Featured this week"
-                action={{ label: "See all", onPress: () => router.push("/discover") }}
+                action={{ label: "See all", onPress: goToFeaturedDiscover }}
               />
               <ScrollView
                 horizontal
@@ -325,102 +341,12 @@ export default function Home() {
                     />
                   );
                 })}
-                {featuredEvents.length > 0 && (
-                  <Animated.View
-                    style={{
-                      width: CARD_WIDTH,
-                      transform: [{ scale: discoverScale }],
-                      borderRadius: radius.lg,
-                      overflow: "hidden",
-                      shadowColor: "#6B3FFF",
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.35,
-                      shadowRadius: 18,
-                      elevation: 8,
-                    }}
-                  >
-                    <Pressable
-                      onPress={() => router.push("/discover")}
-                      onPressIn={() =>
-                        Animated.spring(discoverScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                      }
-                      onPressOut={() =>
-                        Animated.spring(discoverScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                      }
-                    >
-                      <LinearGradient
-                        colors={["#1c1a2e", "#1e1640", "#2d1b52"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={{ width: "100%", height: POSTER_HEIGHT }}
-                      >
-                        <LinearGradient
-                          colors={["rgba(110,70,255,0.28)", "transparent"]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0.7 }}
-                          style={{ position: "absolute", left: 0, right: 0, top: 0, height: 120 }}
-                        />
-                        <Text
-                          style={{
-                            position: "absolute",
-                            top: spacing.md,
-                            right: spacing.md,
-                            fontSize: 64,
-                            opacity: 0.08,
-                          }}
-                        >
-                          ✦
-                        </Text>
-                        <LinearGradient
-                          colors={["transparent", "rgba(0,0,0,0.88)"]}
-                          style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 160 }}
-                        />
-                        <View style={{ position: "absolute", bottom: spacing.lg, left: spacing.lg, right: spacing.lg }}>
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              fontWeight: typography.weights.semibold,
-                              color: "rgba(180,150,255,0.85)",
-                              letterSpacing: 1.5,
-                              marginBottom: 6,
-                            }}
-                          >
-                            DISCOVER
-                          </Text>
-                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                            <Text
-                              style={{
-                                fontSize: typography.sizes.lg,
-                                fontWeight: typography.weights.bold,
-                                color: "#fff",
-                                flex: 1,
-                              }}
-                              numberOfLines={1}
-                            >
-                              Discover more
-                            </Text>
-                            <Text style={{ fontSize: 20, color: "rgba(255,255,255,0.45)", marginLeft: spacing.sm }}>›</Text>
-                          </View>
-                          <Text
-                            style={{
-                              fontSize: typography.sizes.sm,
-                              color: "rgba(255,255,255,0.5)",
-                            }}
-                            numberOfLines={1}
-                          >
-                            Browse public events
-                          </Text>
-                        </View>
-                      </LinearGradient>
-                    </Pressable>
-                  </Animated.View>
-                )}
               </ScrollView>
             </View>
           )
         ) : (
           <>
-            {/* Returning: section 1 — Up Next + Discover CTA card */}
+            {/* Returning: section 1 — Up Next */}
             <View style={{ marginBottom: SECTION_GAP }}>
               <HomeSectionHeader
                 title="Up Next"
@@ -449,110 +375,16 @@ export default function Home() {
                     isHost={event.hostPhone === userPhone}
                   />
                 ))}
-                {upNextFiltered.length > 0 && (
-                  <Animated.View
-                    style={{
-                      width: CARD_WIDTH,
-                      transform: [{ scale: discoverScale }],
-                      borderRadius: radius.lg,
-                      overflow: "hidden",
-                      shadowColor: "#6B3FFF",
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.35,
-                      shadowRadius: 18,
-                      elevation: 8,
-                    }}
-                  >
-                    <Pressable
-                      onPress={() => router.push("/events")}
-                      onPressIn={() =>
-                        Animated.spring(discoverScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                      }
-                      onPressOut={() =>
-                        Animated.spring(discoverScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                      }
-                    >
-                      <LinearGradient
-                        colors={["#1c1a2e", "#1e1640", "#2d1b52"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={{ width: "100%", height: POSTER_HEIGHT }}
-                      >
-                        {/* Purple highlight sweep — top */}
-                        <LinearGradient
-                          colors={["rgba(110,70,255,0.28)", "transparent"]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0.7 }}
-                          style={{ position: "absolute", left: 0, right: 0, top: 0, height: 120 }}
-                        />
-
-                        {/* Watermark — top-right, very faint */}
-                        <Text
-                          style={{
-                            position: "absolute",
-                            top: spacing.md,
-                            right: spacing.md,
-                            fontSize: 64,
-                            opacity: 0.08,
-                          }}
-                        >
-                          ✦
-                        </Text>
-
-                        {/* Bottom scrim */}
-                        <LinearGradient
-                          colors={["transparent", "rgba(0,0,0,0.88)"]}
-                          style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 160 }}
-                        />
-
-                        {/* Text block — Your events CTA (hosting & going) */}
-                        <View style={{ position: "absolute", bottom: spacing.lg, left: spacing.lg, right: spacing.lg }}>
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              fontWeight: typography.weights.semibold,
-                              color: "rgba(180,150,255,0.85)",
-                              letterSpacing: 1.5,
-                              marginBottom: 6,
-                            }}
-                          >
-                            YOUR EVENTS
-                          </Text>
-                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                            <Text
-                              style={{
-                                fontSize: typography.sizes.lg,
-                                fontWeight: typography.weights.bold,
-                                color: "#fff",
-                                flex: 1,
-                              }}
-                              numberOfLines={1}
-                            >
-                              Your events
-                            </Text>
-                            <Text style={{ fontSize: 20, color: "rgba(255,255,255,0.45)", marginLeft: spacing.sm }}>›</Text>
-                          </View>
-                          <Text
-                            style={{
-                              fontSize: typography.sizes.sm,
-                              color: "rgba(255,255,255,0.5)",
-                            }}
-                            numberOfLines={1}
-                          >
-                            Hosting & going
-                          </Text>
-                        </View>
-                      </LinearGradient>
-                    </Pressable>
-                  </Animated.View>
-                )}
               </ScrollView>
             </View>
 
             {/* Returning: section 2 — Recommended if we have prefs, otherwise Featured this week */}
             {showRecommended ? (
               <View style={{ marginBottom: SECTION_GAP }}>
-                <HomeSectionHeader title="Recommended for you" />
+                <HomeSectionHeader
+                  title="Recommended for you"
+                  action={{ label: "See all", onPress: goToRecommendedDiscover }}
+                />
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -582,96 +414,6 @@ export default function Home() {
                       />
                     );
                   })}
-                  {recommendedEvents.length > 0 && (
-                  <Animated.View
-                    style={{
-                      width: CARD_WIDTH,
-                      transform: [{ scale: discoverScale }],
-                      borderRadius: radius.lg,
-                      overflow: "hidden",
-                      shadowColor: "#6B3FFF",
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowOpacity: 0.35,
-                      shadowRadius: 18,
-                      elevation: 8,
-                    }}
-                  >
-                    <Pressable
-                      onPress={() => router.push("/discover")}
-                      onPressIn={() =>
-                        Animated.spring(discoverScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                      }
-                      onPressOut={() =>
-                        Animated.spring(discoverScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                      }
-                    >
-                      <LinearGradient
-                        colors={["#1c1a2e", "#1e1640", "#2d1b52"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={{ width: "100%", height: POSTER_HEIGHT }}
-                      >
-                        <LinearGradient
-                          colors={["rgba(110,70,255,0.28)", "transparent"]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0.7 }}
-                          style={{ position: "absolute", left: 0, right: 0, top: 0, height: 120 }}
-                        />
-                        <Text
-                          style={{
-                            position: "absolute",
-                            top: spacing.md,
-                            right: spacing.md,
-                            fontSize: 64,
-                            opacity: 0.08,
-                          }}
-                        >
-                          ✦
-                        </Text>
-                        <LinearGradient
-                          colors={["transparent", "rgba(0,0,0,0.88)"]}
-                          style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 160 }}
-                        />
-                        <View style={{ position: "absolute", bottom: spacing.lg, left: spacing.lg, right: spacing.lg }}>
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              fontWeight: typography.weights.semibold,
-                              color: "rgba(180,150,255,0.85)",
-                              letterSpacing: 1.5,
-                              marginBottom: 6,
-                            }}
-                          >
-                            DISCOVER
-                          </Text>
-                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                            <Text
-                              style={{
-                                fontSize: typography.sizes.lg,
-                                fontWeight: typography.weights.bold,
-                                color: "#fff",
-                                flex: 1,
-                              }}
-                              numberOfLines={1}
-                            >
-                              Discover more
-                            </Text>
-                            <Text style={{ fontSize: 20, color: "rgba(255,255,255,0.45)", marginLeft: spacing.sm }}>›</Text>
-                          </View>
-                          <Text
-                            style={{
-                              fontSize: typography.sizes.sm,
-                              color: "rgba(255,255,255,0.5)",
-                            }}
-                            numberOfLines={1}
-                          >
-                            Browse public events
-                          </Text>
-                        </View>
-                      </LinearGradient>
-                    </Pressable>
-                  </Animated.View>
-                  )}
                 </ScrollView>
               </View>
             ) : (
@@ -679,7 +421,7 @@ export default function Home() {
                 <View style={{ marginBottom: SECTION_GAP }}>
                   <HomeSectionHeader
                     title="Featured this week"
-                    action={{ label: "See all", onPress: () => router.push("/discover") }}
+                    action={{ label: "See all", onPress: goToFeaturedDiscover }}
                   />
                   <ScrollView
                     horizontal
@@ -710,96 +452,6 @@ export default function Home() {
                         />
                       );
                     })}
-                    {featuredEvents.length > 0 && (
-                      <Animated.View
-                        style={{
-                          width: CARD_WIDTH,
-                          transform: [{ scale: discoverScale }],
-                          borderRadius: radius.lg,
-                          overflow: "hidden",
-                          shadowColor: "#6B3FFF",
-                          shadowOffset: { width: 0, height: 8 },
-                          shadowOpacity: 0.35,
-                          shadowRadius: 18,
-                          elevation: 8,
-                        }}
-                      >
-                        <Pressable
-                          onPress={() => router.push("/discover")}
-                          onPressIn={() =>
-                            Animated.spring(discoverScale, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                          }
-                          onPressOut={() =>
-                            Animated.spring(discoverScale, { toValue: 1, useNativeDriver: true, tension: 300, friction: 20 }).start()
-                          }
-                        >
-                          <LinearGradient
-                            colors={["#1c1a2e", "#1e1640", "#2d1b52"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={{ width: "100%", height: POSTER_HEIGHT }}
-                          >
-                            <LinearGradient
-                              colors={["rgba(110,70,255,0.28)", "transparent"]}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 0.7 }}
-                              style={{ position: "absolute", left: 0, right: 0, top: 0, height: 120 }}
-                            />
-                            <Text
-                              style={{
-                                position: "absolute",
-                                top: spacing.md,
-                                right: spacing.md,
-                                fontSize: 64,
-                                opacity: 0.08,
-                              }}
-                            >
-                              ✦
-                            </Text>
-                            <LinearGradient
-                              colors={["transparent", "rgba(0,0,0,0.88)"]}
-                              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 160 }}
-                            />
-                            <View style={{ position: "absolute", bottom: spacing.lg, left: spacing.lg, right: spacing.lg }}>
-                              <Text
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: typography.weights.semibold,
-                                  color: "rgba(180,150,255,0.85)",
-                                  letterSpacing: 1.5,
-                                  marginBottom: 6,
-                                }}
-                              >
-                                DISCOVER
-                              </Text>
-                              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                                <Text
-                                  style={{
-                                    fontSize: typography.sizes.lg,
-                                    fontWeight: typography.weights.bold,
-                                    color: "#fff",
-                                    flex: 1,
-                                  }}
-                                  numberOfLines={1}
-                                >
-                                  Discover more
-                                </Text>
-                                <Text style={{ fontSize: 20, color: "rgba(255,255,255,0.45)", marginLeft: spacing.sm }}>›</Text>
-                              </View>
-                              <Text
-                                style={{
-                                  fontSize: typography.sizes.sm,
-                                  color: "rgba(255,255,255,0.5)",
-                                }}
-                                numberOfLines={1}
-                              >
-                                Browse public events
-                              </Text>
-                            </View>
-                          </LinearGradient>
-                        </Pressable>
-                      </Animated.View>
-                    )}
                   </ScrollView>
                 </View>
               )
