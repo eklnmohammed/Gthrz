@@ -126,7 +126,6 @@ export default function EventDetailScreen() {
   const [showGuestsModal, setShowGuestsModal] = useState(false);
   const [showContribManageSheet, setShowContribManageSheet] = useState(false);
   const [selectedContribId, setSelectedContribId] = useState<string | null>(null);
-  const [detailsCollapsed, setDetailsCollapsed] = useState(true);
   const [contributions, setContributions] = useState<{ id: string; title: string; assigned_user_phone: string | null; status: "open" | "done" }[]>([]);
   const [newContribTitle, setNewContribTitle] = useState("");
   const CONTRIB_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
@@ -1147,132 +1146,63 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          {/* Lineup — only when schedule has entries; collapsed by default */}
+          {/* Lineup — only when schedule has entries; simple static list */}
           {eventData.lineup && eventData.lineup.length > 0 ? (
-            <>
-              <Pressable
-                onPress={() => setDetailsCollapsed((c) => !c)}
+            <View
+              style={{
+                marginBottom: spacing.lg,
+                paddingTop: spacing.md,
+                borderTopWidth: 0.5,
+                borderTopColor: colors.overlayWhite10,
+              }}
+            >
+              <Text
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingVertical: spacing.md,
-                  marginBottom: detailsCollapsed ? 0 : spacing.lg,
-                  borderTopWidth: 0.5,
-                  borderTopColor: colors.overlayWhite10,
+                  fontSize: typography.sizes.sm,
+                  fontWeight: typography.weights.semibold,
+                  color: colors.textMuted,
+                  marginBottom: spacing.sm,
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: typography.sizes.sm,
-                    fontWeight: typography.weights.semibold,
-                    color: colors.textMuted,
-                  }}
-                >
-                  Lineup
-                </Text>
-                <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-                  {detailsCollapsed ? "▼" : "▲"}
-                </Text>
-              </Pressable>
-              {!detailsCollapsed && (
-                <View style={{ marginBottom: spacing.xxl, gap: spacing.xl }}>
-                  <View style={{ marginBottom: spacing.xxl }}>
+                Lineup
+              </Text>
+              {eventData.lineup.map((entry, i) => {
+                /* No "(next day)" / (+1) on details for now — plain "start → end" only */
+                const timeRange = formatLineupTimeRange(entry.startTime, entry.endTime, 0) || null;
+                const isLast = i === eventData.lineup.length - 1;
+                return (
+                  <View
+                    key={i}
+                    style={{
+                      marginBottom: isLast ? 0 : spacing.md,
+                    }}
+                  >
                     <Text
                       style={{
-                        fontSize: typography.sizes.xs,
+                        fontSize: typography.sizes.md,
                         fontWeight: typography.weights.semibold,
-                        color: colors.textMuted,
-                        letterSpacing: 0.8,
-                        textTransform: "uppercase",
-                        marginBottom: spacing.md,
+                        color: colors.text,
                       }}
+                      numberOfLines={2}
                     >
-                      Lineup
+                      {entry.name}
                     </Text>
-                    <View
-                      style={{
-                        backgroundColor: colors.surface,
-                        borderRadius: radius.xl,
-                        borderWidth: 0.5,
-                        borderColor: colors.border,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {eventData.lineup.map((entry, i) => {
-                        const offset = Math.min(1, (entry as { endDayOffset?: number }).endDayOffset ?? 0) as 0 | 1;
-                        const rawTimeRange = formatLineupTimeRange(entry.startTime, entry.endTime, offset);
-                        const timeRange = rawTimeRange ? rawTimeRange.replace(/next day/gi, "+1") : null;
-                        return (
-                          <View
-                            key={i}
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              paddingHorizontal: spacing.lg,
-                              paddingVertical: spacing.md,
-                              borderTopWidth: i === 0 ? 0 : 0.5,
-                              borderTopColor: colors.border,
-                            }}
-                          >
-                            {/* Left: name + time */}
-                            <View style={{ flex: 1, gap: 3 }}>
-                              <Text
-                                style={{
-                                  fontSize: typography.sizes.md,
-                                  fontWeight: typography.weights.semibold,
-                                  color: colors.text,
-                                }}
-                                numberOfLines={1}
-                              >
-                                {entry.name}
-                              </Text>
-                              {timeRange ? (
-                                <Text
-                                  style={{
-                                    fontSize: typography.sizes.xs,
-                                    color: colors.textMuted,
-                                    fontVariant: ["tabular-nums"],
-                                  }}
-                                >
-                                  {timeRange}
-                                </Text>
-                              ) : null}
-                            </View>
-                            {/* Right: note pill */}
-                            {entry.note ? (
-                              <View
-                                style={{
-                                  backgroundColor: colors.surfaceLight,
-                                  borderRadius: radius.full,
-                                  paddingHorizontal: spacing.sm,
-                                  paddingVertical: 3,
-                                  borderWidth: 0.5,
-                                  borderColor: colors.border,
-                                  marginLeft: spacing.md,
-                                  maxWidth: 110,
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    fontSize: 10,
-                                    color: colors.textMuted,
-                                    fontWeight: typography.weights.medium,
-                                  }}
-                                  numberOfLines={1}
-                                >
-                                  {entry.note}
-                                </Text>
-                              </View>
-                            ) : null}
-                          </View>
-                        );
-                      })}
-                    </View>
+                    {timeRange ? (
+                      <Text
+                        style={{
+                          fontSize: typography.sizes.sm,
+                          color: colors.textMuted,
+                          marginTop: spacing.xs,
+                          fontVariant: ["tabular-nums"],
+                        }}
+                      >
+                        {timeRange}
+                      </Text>
+                    ) : null}
                   </View>
-                </View>
-              )}
-            </>
+                );
+              })}
+            </View>
           ) : null}
 
           {/* Bring — own section; only when there are items and user may interact (host or Going) */}
