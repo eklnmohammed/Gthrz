@@ -1199,7 +1199,7 @@ export default function EditEventScreen() {
               {/* Lineup */}
               <View style={{ gap: spacing.sm }}>
                 <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
-                  Optional - add lineup items if you want a schedule
+                  Optional - add a lineup
                 </Text>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                     <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
@@ -1218,7 +1218,7 @@ export default function EditEventScreen() {
                         })}
                       >
                         <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.primary }}>
-                          + Add item
+                          {lineup.length > 0 ? "+ Add item" : "Add lineup"}
                         </Text>
                       </Pressable>
                     )}
@@ -1499,6 +1499,10 @@ export default function EditEventScreen() {
                               paddingVertical: spacing.md,
                               marginTop: spacing.sm,
                               alignItems: "center",
+                              borderRadius: radius.md,
+                              backgroundColor: "rgba(255,71,87,0.10)",
+                              borderWidth: 0.5,
+                              borderColor: "rgba(255,71,87,0.35)",
                               opacity: pressed ? 0.9 : 1,
                             })}
                           >
