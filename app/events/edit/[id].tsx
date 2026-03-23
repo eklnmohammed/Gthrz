@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   View,
@@ -55,35 +55,8 @@ const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] =
   { value: "istiraha", label: "Istiraha", emoji: "🏕️" },
   { value: "ramadan", label: "Ramadan", emoji: "🌙" },
 ];
-
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View
-      style={{
-        marginHorizontal: spacing.lg,
-        backgroundColor: colors.surface,
-        borderRadius: radius.xl,
-        padding: spacing.xl,
-        gap: spacing.xl,
-        borderWidth: 0.5,
-        borderColor: colors.border,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: typography.sizes.xs,
-          fontWeight: typography.weights.semibold,
-          color: colors.textMuted,
-          letterSpacing: 0.8,
-          textTransform: "uppercase",
-        }}
-      >
-        {title}
-      </Text>
-      {children}
-    </View>
-  );
-}
+const HERO_PADDING_H = spacing.xxl;
+const HERO_RADIUS = 24;
 
 export default function EditEventScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -222,9 +195,7 @@ export default function EditEventScreen() {
   };
 
   const { width: screenWidth } = useWindowDimensions();
-  const coverPadding = spacing.xxxxl * 2;
-  const coverSize = screenWidth - coverPadding;
-  const typeLabel = getEventTypeLabel(eventType);
+  const heroWidth = screenWidth - HERO_PADDING_H * 2;
 
   useEffect(() => {
     onboardingStore.getPhone().then(setUserPhone);
@@ -585,7 +556,32 @@ export default function EditEventScreen() {
   };
 
   const ctaBottom = Math.max(spacing.lg, insets.bottom);
-  const hasCover = isValidCoverUrl(coverUrl) || (coverKey != null && coverKey.trim() !== "");
+  const coverSource = isValidCoverUrl(coverUrl)
+    ? { uri: coverUrl! }
+    : getCoverSource(coverKey || undefined, eventType);
+
+  const sectionCard = (title: string, children: ReactNode) => (
+    <View
+      style={{
+        marginHorizontal: HERO_PADDING_H,
+        marginBottom: spacing.xl,
+        backgroundColor: colors.surface,
+        borderRadius: radius.lg,
+        overflow: "hidden",
+        borderWidth: 0.5,
+        borderColor: colors.border,
+      }}
+    >
+      <View style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+        <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.8, textTransform: "uppercase" }}>
+          {title}
+        </Text>
+      </View>
+      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
+        {children}
+      </View>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -618,195 +614,130 @@ export default function EditEventScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Hero poster (square, centered) ── */}
+        {/* ── Hero poster: square cover (same as create flow) ── */}
         <View
           style={{
+            width: heroWidth,
             alignSelf: "center",
-            width: coverSize,
-            height: coverSize,
-            borderRadius: 24,
+            aspectRatio: 1,
+            borderRadius: HERO_RADIUS,
             overflow: "hidden",
-            marginVertical: spacing.xxl,
+            marginTop: spacing.lg,
+            marginBottom: spacing.lg,
           }}
         >
-          {hasCover ? (
-            <ImageBackground
-              source={isValidCoverUrl(coverUrl) ? { uri: coverUrl! } : getCoverSource(coverKey, eventType)}
-              resizeMode="cover"
-              style={{ flex: 1, width: "100%", height: "100%" }}
-            >
-              <LinearGradient
-                colors={["rgba(0,0,0,0.45)", "transparent"]}
-                style={{ position: "absolute", top: 0, left: 0, right: 0, height: 130 }}
-              />
-              <LinearGradient
-                colors={["transparent", "rgba(0,0,0,0.82)"]}
-                style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 160 }}
-              />
-              <View
-                style={{
+          <ImageBackground
+            source={coverSource as any}
+            resizeMode="cover"
+            style={{ width: "100%", height: "100%" }}
+          >
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.75)"]}
+              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "28%" }}
+            />
+            <View style={{ position: "absolute", top: spacing.md, right: spacing.md }}>
+              <Pressable
+                onPress={() => { setSelectedCoverType(eventType); setShowCoverModal(true); }}
+                style={({ pressed }) => ({
                   flexDirection: "row",
-                  justifyContent: "space-between",
                   alignItems: "center",
-                  paddingHorizontal: spacing.lg,
-                  paddingTop: spacing.lg,
-                }}
+                  gap: spacing.xs,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.full,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  opacity: pressed ? 0.85 : 1,
+                })}
               >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 5,
-                    backgroundColor: "rgba(0,0,0,0.38)",
-                    paddingVertical: 5,
-                    paddingHorizontal: spacing.sm,
-                    borderRadius: radius.full,
-                    borderWidth: 0.5,
-                    borderColor: "rgba(255,255,255,0.18)",
-                  }}
-                >
-                  <Text style={{ fontSize: 13 }}>{typeLabel.emoji}</Text>
-                  <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: "#fff" }}>
-                    {typeLabel.label}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => { setSelectedCoverType(eventType); setShowCoverModal(true); }}
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.18)",
-                    paddingVertical: 6,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.full,
-                    borderWidth: 0.5,
-                    borderColor: "rgba(255,255,255,0.25)",
-                  })}
-                >
-                  <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: "#fff" }}>
-                    Change cover
-                  </Text>
-                </Pressable>
-              </View>
-              <View
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  paddingHorizontal: spacing.lg,
-                  paddingBottom: spacing.xl,
-                  gap: 3,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: typography.sizes.xxl,
-                    fontWeight: typography.weights.bold,
-                    color: "#fff",
-                    lineHeight: 28,
-                  }}
-                  numberOfLines={2}
-                >
-                  {title || "Your event title"}
+                <Text style={{ fontSize: 14 }}>📷</Text>
+                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: "#fff" }}>
+                  Change cover
                 </Text>
-                {selectedDate ? (
-                  <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.78)", fontWeight: typography.weights.medium }}>
-                    {formatEventDate(selectedDate.toISOString())}
-                  </Text>
-                ) : (
-                  <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.38)" }}>
-                    Date & time not set
-                  </Text>
-                )}
-              </View>
-            </ImageBackground>
-          ) : (
+              </Pressable>
+            </View>
             <View
               style={{
-                flex: 1,
-                width: "100%",
-                height: "100%",
-                backgroundColor: colors.surface,
-                borderWidth: 2,
-                borderStyle: "dashed",
-                borderColor: colors.border,
-                justifyContent: "space-between",
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
                 paddingHorizontal: spacing.lg,
-                paddingTop: spacing.lg,
                 paddingBottom: spacing.xl,
+                gap: spacing.xs,
               }}
             >
-              <View
+              <Text
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  fontSize: typography.sizes.xxl,
+                  fontWeight: typography.weights.bold,
+                  color: "#fff",
+                  lineHeight: 32,
                 }}
+                numberOfLines={2}
               >
-                <View
-                  style={{
+                {title || "Your event title"}
+              </Text>
+              {selectedDate ? (
+                <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.85)", fontWeight: typography.weights.medium }}>
+                  {formatEventDate(selectedDate.toISOString())}
+                </Text>
+              ) : (
+                <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.55)" }}>
+                  Date & time not set
+                </Text>
+              )}
+            </View>
+          </ImageBackground>
+        </View>
+
+        {/* ── Event type chips ── */}
+        <View style={{ paddingHorizontal: HERO_PADDING_H, marginBottom: spacing.xl }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.sm, paddingRight: HERO_PADDING_H }}
+          >
+            {EVENT_TYPE_OPTIONS.map((option) => {
+              const selected = eventType === option.value;
+              const label = getEventTypeLabel(option.value).label;
+              return (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setEventType(option.value)}
+                  style={({ pressed }) => ({
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 5,
-                    backgroundColor: colors.surfaceLight,
-                    paddingVertical: 5,
-                    paddingHorizontal: spacing.sm,
-                    borderRadius: radius.full,
-                    borderWidth: 0.5,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: 13 }}>{typeLabel.emoji}</Text>
-                  <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.text }}>
-                    {typeLabel.label}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => { setSelectedCoverType(eventType); setShowCoverModal(true); }}
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? colors.surfaceLighter : colors.primary,
-                    paddingVertical: 6,
+                    gap: spacing.xs,
+                    paddingVertical: spacing.sm,
                     paddingHorizontal: spacing.md,
                     borderRadius: radius.full,
-                    borderWidth: 0.5,
-                    borderColor: colors.primary,
+                    backgroundColor: selected ? colors.primaryLight20 : pressed ? colors.surfaceLighter : colors.surfaceLight,
+                    borderWidth: 1,
+                    borderColor: selected ? colors.primary : colors.border,
                   })}
                 >
-                  <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: "#fff" }}>
-                    Add cover
+                  <Text style={{ fontSize: 13 }}>{option.emoji}</Text>
+                  <Text
+                    style={{
+                      fontSize: typography.sizes.xs,
+                      fontWeight: selected ? typography.weights.semibold : typography.weights.medium,
+                      color: selected ? colors.text : colors.textMuted,
+                    }}
+                  >
+                    {label}
                   </Text>
                 </Pressable>
-              </View>
-              <View style={{ gap: 3 }}>
-                <Text
-                  style={{
-                    fontSize: typography.sizes.xxl,
-                    fontWeight: typography.weights.bold,
-                    color: colors.text,
-                    lineHeight: 28,
-                  }}
-                  numberOfLines={2}
-                >
-                  {title || "Your event title"}
-                </Text>
-                {selectedDate ? (
-                  <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, fontWeight: typography.weights.medium }}>
-                    {formatEventDate(selectedDate.toISOString())}
-                  </Text>
-                ) : (
-                  <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-                    Date & time not set
-                  </Text>
-                )}
-              </View>
-            </View>
-          )}
+              );
+            })}
+          </ScrollView>
         </View>
 
         {/* ── Error ── */}
         {error && (
           <View
             style={{
-              marginHorizontal: spacing.lg,
+              marginHorizontal: HERO_PADDING_H,
+              marginBottom: spacing.lg,
               backgroundColor: "rgba(255,71,87,0.12)",
               borderRadius: radius.lg,
               padding: spacing.lg,
@@ -820,65 +751,15 @@ export default function EditEventScreen() {
           </View>
         )}
 
-        {/* ── Basics card ── */}
-        <SectionCard title="Basics">
+        {/* ── Essentials ── */}
+        {sectionCard("Essentials", (
+          <>
           <AppInput
             label="Title *"
             value={title}
             onChangeText={setTitle}
             placeholder="e.g., Eid gathering, Istiraha night..."
           />
-
-          {/* Event type — one row, compact chips */}
-          <View style={{ gap: spacing.sm }}>
-            <Text
-              style={{
-                fontSize: typography.sizes.sm,
-                fontWeight: typography.weights.medium,
-                color: colors.textMuted,
-              }}
-            >
-              Event type
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.sm }}
-            >
-              {EVENT_TYPE_OPTIONS.map((option) => {
-                const selected = eventType === option.value;
-                const label = getEventTypeLabel(option.value).label;
-                return (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => setEventType(option.value)}
-                    style={({ pressed }) => ({
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 4,
-                      paddingVertical: spacing.sm,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.full,
-                      backgroundColor: selected ? colors.primary : pressed ? colors.surfaceLighter : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: selected ? colors.primary : "rgba(255,255,255,0.06)",
-                    })}
-                  >
-                    <Text style={{ fontSize: 14 }}>{option.emoji}</Text>
-                    <Text
-                      style={{
-                        fontSize: typography.sizes.sm,
-                        fontWeight: selected ? typography.weights.semibold : typography.weights.medium,
-                        color: colors.text,
-                      }}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
 
           <View style={{ gap: spacing.sm }}>
             <Text
@@ -917,6 +798,14 @@ export default function EditEventScreen() {
               userPhone={userPhone}
             />
           </View>
+          <AppInput
+            label="About"
+            value={details}
+            onChangeText={setDetails}
+            placeholder="What's this event about?"
+            multiline
+            numberOfLines={4}
+          />
 
           {/* Visibility */}
           <View style={{ gap: spacing.sm }}>
@@ -956,20 +845,8 @@ export default function EditEventScreen() {
                 : "Visible in Discover. Share the code for quick access."}
             </Text>
           </View>
-
-        </SectionCard>
-
-        {/* ── About card ── */}
-        <SectionCard title="About">
-          <AppInput
-            label="Details"
-            value={details}
-            onChangeText={setDetails}
-            placeholder="What's this event about?"
-            multiline
-            numberOfLines={4}
-          />
-        </SectionCard>
+          </>
+        ))}
 
         {/* ── Options (always visible) ── */}
         <View
@@ -1657,8 +1534,8 @@ export default function EditEventScreen() {
       {/* ── Sticky CTA ── */}
       <View
         style={{
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
+          paddingHorizontal: HERO_PADDING_H,
+          paddingTop: spacing.lg,
           paddingBottom: ctaBottom,
           backgroundColor: colors.background,
           borderTopWidth: 0.5,
@@ -1666,18 +1543,55 @@ export default function EditEventScreen() {
         }}
       >
         {saving ? (
-          <View style={{ height: spacing.buttonHeightLg, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="small" color={colors.coral} />
+          <View
+            style={{
+              flexDirection: "row",
+              height: spacing.buttonHeightLg,
+              justifyContent: "center",
+              alignItems: "center",
+              gap: spacing.sm,
+              backgroundColor: colors.surfaceLight,
+              borderRadius: radius.lg,
+              borderWidth: 0.5,
+              borderColor: colors.border,
+            }}
+          >
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
+              Saving…
+            </Text>
           </View>
         ) : (
-          <AppButton
-            title="Save changes"
+          <Pressable
             onPress={handleSave}
             disabled={!isValid || saving || deleting}
-            variant="coral"
-            size="lg"
-            fullWidth
-          />
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: spacing.sm,
+              height: spacing.buttonHeightLg,
+              borderRadius: radius.lg,
+              backgroundColor: isValid && !deleting ? colors.primary : colors.surfaceLight,
+              borderWidth: 0.5,
+              borderColor: isValid && !deleting ? colors.primary : colors.border,
+              opacity: pressed ? 0.9 : 1,
+            })}
+          >
+            <Text
+              style={{
+                fontSize: typography.sizes.lg,
+                fontWeight: typography.weights.semibold,
+                color: isValid && !deleting ? colors.text : colors.textMuted,
+              }}
+            >
+              Save changes
+            </Text>
+            <Text style={{ fontSize: typography.sizes.md, color: isValid && !deleting ? colors.text : colors.textMuted }}>
+              →
+            </Text>
+          </Pressable>
         )}
       </View>
 
