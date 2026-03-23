@@ -135,7 +135,7 @@ export default function ProfileScreen() {
                 marginTop: spacing.xs,
               }}
             >
-              This helps friends recognize you.
+              Help your friends recognize you at events.
             </Text>
           </View>
 

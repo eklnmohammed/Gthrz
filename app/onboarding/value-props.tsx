@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "../../src/components";
 import { AppButton } from "../../src/components/AppButton";
+import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -20,28 +21,48 @@ const VALUE_PROPS: ValueProp[] = [
   {
     icon: "✨",
     gradient: colors.primaryGradient,
-    title: "Beautiful invites",
+    title: "Elegant event pages",
     description:
-      "Create a polished event page for any occasion — from an istiraha night to an engagement dinner.",
+      "Create stunning invites for every occasion — graduation nights, majlis gatherings, or birthday celebrations.",
   },
   {
     icon: "📋",
     gradient: colors.coralGradient,
-    title: "Easy guest management",
+    title: "Smart guest control",
     description:
-      "Approve guests, set a capacity, and always know who's coming before the night starts.",
+      "Set your guest list, approve attendees, and know exactly who's coming to your istiraha or wedding.",
   },
   {
     icon: "🎉",
     gradient: ["#11998E", "#38EF7D"] as const,
-    title: "Host with confidence",
+    title: "Effortless hosting",
     description:
-      "Share invite links, collect RSVPs, and keep your guest list exactly as you planned.",
+      "Share your invite code, collect RSVPs, and focus on what matters — creating memorable moments.",
   },
 ];
 
 export default function ValuePropsScreen() {
+  const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handleBack = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      return;
+    }
+    router.back();
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <HeaderBackTextButton
+          label="Back"
+          onPress={handleBack}
+        />
+      ),
+    });
+  }, [navigation, currentIndex]);
 
   const handleContinue = () => {
     if (currentIndex < VALUE_PROPS.length - 1) {

@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
               lineHeight: 24,
             }}
           >
-            Your events, your way.{"\n"}The smarter way to host and invite.
+            From istiraha nights to engagement dinners.{"\n"}Host with style, invite with ease.
           </Text>
         </View>
 

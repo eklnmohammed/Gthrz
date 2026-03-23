@@ -172,7 +172,7 @@ export default function PhoneLoginScreen() {
                 textAlign: "center",
               }}
             >
-              Join the gathering
+              Ready to host?
             </Text>
             {devModeOn && (
               <Text
@@ -195,7 +195,7 @@ export default function PhoneLoginScreen() {
               lineHeight: 22,
             }}
           >
-            Just for event updates. No spam.
+            Your number stays private. Event invites only.
           </Text>
         </View>
 

@@ -126,7 +126,7 @@ export default function VerifyScreen() {
             marginBottom: spacing.sm,
           }}
         >
-          Enter your code
+          Check your messages
         </Text>
         <Text
           style={{
@@ -137,7 +137,7 @@ export default function VerifyScreen() {
             marginBottom: spacing.xxl,
           }}
         >
-          Sent to {maskedPhone}
+          Enter the 6-digit code sent to {maskedPhone}
         </Text>
 
         {/* Hidden input + visual code boxes */}
