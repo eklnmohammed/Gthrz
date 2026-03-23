@@ -116,8 +116,9 @@ export default function CreateEventScreen() {
   const AUDIENCE_OPTIONS = ["Men only", "Mixed", "Women only"];
   const BRING_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
 
-  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Black tie", "Costume", "Thobe", "Abaya", "Traditional", "Other"];
-  const dressCodeValue = dressCode === "Other" ? dressCodeCustom.trim() : dressCode;
+  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Traditional", "All black", "Techno", "Y2K", "Custom"];
+  const DRESS_CODE_CUSTOM = "Custom";
+  const dressCodeValue = dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom.trim() : dressCode;
 
   const DRAFT_INDEX = -1;
   const showLineup = eventType === "party" || eventType === "wedding";
@@ -873,7 +874,7 @@ export default function CreateEventScreen() {
                 <Pressable
                   onPress={() => {
                     setDressCodeSheetTemp(dressCode || "");
-                    setDressCodeSheetCustom(dressCode === "Other" ? dressCodeCustom : "");
+                    setDressCodeSheetCustom(dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom : "");
                     setShowDressCodeSheet(true);
                   }}
                   style={{
@@ -1778,7 +1779,7 @@ export default function CreateEventScreen() {
               </Text>
             </View>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, justifyContent: "center" }}>
-              {DRESS_CODE_PRESETS.filter((p) => p !== "Other").map((preset) => {
+              {DRESS_CODE_PRESETS.filter((p) => p !== DRESS_CODE_CUSTOM).map((preset) => {
                 const selected = dressCodeSheetTemp === preset;
                 return (
                   <Pressable
@@ -1801,10 +1802,10 @@ export default function CreateEventScreen() {
                 );
               })}
               {(() => {
-                const selected = dressCodeSheetTemp === "Other";
+                const selected = dressCodeSheetTemp === DRESS_CODE_CUSTOM;
                 return (
                   <Pressable
-                    onPress={() => setDressCodeSheetTemp("Other")}
+                    onPress={() => setDressCodeSheetTemp(DRESS_CODE_CUSTOM)}
                     style={{
                       paddingVertical: spacing.md,
                       paddingHorizontal: spacing.lg,
@@ -1816,15 +1817,15 @@ export default function CreateEventScreen() {
                     }}
                   >
                     <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
-                      Other
+                      {DRESS_CODE_CUSTOM}
                     </Text>
                   </Pressable>
                 );
               })()}
             </View>
-            {dressCodeSheetTemp === "Other" && (
+            {dressCodeSheetTemp === DRESS_CODE_CUSTOM && (
               <AppInput
-                placeholder="e.g. traditional, all white..."
+                placeholder="e.g. Thobe, Abaya, All black"
                 value={dressCodeSheetCustom}
                 onChangeText={setDressCodeSheetCustom}
                 maxLength={60}
@@ -1849,13 +1850,17 @@ export default function CreateEventScreen() {
                 </Text>
               </Pressable>
               {(() => {
-                const applyValid = dressCodeSheetTemp !== "" && (dressCodeSheetTemp !== "Other" || dressCodeSheetCustom.trim() !== "");
+                const applyValid =
+                  dressCodeSheetTemp !== "" &&
+                  (dressCodeSheetTemp !== DRESS_CODE_CUSTOM || dressCodeSheetCustom.trim() !== "");
                 return (
                   <Pressable
                     onPress={() => {
                       if (applyValid) {
                         setDressCode(dressCodeSheetTemp);
-                        setDressCodeCustom(dressCodeSheetCustom.trim());
+                        setDressCodeCustom(
+                          dressCodeSheetTemp === DRESS_CODE_CUSTOM ? dressCodeSheetCustom.trim() : ""
+                        );
                         setShowDressCodeSheet(false);
                       }
                     }}
