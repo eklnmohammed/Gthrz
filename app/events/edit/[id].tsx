@@ -160,10 +160,16 @@ export default function EditEventScreen() {
       setDraftError(err);
       return;
     }
+    const startTime = draftLineup.startTime?.trim();
+    const endTime = draftLineup.endTime?.trim();
+    if (!startTime || !endTime) {
+      setDraftError("Name, start and end are required");
+      return;
+    }
     const entry: LineupEntry = {
       name: draftLineup.name.trim(),
-      startTime: draftLineup.startTime.trim(),
-      endTime: draftLineup.endTime.trim(),
+      startTime,
+      endTime,
       endDayOffset: Math.min(1, draftLineup.endDayOffset ?? 0) as EndDayOffset,
       note: (draftLineup.note ?? "").trim(),
     };
