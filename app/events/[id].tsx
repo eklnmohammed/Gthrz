@@ -901,74 +901,118 @@ export default function EventDetailScreen() {
             {typeLabel.emoji} {typeLabel.label} · {formatEventDate(eventDateTime)}
           </Text>
 
-          <View
-            style={{
-              height: 1,
-              backgroundColor: colors.overlayWhite10,
-              marginTop: spacing.lg,
-              marginBottom: spacing.sm,
-            }}
-          />
-
-          {/* Who's coming — as many avatars as fit before "See all" (right-aligned) */}
-          <Pressable
-            onPress={() => setShowGuestsModal(true)}
-            style={({ pressed }) => ({
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: spacing.sm,
-              paddingVertical: spacing.sm,
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
+          {/* Guests: single divider above, label + avatars (same order as before) */}
+          <View style={{ marginBottom: spacing.lg }}>
             <View
-              style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}
-              onLayout={(e) => {
-                const w = e.nativeEvent.layout.width;
-                if (w > 0) setAvatarRowWidth(w);
+              style={{
+                height: 1,
+                backgroundColor: colors.overlayWhite10,
+                marginTop: spacing.lg,
+                marginBottom: spacing.md,
+              }}
+            />
+            <Text
+              style={{
+                fontSize: typography.sizes.sm,
+                fontWeight: typography.weights.semibold,
+                color: colors.textMuted,
+                marginBottom: spacing.xs,
               }}
             >
-              {(() => {
-                const AVATAR_SIZE = 36;
-                const AVATAR_OVERLAP = 10;
-                const effectivePerAvatar = AVATAR_SIZE - AVATAR_OVERLAP;
-                const maxVisible =
-                  avatarRowWidth >= AVATAR_SIZE
-                    ? Math.max(1, 1 + Math.floor((avatarRowWidth - AVATAR_SIZE) / effectivePerAvatar))
-                    : 1;
-                if (goingCount === 0) {
-                  return [1, 2, 3].map((i) => (
-                    <View
-                      key={i}
-                      style={{
-                        width: AVATAR_SIZE,
-                        height: AVATAR_SIZE,
-                        borderRadius: AVATAR_SIZE / 2,
-                        backgroundColor: colors.surfaceLight,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginLeft: i === 1 ? 0 : -AVATAR_OVERLAP,
-                      }}
-                    >
-                      <Ionicons name="person-outline" size={16} color={colors.textMuted} />
-                    </View>
-                  ));
-                }
-                const toShow = rsvpsByStatus.going.slice(0, maxVisible);
-                const overflow = goingCount > maxVisible ? goingCount - maxVisible : 0;
-                return (
-                  <>
-                    {toShow.map((r, i) => {
-                      const profile = goingProfiles[r.user_phone];
-                      const initial = getDisplayInitial(profile ?? null, r.user_phone);
-                      const avatarUri = profile?.avatarUri;
-                      const hideAvatarOnly = !isHostMode && eventData.hideGuestAvatars && r.user_phone !== userPhone;
-                      return (
+              Guests
+            </Text>
+            {/* Who's coming — as many avatars as fit before "See all" (right-aligned) */}
+            <Pressable
+              onPress={() => setShowGuestsModal(true)}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 0,
+                paddingVertical: spacing.md,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <View
+                style={{ flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 }}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w > 0) setAvatarRowWidth(w);
+                }}
+              >
+                {(() => {
+                  const AVATAR_SIZE = 36;
+                  const AVATAR_OVERLAP = 10;
+                  const effectivePerAvatar = AVATAR_SIZE - AVATAR_OVERLAP;
+                  const maxVisible =
+                    avatarRowWidth >= AVATAR_SIZE
+                      ? Math.max(1, 1 + Math.floor((avatarRowWidth - AVATAR_SIZE) / effectivePerAvatar))
+                      : 1;
+                  if (goingCount === 0) {
+                    return [1, 2, 3].map((i) => (
+                      <View
+                        key={i}
+                        style={{
+                          width: AVATAR_SIZE,
+                          height: AVATAR_SIZE,
+                          borderRadius: AVATAR_SIZE / 2,
+                          backgroundColor: colors.surfaceLight,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          justifyContent: "center",
+                          alignItems: "center",
+                          marginLeft: i === 1 ? 0 : -AVATAR_OVERLAP,
+                        }}
+                      >
+                        <Ionicons name="person-outline" size={16} color={colors.textMuted} />
+                      </View>
+                    ));
+                  }
+                  const toShow = rsvpsByStatus.going.slice(0, maxVisible);
+                  const overflow = goingCount > maxVisible ? goingCount - maxVisible : 0;
+                  return (
+                    <>
+                      {toShow.map((r, i) => {
+                        const profile = goingProfiles[r.user_phone];
+                        const initial = getDisplayInitial(profile ?? null, r.user_phone);
+                        const avatarUri = profile?.avatarUri;
+                        const hideAvatarOnly = !isHostMode && eventData.hideGuestAvatars && r.user_phone !== userPhone;
+                        return (
+                          <View
+                            key={r.user_phone}
+                            style={{
+                              width: AVATAR_SIZE,
+                              height: AVATAR_SIZE,
+                              borderRadius: AVATAR_SIZE / 2,
+                              backgroundColor: colors.surfaceLight,
+                              borderWidth: 2,
+                              borderColor: colors.surface,
+                              marginLeft: i === 0 ? 0 : -AVATAR_OVERLAP,
+                              overflow: "hidden",
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            {hideAvatarOnly ? (
+                              <Ionicons name="person-outline" size={16} color={colors.textMuted} />
+                            ) : avatarUri ? (
+                              <Image source={{ uri: avatarUri }} style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }} resizeMode="cover" />
+                            ) : (
+                              <Text
+                                style={{
+                                  fontSize: typography.sizes.xs,
+                                  fontWeight: typography.weights.semibold,
+                                  color: colors.textMuted,
+                                }}
+                              >
+                                {initial}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      })}
+                      {overflow > 0 && (
                         <View
-                          key={r.user_phone}
                           style={{
                             width: AVATAR_SIZE,
                             height: AVATAR_SIZE,
@@ -976,73 +1020,32 @@ export default function EventDetailScreen() {
                             backgroundColor: colors.surfaceLight,
                             borderWidth: 2,
                             borderColor: colors.surface,
-                            marginLeft: i === 0 ? 0 : -AVATAR_OVERLAP,
-                            overflow: "hidden",
+                            marginLeft: -AVATAR_OVERLAP,
                             justifyContent: "center",
                             alignItems: "center",
                           }}
                         >
-                          {hideAvatarOnly ? (
-                            <Ionicons name="person-outline" size={16} color={colors.textMuted} />
-                          ) : avatarUri ? (
-                            <Image source={{ uri: avatarUri }} style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }} resizeMode="cover" />
-                          ) : (
-                            <Text
-                              style={{
-                                fontSize: typography.sizes.xs,
-                                fontWeight: typography.weights.semibold,
-                                color: colors.textMuted,
-                              }}
-                            >
-                              {initial}
-                            </Text>
-                          )}
+                          <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
+                            +{overflow}
+                          </Text>
                         </View>
-                      );
-                    })}
-                    {overflow > 0 && (
-                      <View
-                        style={{
-                          width: AVATAR_SIZE,
-                          height: AVATAR_SIZE,
-                          borderRadius: AVATAR_SIZE / 2,
-                          backgroundColor: colors.surfaceLight,
-                          borderWidth: 2,
-                          borderColor: colors.surface,
-                          marginLeft: -AVATAR_OVERLAP,
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
-                          +{overflow}
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                );
-              })()}
-            </View>
-            <Text
-              style={{
-                fontSize: typography.sizes.sm,
-                fontWeight: typography.weights.medium,
-                color: colors.primary,
-                marginLeft: spacing.sm,
-              }}
-            >
-              See all
-            </Text>
-          </Pressable>
-
-          <View
-            style={{
-              height: 1,
-              backgroundColor: colors.overlayWhite10,
-              marginTop: spacing.sm,
-              marginBottom: spacing.lg,
-            }}
-          />
+                      )}
+                    </>
+                  );
+                })()}
+              </View>
+              <Text
+                style={{
+                  fontSize: typography.sizes.sm,
+                  fontWeight: typography.weights.medium,
+                  color: colors.primary,
+                  marginLeft: spacing.sm,
+                }}
+              >
+                See all
+              </Text>
+            </Pressable>
+          </View>
 
           {/* Cancelled banner */}
           {isCancelled && (
@@ -1069,7 +1072,7 @@ export default function EventDetailScreen() {
             </View>
           )}
 
-          {/* About first, then Details (grouped): dress, audience, lineup, bring, +1, guests — RSVP bar sticky below */}
+          {/* About, then dress / audience / lineup / bring / +1 — RSVP bar sticky below */}
           {/* About (top-level, always visible) */}
           <View style={{ marginTop: spacing.md, marginBottom: spacing.xl }}>
             <Text
@@ -1093,7 +1096,7 @@ export default function EventDetailScreen() {
             </Text>
           </View>
 
-          {/* Details section: secondary info + social rows (grouped below About) */}
+          {/* Secondary blocks below About (shared top border; no "Details" heading) */}
           <View
             style={{
               marginTop: spacing.md,
@@ -1102,17 +1105,6 @@ export default function EventDetailScreen() {
               borderTopColor: colors.overlayWhite10,
             }}
           >
-            <Text
-              style={{
-                fontSize: typography.sizes.sm,
-                fontWeight: typography.weights.semibold,
-                color: colors.textMuted,
-                marginBottom: spacing.md,
-              }}
-            >
-              Details
-            </Text>
-
           {/* Dress code — only shown if set */}
           {eventData.dressCode ? (
             <View style={{ marginBottom: spacing.lg }}>
@@ -1155,134 +1147,137 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          {/* Lineup — collapsed by default */}
-          <Pressable
-            onPress={() => setDetailsCollapsed((c) => !c)}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingVertical: spacing.md,
-              marginBottom: detailsCollapsed ? 0 : spacing.lg,
-              borderTopWidth: 0.5,
-              borderTopColor: colors.overlayWhite10,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: typography.sizes.sm,
-                fontWeight: typography.weights.semibold,
-                color: colors.textMuted,
-              }}
-            >
-              Lineup
-            </Text>
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-              {detailsCollapsed ? "▼" : "▲"}
-            </Text>
-          </Pressable>
-          {!detailsCollapsed && (
-            <View style={{ marginBottom: spacing.xxl, gap: spacing.xl }}>
-              {eventData.lineup.length > 0 && (
-            <View style={{ marginBottom: spacing.xxl }}>
-              <Text
+          {/* Lineup — only when schedule has entries; collapsed by default */}
+          {eventData.lineup && eventData.lineup.length > 0 ? (
+            <>
+              <Pressable
+                onPress={() => setDetailsCollapsed((c) => !c)}
                 style={{
-                  fontSize: typography.sizes.xs,
-                  fontWeight: typography.weights.semibold,
-                  color: colors.textMuted,
-                  letterSpacing: 0.8,
-                  textTransform: "uppercase",
-                  marginBottom: spacing.md,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingVertical: spacing.md,
+                  marginBottom: detailsCollapsed ? 0 : spacing.lg,
+                  borderTopWidth: 0.5,
+                  borderTopColor: colors.overlayWhite10,
                 }}
               >
-                Lineup
-              </Text>
-              <View
-                style={{
-                  backgroundColor: colors.surface,
-                  borderRadius: radius.xl,
-                  borderWidth: 0.5,
-                  borderColor: colors.border,
-                  overflow: "hidden",
-                }}
-              >
-                {eventData.lineup.map((entry, i) => {
-                  const offset = Math.min(1, (entry as { endDayOffset?: number }).endDayOffset ?? 0) as 0 | 1;
-                  const rawTimeRange = formatLineupTimeRange(entry.startTime, entry.endTime, offset);
-                  const timeRange = rawTimeRange ? rawTimeRange.replace(/next day/gi, "+1") : null;
-                  return (
-                    <View
-                      key={i}
+                <Text
+                  style={{
+                    fontSize: typography.sizes.sm,
+                    fontWeight: typography.weights.semibold,
+                    color: colors.textMuted,
+                  }}
+                >
+                  Lineup
+                </Text>
+                <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
+                  {detailsCollapsed ? "▼" : "▲"}
+                </Text>
+              </Pressable>
+              {!detailsCollapsed && (
+                <View style={{ marginBottom: spacing.xxl, gap: spacing.xl }}>
+                  <View style={{ marginBottom: spacing.xxl }}>
+                    <Text
                       style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        paddingHorizontal: spacing.lg,
-                        paddingVertical: spacing.md,
-                        borderTopWidth: i === 0 ? 0 : 0.5,
-                        borderTopColor: colors.border,
+                        fontSize: typography.sizes.xs,
+                        fontWeight: typography.weights.semibold,
+                        color: colors.textMuted,
+                        letterSpacing: 0.8,
+                        textTransform: "uppercase",
+                        marginBottom: spacing.md,
                       }}
                     >
-                      {/* Left: name + time */}
-                      <View style={{ flex: 1, gap: 3 }}>
-                        <Text
-                          style={{
-                            fontSize: typography.sizes.md,
-                            fontWeight: typography.weights.semibold,
-                            color: colors.text,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {entry.name}
-                        </Text>
-                        {timeRange ? (
-                          <Text
+                      Lineup
+                    </Text>
+                    <View
+                      style={{
+                        backgroundColor: colors.surface,
+                        borderRadius: radius.xl,
+                        borderWidth: 0.5,
+                        borderColor: colors.border,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {eventData.lineup.map((entry, i) => {
+                        const offset = Math.min(1, (entry as { endDayOffset?: number }).endDayOffset ?? 0) as 0 | 1;
+                        const rawTimeRange = formatLineupTimeRange(entry.startTime, entry.endTime, offset);
+                        const timeRange = rawTimeRange ? rawTimeRange.replace(/next day/gi, "+1") : null;
+                        return (
+                          <View
+                            key={i}
                             style={{
-                              fontSize: typography.sizes.xs,
-                              color: colors.textMuted,
-                              fontVariant: ["tabular-nums"],
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingHorizontal: spacing.lg,
+                              paddingVertical: spacing.md,
+                              borderTopWidth: i === 0 ? 0 : 0.5,
+                              borderTopColor: colors.border,
                             }}
                           >
-                            {timeRange}
-                          </Text>
-                        ) : null}
-                      </View>
-                      {/* Right: note pill */}
-                      {entry.note ? (
-                        <View
-                          style={{
-                            backgroundColor: colors.surfaceLight,
-                            borderRadius: radius.full,
-                            paddingHorizontal: spacing.sm,
-                            paddingVertical: 3,
-                            borderWidth: 0.5,
-                            borderColor: colors.border,
-                            marginLeft: spacing.md,
-                            maxWidth: 110,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              color: colors.textMuted,
-                              fontWeight: typography.weights.medium,
-                            }}
-                            numberOfLines={1}
-                          >
-                            {entry.note}
-                          </Text>
-                        </View>
-                      ) : null}
+                            {/* Left: name + time */}
+                            <View style={{ flex: 1, gap: 3 }}>
+                              <Text
+                                style={{
+                                  fontSize: typography.sizes.md,
+                                  fontWeight: typography.weights.semibold,
+                                  color: colors.text,
+                                }}
+                                numberOfLines={1}
+                              >
+                                {entry.name}
+                              </Text>
+                              {timeRange ? (
+                                <Text
+                                  style={{
+                                    fontSize: typography.sizes.xs,
+                                    color: colors.textMuted,
+                                    fontVariant: ["tabular-nums"],
+                                  }}
+                                >
+                                  {timeRange}
+                                </Text>
+                              ) : null}
+                            </View>
+                            {/* Right: note pill */}
+                            {entry.note ? (
+                              <View
+                                style={{
+                                  backgroundColor: colors.surfaceLight,
+                                  borderRadius: radius.full,
+                                  paddingHorizontal: spacing.sm,
+                                  paddingVertical: 3,
+                                  borderWidth: 0.5,
+                                  borderColor: colors.border,
+                                  marginLeft: spacing.md,
+                                  maxWidth: 110,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 10,
+                                    color: colors.textMuted,
+                                    fontWeight: typography.weights.medium,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {entry.note}
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        );
+                      })}
                     </View>
-                  );
-                })}
-              </View>
-            </View>
+                  </View>
+                </View>
               )}
-            </View>
-          )}
+            </>
+          ) : null}
 
-          {/* Bring */}
-          {(isHostMode || rsvpsByStatus.going.some((r) => r.user_phone === userPhone)) && (
+          {/* Bring — own section; only when there are items and user may interact (host or Going) */}
+          {contributions.length > 0 &&
+          (isHostMode || rsvpsByStatus.going.some((r) => r.user_phone === userPhone)) ? (
             <View style={{ marginBottom: spacing.lg }}>
               <Text
                 style={{
@@ -1294,11 +1289,6 @@ export default function EventDetailScreen() {
               >
                 Bring
               </Text>
-              {contributions.length === 0 && (
-                <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, marginBottom: spacing.sm }}>
-                  No items yet
-                </Text>
-              )}
               {contributions.map((c) => {
                 const isAssignedToMe = c.assigned_user_phone === userPhone;
                 const assigneeName = c.assigned_user_phone
@@ -1500,7 +1490,7 @@ export default function EventDetailScreen() {
                 </View>
               )}
             </View>
-          )}
+          ) : null}
 
           {/* Bring a guest (+1) — event detail row; toggle only when guest is Going — last detail row before guests row */}
           {eventData.allowPlusOne ? (
