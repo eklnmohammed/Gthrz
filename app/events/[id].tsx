@@ -474,6 +474,39 @@ export default function EventDetailScreen() {
   const eventId = params.id ?? "";
   const favorited = eventId ? isFavorited(eventId) : false;
 
+  /** Lineup / Bring / +1 — shared section rhythm (labels, rows, dividers) */
+  const lowerSectionLabel = {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  };
+  const lowerSubsectionWrap = {
+    marginBottom: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.overlayWhite10,
+  };
+  const lowerRowBase = {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border,
+    gap: spacing.sm,
+  };
+  const lowerRowPrimary = {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.text,
+  };
+  const lowerRowSecondary = {
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    marginTop: 2,
+  };
+
   const handleShare = async () => {
     const lines: string[] = [];
     const title = eventData.title || "Untitled Event";
@@ -1135,37 +1168,23 @@ export default function EventDetailScreen() {
               <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
                 {eventData.audience}
               </Text>
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: colors.overlayWhite10,
-                  marginTop: spacing.md,
-                  marginBottom: 0,
-                }}
-              />
+              {!(eventData.lineup && eventData.lineup.length > 0) ? (
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: colors.overlayWhite10,
+                    marginTop: spacing.md,
+                    marginBottom: 0,
+                  }}
+                />
+              ) : null}
             </View>
           ) : null}
 
-          {/* Lineup — only when schedule has entries; simple static list */}
+          {/* Lineup — only when schedule has entries; rows match Bring row rhythm */}
           {eventData.lineup && eventData.lineup.length > 0 ? (
-            <View
-              style={{
-                marginBottom: spacing.lg,
-                paddingTop: spacing.md,
-                borderTopWidth: 0.5,
-                borderTopColor: colors.overlayWhite10,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: typography.sizes.sm,
-                  fontWeight: typography.weights.semibold,
-                  color: colors.textMuted,
-                  marginBottom: spacing.sm,
-                }}
-              >
-                Lineup
-              </Text>
+            <View style={lowerSubsectionWrap}>
+              <Text style={lowerSectionLabel}>Lineup</Text>
               {eventData.lineup.map((entry, i) => {
                 /* No "(next day)" / (+1) on details for now — plain "start → end" only */
                 const timeRange = formatLineupTimeRange(entry.startTime, entry.endTime, 0) || null;
@@ -1173,32 +1192,16 @@ export default function EventDetailScreen() {
                 return (
                   <View
                     key={i}
-                    style={{
-                      marginBottom: isLast ? 0 : spacing.md,
-                    }}
+                    style={[lowerRowBase, isLast && { borderBottomWidth: 0 }]}
                   >
-                    <Text
-                      style={{
-                        fontSize: typography.sizes.md,
-                        fontWeight: typography.weights.semibold,
-                        color: colors.text,
-                      }}
-                      numberOfLines={2}
-                    >
-                      {entry.name}
-                    </Text>
-                    {timeRange ? (
-                      <Text
-                        style={{
-                          fontSize: typography.sizes.sm,
-                          color: colors.textMuted,
-                          marginTop: spacing.xs,
-                          fontVariant: ["tabular-nums"],
-                        }}
-                      >
-                        {timeRange}
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={lowerRowPrimary} numberOfLines={2}>
+                        {entry.name}
                       </Text>
-                    ) : null}
+                      {timeRange ? (
+                        <Text style={[lowerRowSecondary, { fontVariant: ["tabular-nums"] }]}>{timeRange}</Text>
+                      ) : null}
+                    </View>
                   </View>
                 );
               })}
@@ -1208,19 +1211,10 @@ export default function EventDetailScreen() {
           {/* Bring — own section; only when there are items and user may interact (host or Going) */}
           {contributions.length > 0 &&
           (isHostMode || rsvpsByStatus.going.some((r) => r.user_phone === userPhone)) ? (
-            <View style={{ marginBottom: spacing.lg }}>
-              <Text
-                style={{
-                  fontSize: typography.sizes.md,
-                  fontWeight: typography.weights.semibold,
-                  color: colors.text,
-                  marginBottom: spacing.sm,
-                }}
-              >
-                Bring
-              </Text>
-              {contributions.map((c) => {
-                const isAssignedToMe = c.assigned_user_phone === userPhone;
+            <View style={lowerSubsectionWrap}>
+              <Text style={lowerSectionLabel}>Bring</Text>
+              {contributions.map((c, idx) => {
+                const isLastContrib = idx === contributions.length - 1;
                 const assigneeName = c.assigned_user_phone
                   ? (goingProfiles[c.assigned_user_phone] ? getDisplayName(goingProfiles[c.assigned_user_phone] ?? null, c.assigned_user_phone) : c.assigned_user_phone)
                   : null;
@@ -1229,16 +1223,6 @@ export default function EventDetailScreen() {
                   : assigneeName
                     ? `Assigned to ${assigneeName}`
                     : "No one yet";
-
-                const rowBaseStyle = {
-                  flexDirection: "row" as const,
-                  alignItems: "center" as const,
-                  justifyContent: "space-between" as const,
-                  paddingVertical: spacing.lg,
-                  borderBottomWidth: 0.5,
-                  borderBottomColor: colors.border,
-                  gap: spacing.sm,
-                };
 
                 const openContribSheet = () => {
                   setSelectedContribId(c.id);
@@ -1272,24 +1256,18 @@ export default function EventDetailScreen() {
                   <>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text
-                        style={{
-                          fontSize: typography.sizes.sm,
-                          fontWeight: typography.weights.medium,
-                          color: c.status === "done" ? colors.textMuted : colors.text,
-                          textDecorationLine: c.status === "done" ? "line-through" : "none",
-                        }}
+                        style={[
+                          lowerRowPrimary,
+                          {
+                            color: c.status === "done" ? colors.textMuted : colors.text,
+                            textDecorationLine: c.status === "done" ? "line-through" : "none",
+                          },
+                        ]}
                         numberOfLines={2}
                       >
                         {c.title}
                       </Text>
-                      <Text
-                        style={{
-                          fontSize: typography.sizes.xs,
-                          color: colors.textMuted,
-                          marginTop: 2,
-                        }}
-                        numberOfLines={1}
-                      >
+                      <Text style={[lowerRowSecondary]} numberOfLines={1}>
                         {statusText}
                       </Text>
                     </View>
@@ -1329,13 +1307,18 @@ export default function EventDetailScreen() {
 
                 // Guests: tap the whole row to open the same sheet (which shows "Claim").
                 // Hosts: keep the explicit "Manage" button to avoid tap+button duplication.
+                const rowShellStyle = [
+                  lowerRowBase,
+                  isLastContrib && !isHostMode ? { borderBottomWidth: 0 } : null,
+                ];
+
                 if (!isHostMode) {
                   return (
                     <Pressable
                       key={c.id}
                       onPress={openContribSheet}
                       style={({ pressed }) => [
-                        rowBaseStyle,
+                        ...rowShellStyle,
                         {
                           opacity: pressed ? 0.9 : 1,
                         },
@@ -1347,7 +1330,7 @@ export default function EventDetailScreen() {
                 }
 
                 return (
-                  <View key={c.id} style={rowBaseStyle}>
+                  <View key={c.id} style={rowShellStyle}>
                     {rowContent}
                   </View>
                 );
@@ -1422,26 +1405,17 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          {/* Bring a guest (+1) — only for guests who allow +1 and are already Going (not before RSVP / not if Maybe etc.) */}
+          {/* Bring a guest (+1) — same section system as Lineup / Bring */}
           {eventData.allowPlusOne && !isHostMode && !isCancelled && rsvpStatus === "going" ? (
-            <View style={{ marginBottom: spacing.sm }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: spacing.md,
-                }}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.md,
-                      fontWeight: typography.weights.semibold,
-                      color: colors.text,
-                    }}
-                  >
-                    Bring a guest
+            <View style={lowerSubsectionWrap}>
+              <Text style={lowerSectionLabel}>Bring a guest</Text>
+              <View style={[lowerRowBase, { borderBottomWidth: 0 }]}>
+                <View style={{ flex: 1, minWidth: 0, paddingRight: spacing.sm }}>
+                  <Text style={lowerRowPrimary}>
+                    {userPlusOne ? "Guest added" : "No guest added"}
+                  </Text>
+                  <Text style={lowerRowSecondary}>
+                    {userPlusOne ? "Included with your RSVP" : "Optional"}
                   </Text>
                 </View>
                 <Pressable
@@ -1476,7 +1450,7 @@ export default function EventDetailScreen() {
                   }}
                   style={({ pressed }) => ({
                     minHeight: 28,
-                    minWidth: 100,
+                    minWidth: 88,
                     paddingVertical: spacing.xs,
                     paddingHorizontal: spacing.sm,
                     borderRadius: radius.sm,
@@ -1485,6 +1459,7 @@ export default function EventDetailScreen() {
                     borderColor: colors.border,
                     alignItems: "center",
                     justifyContent: "center",
+                    alignSelf: "center",
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
@@ -1501,14 +1476,6 @@ export default function EventDetailScreen() {
                   </Text>
                 </Pressable>
               </View>
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: colors.overlayWhite10,
-                  marginTop: spacing.sm,
-                  marginBottom: 0,
-                }}
-              />
             </View>
           ) : null}
           </View>
