@@ -24,7 +24,7 @@ const GRID_GAP = 12;
 /** Main feed: first batch + each scroll load */
 const DISCOVER_INITIAL_COUNT = 12;
 const DISCOVER_PAGE_SIZE = 12;
-/** Category tab preview (5–8 range) before "See all" */
+/** Category tab preview size; uses same inline "Show more" pagination as All. */
 const CATEGORY_PREVIEW_COUNT = 6;
 
 function compareDiscoverSoonest(a: Event, b: Event, goingCounts: Record<string, number>): number {
@@ -84,7 +84,6 @@ export default function DiscoverScreen() {
   const [goingCounts, setGoingCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [listVisibleCount, setListVisibleCount] = useState(DISCOVER_INITIAL_COUNT);
-  const [seeAllCategory, setSeeAllCategory] = useState(false);
   const userEventsById = new Map((userEvents ?? []).map((e) => [e.id, e]));
 
   const initialType =
@@ -127,7 +126,6 @@ export default function DiscoverScreen() {
           setPublicEvents(events);
           setGoingCounts(counts);
           setListVisibleCount(DISCOVER_INITIAL_COUNT);
-          setSeeAllCategory(false);
           setLoading(false);
         }
       })();
@@ -139,8 +137,7 @@ export default function DiscoverScreen() {
   );
 
   useEffect(() => {
-    setListVisibleCount(DISCOVER_INITIAL_COUNT);
-    setSeeAllCategory(false);
+    setListVisibleCount(selectedType === "all" ? DISCOVER_INITIAL_COUNT : CATEGORY_PREVIEW_COUNT);
   }, [selectedType, searchQuery, sortBy]);
 
   const handleEventPress = (event: Event) => {
@@ -181,31 +178,15 @@ export default function DiscoverScreen() {
   const totalMatching = discoverSortedEvents.length;
 
   const displayedEvents = useMemo(() => {
-    if (selectedType !== "all" && !seeAllCategory) {
-      return discoverSortedEvents.slice(0, CATEGORY_PREVIEW_COUNT);
-    }
     return discoverSortedEvents.slice(0, listVisibleCount);
-  }, [discoverSortedEvents, selectedType, seeAllCategory, listVisibleCount]);
+  }, [discoverSortedEvents, listVisibleCount]);
 
-  const showCategorySeeAll =
-    selectedType !== "all" && !seeAllCategory && totalMatching > CATEGORY_PREVIEW_COUNT;
-
-  const showShowMore =
-    !loading &&
-    (selectedType === "all" || seeAllCategory) &&
-    totalMatching > listVisibleCount;
+  const showShowMore = !loading && totalMatching > displayedEvents.length;
 
   const handleShowMore = useCallback(() => {
-    if (selectedType !== "all" && !seeAllCategory) return;
-    setListVisibleCount((c) =>
-      Math.min(c + DISCOVER_PAGE_SIZE, discoverSortedEvents.length)
-    );
-  }, [selectedType, seeAllCategory, discoverSortedEvents.length]);
-
-  const handleSeeAllCategory = useCallback(() => {
-    setSeeAllCategory(true);
-    setListVisibleCount(DISCOVER_INITIAL_COUNT);
-  }, []);
+    const nextCount = Math.min(listVisibleCount + DISCOVER_PAGE_SIZE, discoverSortedEvents.length);
+    setListVisibleCount(nextCount);
+  }, [listVisibleCount, discoverSortedEvents.length]);
 
   return (
     <Screen padding={false} topPadding={spacing.sm}>
@@ -381,48 +362,26 @@ export default function DiscoverScreen() {
           </>
         }
         ListFooterComponent={
-          showCategorySeeAll || showShowMore ? (
+          showShowMore ? (
             <View style={{ width: "100%" }}>
-              {showCategorySeeAll ? (
-                <Pressable
-                  onPress={handleSeeAllCategory}
+              <Pressable
+                onPress={handleShowMore}
+                style={{
+                  paddingVertical: spacing.lg,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
                   style={{
-                    paddingVertical: spacing.lg,
-                    alignItems: "center",
-                    justifyContent: "center",
+                    fontSize: typography.sizes.sm,
+                    fontWeight: typography.weights.semibold,
+                    color: colors.primary,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      fontWeight: typography.weights.semibold,
-                      color: colors.primary,
-                    }}
-                  >
-                    See all
-                  </Text>
-                </Pressable>
-              ) : null}
-              {showShowMore ? (
-                <Pressable
-                  onPress={handleShowMore}
-                  style={{
-                    paddingVertical: spacing.lg,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      fontWeight: typography.weights.semibold,
-                      color: colors.primary,
-                    }}
-                  >
-                    Show more
-                  </Text>
-                </Pressable>
-              ) : null}
+                  Show more
+                </Text>
+              </Pressable>
             </View>
           ) : null
         }
