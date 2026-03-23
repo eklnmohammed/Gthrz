@@ -119,7 +119,6 @@ export default function EditEventScreen() {
   const dressCodeValue = dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom.trim() : dressCode;
 
   const DRAFT_INDEX = -1;
-  const showLineup = eventType === "party" || eventType === "wedding";
 
   const openDraft = () => {
     setDraftError(null);
@@ -460,7 +459,7 @@ export default function EditEventScreen() {
         eventType,
         coverKey: coverKey || undefined,
         coverUrl: isValidCoverUrl(coverUrl) ? coverUrl ?? undefined : undefined,
-        lineup: showLineup && lineup.length > 0
+        lineup: lineup.length > 0
           ? lineup.map((e) => ({
               name: e.name.trim(),
               startTime: e.startTime?.trim() || undefined,
@@ -1197,9 +1196,11 @@ export default function EditEventScreen() {
                 </View>
               </View>
 
-              {/* Lineup — party/wedding */}
-              {showLineup && (
-                <View style={{ gap: spacing.sm }}>
+              {/* Lineup */}
+              <View style={{ gap: spacing.sm }}>
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
+                  Optional - add lineup items if you want a schedule
+                </Text>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                     <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
                       Lineup
@@ -1217,7 +1218,7 @@ export default function EditEventScreen() {
                         })}
                       >
                         <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.primary }}>
-                          + Add DJ/Performer
+                          + Add item
                         </Text>
                       </Pressable>
                     )}
@@ -1271,7 +1272,7 @@ export default function EditEventScreen() {
                             label="Name *"
                             value={draftLineup.name}
                             onChangeText={(v) => updateDraftEntry("name", v)}
-                            placeholder="DJ / Performer name"
+                            placeholder="Lineup item name"
                           />
                         </View>
                       </View>
@@ -1390,14 +1391,14 @@ export default function EditEventScreen() {
                           onPress={(e) => e.stopPropagation()}
                         >
                           <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.md }}>
-                            Edit DJ/Performer
+                            Edit lineup item
                           </Text>
                           <View style={{ gap: spacing.md }}>
                             <AppInput
                               label="Name *"
                               value={draftLineup.name}
                               onChangeText={(v) => updateDraftEntry("name", v)}
-                              placeholder="DJ / Performer name"
+                              placeholder="Lineup item name"
                             />
                             <View style={{ flexDirection: "row", gap: spacing.sm }}>
                               <View style={{ flex: 1 }}>
@@ -1502,7 +1503,7 @@ export default function EditEventScreen() {
                             })}
                           >
                             <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.error }}>
-                              Delete DJ/Performer
+                              Delete lineup item
                             </Text>
                           </Pressable>
                         </Pressable>
@@ -1510,7 +1511,6 @@ export default function EditEventScreen() {
                     </Modal>
                   )}
                 </View>
-              )}
             </View>
           </View>
         </View>

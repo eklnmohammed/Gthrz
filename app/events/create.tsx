@@ -121,7 +121,6 @@ export default function CreateEventScreen() {
   const dressCodeValue = dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom.trim() : dressCode;
 
   const DRAFT_INDEX = -1;
-  const showLineup = eventType === "party" || eventType === "wedding";
 
   const openDraft = () => {
     setDraftError(null);
@@ -163,10 +162,16 @@ export default function CreateEventScreen() {
       setDraftError(err);
       return;
     }
+    const startTime = draftLineup.startTime?.trim();
+    const endTime = draftLineup.endTime?.trim();
+    if (!startTime || !endTime) {
+      setDraftError("Name, start and end are required");
+      return;
+    }
     const entry: LineupEntry = {
       name: draftLineup.name.trim(),
-      startTime: draftLineup.startTime.trim(),
-      endTime: draftLineup.endTime.trim(),
+      startTime,
+      endTime,
       endDayOffset: Math.min(1, draftLineup.endDayOffset ?? 0) as EndDayOffset,
       note: (draftLineup.note ?? "").trim(),
     };
@@ -312,7 +317,7 @@ export default function CreateEventScreen() {
         eventType,
         coverKey: coverKey || undefined,
         coverUrl: isValidCoverUrl(coverUrl) ? coverUrl ?? undefined : undefined,
-        lineup: showLineup && lineup.length > 0
+        lineup: lineup.length > 0
           ? lineup.map((e) => ({
               name: e.name.trim(),
               startTime: e.startTime?.trim() || undefined,
@@ -999,10 +1004,10 @@ export default function CreateEventScreen() {
         ))}
 
         {/* ── Extras: optional lineup ── */}
-        {showLineup && sectionCard("Extras", (
+        {sectionCard("Extras", (
           <>
             <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
-              Optional — add DJs or performers for parties & weddings
+              Optional - add lineup items if you want a schedule
             </Text>
             <View style={{ gap: spacing.sm }}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -1022,7 +1027,7 @@ export default function CreateEventScreen() {
                         })}
                       >
                         <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.primary }}>
-                          + Add DJ/Performer
+                          + Add item
                         </Text>
                       </Pressable>
                     )}
@@ -1197,7 +1202,7 @@ export default function CreateEventScreen() {
                           onPress={(e) => e.stopPropagation()}
                         >
                           <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.md }}>
-                            Edit DJ/Performer
+                            Edit lineup item
                           </Text>
                           <View style={{ gap: spacing.md }}>
                             <AppInput
@@ -1309,7 +1314,7 @@ export default function CreateEventScreen() {
                             })}
                           >
                             <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.error }}>
-                              Delete DJ/Performer
+                              Delete lineup item
                             </Text>
                           </Pressable>
                         </Pressable>
