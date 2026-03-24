@@ -15,6 +15,7 @@ import {
   StatusBar,
   Switch,
   useWindowDimensions,
+  TextInput,
 } from "react-native";
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,7 +24,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEvents, type LineupEntry } from "@/src/state/eventsStore";
 import { supabase } from "@/src/lib/supabase";
-import { EventType } from "@/src/lib/supabase";
+import { EventType, EventContribution } from "@/src/lib/supabase";
 import { HeaderBackTextButton } from "@/src/components/HeaderBackTextButton";
 import { AppButton } from "@/src/components/AppButton";
 import { AppInput } from "@/src/components/AppInput";
@@ -58,10 +59,11 @@ const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] =
 ];
 const HERO_PADDING_H = spacing.xxl;
 const HERO_RADIUS = 24;
+const BRING_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
 
 export default function EditEventScreen() {
   const params = useLocalSearchParams<{ id: string }>();
-  const { updateEvent, deleteEvent, fetchEvents } = useEvents();
+  const { updateEvent, deleteEvent, fetchEvents, getContributions, addContribution, removeContribution } = useEvents();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
 
@@ -105,6 +107,9 @@ export default function EditEventScreen() {
     d.setHours(20, 0, 0, 0);
     return d;
   });
+
+  const [bringItems, setBringItems] = useState<EventContribution[]>([]);
+  const [bringInput, setBringInput] = useState("");
 
   const [dressCode, setDressCode] = useState<string>("");
   const [dressCodeCustom, setDressCodeCustom] = useState<string>("");
@@ -351,6 +356,8 @@ export default function EditEventScreen() {
           }
           setAudience(data.audience ?? "");
           setAllowPlusOne(data.allow_plus_one ?? false);
+          const loaded = await getContributions(params.id!);
+          setBringItems(loaded);
           const sanitizedCoverUrl = isValidCoverUrl(data.cover_url) ? data.cover_url : null;
           initialValuesRef.current = {
             title: data.title || "",
@@ -1520,6 +1527,101 @@ export default function EditEventScreen() {
             </View>
           </View>
         </View>
+
+        {/* ── Bring ── */}
+        {sectionCard("Bring", (
+          <>
+            <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
+              Add items guests can bring
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xs }}
+            >
+              {BRING_SUGGESTIONS.map((s) => {
+                const alreadyAdded = bringItems.some((b) => b.title === s);
+                return (
+                  <Pressable
+                    key={s}
+                    onPress={async () => {
+                      if (alreadyAdded) return;
+                      await addContribution(params.id!, s);
+                      const updated = await getContributions(params.id!);
+                      setBringItems(updated);
+                    }}
+                    style={({ pressed }) => ({
+                      paddingVertical: spacing.xs,
+                      paddingHorizontal: spacing.sm,
+                      borderRadius: 999,
+                      backgroundColor: alreadyAdded ? colors.primary : (pressed ? colors.surfaceLight : colors.surfaceLight),
+                      borderWidth: 0.5,
+                      borderColor: alreadyAdded ? colors.primary : colors.border,
+                    })}
+                  >
+                    <Text style={{ fontSize: typography.sizes.xs, color: alreadyAdded ? colors.text : colors.textMuted }}>
+                      {s}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs }}>
+              <TextInput
+                value={bringInput}
+                onChangeText={setBringInput}
+                placeholder="Add custom item"
+                placeholderTextColor={colors.textDim}
+                style={{
+                  flex: 1,
+                  backgroundColor: colors.surfaceLight,
+                  borderRadius: radius.md,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  fontSize: typography.sizes.sm,
+                  color: colors.text,
+                  borderWidth: 0.5,
+                  borderColor: colors.border,
+                }}
+              />
+              <Pressable
+                onPress={async () => {
+                  const t = bringInput.trim();
+                  if (!t) return;
+                  if (bringItems.some((b) => b.title === t)) return;
+                  await addContribution(params.id!, t);
+                  const updated = await getContributions(params.id!);
+                  setBringItems(updated);
+                  setBringInput("");
+                }}
+                style={({ pressed }) => ({
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.md,
+                  backgroundColor: pressed ? colors.primaryDark : colors.primary,
+                  justifyContent: "center",
+                })}
+              >
+                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Add</Text>
+              </Pressable>
+            </View>
+            {bringItems.length > 0 && (
+              <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
+                {bringItems.map((item) => (
+                  <View key={item.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.surfaceLight, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderWidth: 0.5, borderColor: colors.border }}>
+                    <Text style={{ fontSize: typography.sizes.sm, color: colors.text }}>{item.title}</Text>
+                    <Pressable onPress={async () => {
+                      await removeContribution(item.id);
+                      setBringItems((prev) => prev.filter((b) => b.id !== item.id));
+                    }}>
+                      <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>✕</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        ))}
 
         {/* ── Delete ── */}
         <Pressable
