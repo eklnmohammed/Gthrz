@@ -125,6 +125,8 @@ export default function EventDetailScreen() {
   const [showGuestsModal, setShowGuestsModal] = useState(false);
   const [showContribManageSheet, setShowContribManageSheet] = useState(false);
   const [selectedContribId, setSelectedContribId] = useState<string | null>(null);
+  const [selectedGuestPhone, setSelectedGuestPhone] = useState<string | null>(null);
+  const [selectedGuestSection, setSelectedGuestSection] = useState<"going" | "pending" | "maybe" | "cant" | null>(null);
   const [contributions, setContributions] = useState<{ id: string; title: string; assigned_user_phone: string | null; status: "open" | "done" }[]>([]);
   const [newContribTitle, setNewContribTitle] = useState("");
   const CONTRIB_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
@@ -2046,11 +2048,29 @@ export default function EventDetailScreen() {
         visible={showGuestsModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowGuestsModal(false)}
+        onRequestClose={() => {
+          if (selectedGuestPhone !== null) {
+            setSelectedGuestPhone(null);
+            setSelectedGuestSection(null);
+          } else {
+            setShowGuestsModal(false);
+          }
+        }}
       >
-        <Pressable style={{ flex: 1, justifyContent: "flex-end", backgroundColor: colors.overlay }} onPress={() => setShowGuestsModal(false)}>
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          {/* Backdrop — closes action sheet first, then modal */}
           <Pressable
-            onPress={(e) => e.stopPropagation()}
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.overlay }}
+            onPress={() => {
+              if (selectedGuestPhone !== null) {
+                setSelectedGuestPhone(null);
+                setSelectedGuestSection(null);
+              } else {
+                setShowGuestsModal(false);
+              }
+            }}
+          />
+          <View
             style={{
               backgroundColor: colors.surface,
               borderTopLeftRadius: radius.xl,
@@ -2083,8 +2103,17 @@ export default function EventDetailScreen() {
                     const avatarUri = profile?.avatarUri;
                     const initial = getDisplayInitial(profile ?? null, r.user_phone);
                     const isHost = r.user_phone === eventData.hostPhone;
+                    const canManage = isHostMode && !isHost;
                     return (
-                      <View key={r.user_phone} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+                      <Pressable
+                        key={r.user_phone}
+                        onPress={() => {
+                          if (!canManage) return;
+                          setSelectedGuestPhone(r.user_phone);
+                          setSelectedGuestSection("going");
+                        }}
+                        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border, opacity: pressed && canManage ? 0.7 : 1 })}
+                      >
                         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}>
                           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, overflow: "hidden", justifyContent: "center", alignItems: "center" }}>
                             {hideAvatarOnly ? (
@@ -2107,7 +2136,8 @@ export default function EventDetailScreen() {
                           </View>
                         </View>
                         {isHostMode && isHost && <Badge label="Host" variant="primary" />}
-                      </View>
+                        {canManage && <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMuted} />}
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -2124,59 +2154,30 @@ export default function EventDetailScreen() {
                     const avatarUri = profile?.avatarUri;
                     const initial = getDisplayInitial(profile ?? null, r.user_phone);
                     return (
-                    <View key={r.user_phone} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}>
-                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, overflow: "hidden", justifyContent: "center", alignItems: "center" }}>
-                          {hideAvatarOnly ? (
-                            <Ionicons name="person-outline" size={20} color={colors.textMuted} />
-                          ) : avatarUri ? (
-                            <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36 }} resizeMode="cover" />
-                          ) : (
-                            <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>{initial}</Text>
-                          )}
+                      <Pressable
+                        key={r.user_phone}
+                        onPress={() => {
+                          if (!isHostMode) return;
+                          setSelectedGuestPhone(r.user_phone);
+                          setSelectedGuestSection("pending");
+                        }}
+                        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border, opacity: pressed && isHostMode ? 0.7 : 1 })}
+                      >
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flex: 1 }}>
+                          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, overflow: "hidden", justifyContent: "center", alignItems: "center" }}>
+                            {hideAvatarOnly ? (
+                              <Ionicons name="person-outline" size={20} color={colors.textMuted} />
+                            ) : avatarUri ? (
+                              <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36 }} resizeMode="cover" />
+                            ) : (
+                              <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>{initial}</Text>
+                            )}
+                          </View>
+                          <Text style={{ fontSize: typography.sizes.sm, color: colors.text, flex: 1 }} numberOfLines={1}>{nameToShow}</Text>
                         </View>
-                        <Text style={{ fontSize: typography.sizes.sm, color: colors.text, flex: 1 }} numberOfLines={1}>{nameToShow}</Text>
-                      </View>
-                      {isHostMode && (
-                        <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                          <Pressable
-                            onPress={async () => {
-                              try {
-                                await approveRsvp(params.id!, r.user_phone);
-                                const rsvps = await getRsvpsForEvent(params.id!);
-                                setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
-                                setGoingCount(rsvps.going.length);
-                              } catch (err) {
-                                const msg = err instanceof Error ? err.message : "";
-                                if (msg.includes("capacity")) {
-                                  Alert.alert("Event is full", "This event is at capacity. You can't approve more guests.");
-                                } else {
-                                  Alert.alert("Error", msg || "Failed to approve");
-                                }
-                              }
-                            }}
-                            style={{ paddingVertical: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radius.sm, backgroundColor: colors.primary }}
-                          >
-                            <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.text }}>Approve</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={async () => {
-                              try {
-                                await declineRsvp(params.id!, r.user_phone);
-                                const rsvps = await getRsvpsForEvent(params.id!);
-                                setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
-                              } catch (err) {
-                                Alert.alert("Error", err instanceof Error ? err.message : "Failed to decline");
-                              }
-                            }}
-                            style={{ paddingVertical: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radius.sm, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border }}
-                          >
-                            <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>Decline</Text>
-                          </Pressable>
-                        </View>
-                      )}
-                    </View>
-                  );
+                        {isHostMode && <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMuted} />}
+                      </Pressable>
+                    );
                   })}
                 </View>
               )}
@@ -2240,8 +2241,161 @@ export default function EventDetailScreen() {
                 <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, marginTop: spacing.xl, textAlign: "center" }}>No guests yet</Text>
               )}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+
+          {/* Guest manage action panel — absolute overlay inside the same Modal */}
+          {selectedGuestPhone !== null && (() => {
+            const phone = selectedGuestPhone;
+            const section = selectedGuestSection;
+            const profile = guestProfiles[phone] ?? goingProfiles[phone];
+            const name = getDisplayName(profile ?? null, phone);
+            const rsvpEntry = [...rsvpsByStatus.going, ...rsvpsByStatus.pending].find((r) => r.user_phone === phone);
+            const hasPlusOne = rsvpEntry?.plus_one ?? false;
+
+            const closeSheet = () => { setSelectedGuestPhone(null); setSelectedGuestSection(null); };
+
+            const doApprove = async () => {
+              try {
+                await approveRsvp(params.id!, phone);
+                const rsvps = await getRsvpsForEvent(params.id!);
+                setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
+                setGoingCount(rsvps.going.length);
+                closeSheet();
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : "";
+                closeSheet();
+                if (msg.includes("capacity")) {
+                  Alert.alert("Event is full", "This event is at capacity. You can't approve more guests.");
+                } else {
+                  Alert.alert("Error", msg || "Failed to approve");
+                }
+              }
+            };
+
+            const doDecline = () => {
+              Alert.alert("Decline request?", `${name} will be removed from the pending list.`, [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Decline",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      await declineRsvp(params.id!, phone);
+                      const rsvps = await getRsvpsForEvent(params.id!);
+                      setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
+                      closeSheet();
+                    } catch (err) {
+                      Alert.alert("Error", err instanceof Error ? err.message : "Failed to decline");
+                    }
+                  },
+                },
+              ]);
+            };
+
+            const doRemoveGuest = () => {
+              Alert.alert("Remove guest?", `${name} will be removed from the event.`, [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Remove",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      await removeRsvp(params.id!, phone);
+                      const rsvps = await getRsvpsForEvent(params.id!);
+                      setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
+                      setGoingCount(rsvps.going.length);
+                      closeSheet();
+                    } catch (err) {
+                      Alert.alert("Error", err instanceof Error ? err.message : "Failed to remove guest");
+                    }
+                  },
+                },
+              ]);
+            };
+
+            const doRemovePlusOne = () => {
+              Alert.alert("Remove +1?", `This will remove ${name}'s guest.`, [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Remove",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      await setPlusOne(params.id!, phone, false);
+                      await refetchGoingCount();
+                      closeSheet();
+                    } catch (err) {
+                      Alert.alert("Error", err instanceof Error ? err.message : "Failed to remove guest");
+                    }
+                  },
+                },
+              ]);
+            };
+
+            return (
+              <View
+                key="guest-action-sheet"
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: colors.surface,
+                  borderTopLeftRadius: radius.xl,
+                  borderTopRightRadius: radius.xl,
+                  padding: spacing.xl,
+                  paddingBottom: insets.bottom + spacing.xl,
+                }}
+              >
+                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg }} />
+                <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.xs }}>{name}</Text>
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginBottom: spacing.lg }}>
+                  {section === "pending" ? "Pending approval" : hasPlusOne ? "Going · bringing 1 guest" : "Going"}
+                </Text>
+                <View style={{ gap: spacing.sm }}>
+                  {section === "pending" && (
+                    <Pressable
+                      onPress={doApprove}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.primary }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Approve</Text>
+                    </Pressable>
+                  )}
+                  {section === "pending" && (
+                    <Pressable
+                      onPress={doDecline}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.error }}>Decline request</Text>
+                    </Pressable>
+                  )}
+                  {section === "going" && hasPlusOne && (
+                    <Pressable
+                      onPress={doRemovePlusOne}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>Remove +1</Text>
+                    </Pressable>
+                  )}
+                  {section === "going" && (
+                    <Pressable
+                      onPress={doRemoveGuest}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.error }}>Remove guest</Text>
+                    </Pressable>
+                  )}
+                  <Pressable
+                    onPress={closeSheet}
+                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border, marginTop: spacing.xs }}
+                  >
+                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>Cancel</Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })()}
+        </View>
       </Modal>
 
       {/* Contribution manage sheet */}
