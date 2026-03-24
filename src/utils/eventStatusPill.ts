@@ -6,6 +6,7 @@ export interface EventForStatus {
   hostPhone?: string;
   attendingStatus?: "going" | "pending" | "maybe" | "cant";
   visibility?: "public" | "private";
+  declinedByHost?: boolean;
 }
 
 /**
@@ -34,6 +35,10 @@ export function getEventStatusPill(
         ? { label: "Going", color: colors.mint, bg: "rgba(78,205,196,0.15)" }
         : { label: "Maybe", color: colors.textMuted, bg: colors.surfaceLight };
     case "cant":
+      if (event.declinedByHost) {
+        // Declined by host — show for both public and private
+        return { label: "Declined", color: colors.error, bg: "rgba(255,71,87,0.12)" };
+      }
       // Public events don't show Not going badge; hide entirely
       return isPublic ? undefined : { label: "Not going", color: colors.error, bg: "rgba(255,71,87,0.12)" };
     default:

@@ -103,6 +103,7 @@ export interface Rsvp {
   user_phone: string;
   status: "going" | "maybe" | "cant" | "pending";
   plus_one?: boolean;
+  declined_by_host?: boolean;
   created_at: string;
 }
 

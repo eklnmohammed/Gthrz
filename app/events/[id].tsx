@@ -76,6 +76,7 @@ export default function EventDetailScreen() {
     assignContribution, toggleContributionStatus, cancelEvent, fetchEvents } = useEvents();
   const { isFavorited, toggleFavorite } = useFavorites();
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>(null);
+  const [userDeclinedByHost, setUserDeclinedByHost] = useState(false);
   const [showRsvpOptions, setShowRsvpOptions] = useState(true);
   const [userPlusOne, setUserPlusOne] = useState(false);
   const [userPhone, setUserPhone] = useState<string>("guest");
@@ -114,7 +115,7 @@ export default function EventDetailScreen() {
     going: { user_phone: string; plus_one?: boolean }[];
     pending: { user_phone: string; plus_one?: boolean }[];
     maybe: { user_phone: string; plus_one?: boolean }[];
-    cant: { user_phone: string; plus_one?: boolean }[];
+    cant: { user_phone: string; plus_one?: boolean; declined_by_host?: boolean }[];
   }>({ going: [], pending: [], maybe: [], cant: [] });
   const plusOneCount = rsvpsByStatus.going.filter((r) => r.plus_one).length;
   const plusOneCountLabel =
@@ -243,6 +244,8 @@ export default function EventDetailScreen() {
             if (savedRsvp) setShowRsvpOptions(false);
             const myGoingEntry = rsvps.going.find((r) => r.user_phone === phone);
             setUserPlusOne(myGoingEntry?.plus_one ?? false);
+            const myCantEntry = rsvps.cant.find((r) => r.user_phone === phone);
+            setUserDeclinedByHost(myCantEntry?.declined_by_host ?? false);
           }
         } catch (err) {
           console.error("Failed to fetch event:", err);
@@ -439,6 +442,7 @@ export default function EventDetailScreen() {
       await submitRsvp(params.id, userPhone, status);
       const savedStatus = await getRsvp(params.id, userPhone);
       setRsvpStatus(savedStatus ?? status);
+      setUserDeclinedByHost(false);
       setShowRsvpOptions(false);
       if (savedStatus !== "going") setUserPlusOne(false);
       await refetchGoingCount();
@@ -1540,6 +1544,36 @@ export default function EventDetailScreen() {
               </Text>
             </View>
           )}
+          {rsvpStatus === "cant" && userDeclinedByHost && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+                marginHorizontal: spacing.lg,
+                marginTop: spacing.sm,
+                marginBottom: spacing.xs,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radius.md,
+                backgroundColor: "rgba(255,69,58,0.10)",
+                borderWidth: 1,
+                borderColor: "rgba(255,69,58,0.25)",
+              }}
+            >
+              <Ionicons name="close-circle-outline" size={18} color={colors.error} />
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: typography.sizes.sm,
+                  fontWeight: typography.weights.medium,
+                  color: colors.text,
+                }}
+              >
+                Request declined — the host didn't approve your RSVP.
+              </Text>
+            </View>
+          )}
           {Platform.OS === "ios" ? (
             <BlurView
               intensity={80}
@@ -1556,13 +1590,15 @@ export default function EventDetailScreen() {
                       borderRadius: radius.lg,
                       backgroundColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.surfaceLight
-                            : colors.surfaceLighter,
+                          : (rsvpStatus === "cant" && userDeclinedByHost) ? "rgba(255,69,58,0.14)"
+                            : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.surfaceLight
+                              : colors.surfaceLighter,
                       borderWidth: 1,
                       borderColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.border
-                            : colors.textMuted,
+                          : (rsvpStatus === "cant" && userDeclinedByHost) ? "rgba(255,69,58,0.45)"
+                            : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.border
+                              : colors.textMuted,
                       alignItems: "center",
                       justifyContent: "center",
                       flexDirection: "row",
@@ -1570,7 +1606,7 @@ export default function EventDetailScreen() {
                       opacity: pressed ? 0.85 : 1,
                     })}
                   >
-                    {rsvpStatus !== "pending" && (
+                    {rsvpStatus !== "pending" && !(rsvpStatus === "cant" && userDeclinedByHost) && (
                       <Ionicons name="checkmark" size={18} color={colors.text} />
                     )}
                     <Text
@@ -1584,7 +1620,8 @@ export default function EventDetailScreen() {
                         : eventData.visibility === "public" ? "Going"
                           : rsvpStatus === "going" ? "Going"
                             : rsvpStatus === "maybe" ? "Maybe"
-                              : "Not going"}
+                              : userDeclinedByHost ? "Request declined"
+                                : "Not going"}
                     </Text>
                   </Pressable>
                   {rsvpStatus !== "pending" && eventData.visibility !== "public" && (
@@ -1714,13 +1751,15 @@ export default function EventDetailScreen() {
                       borderRadius: radius.lg,
                       backgroundColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.surfaceLight
-                            : colors.surfaceLighter,
+                          : (rsvpStatus === "cant" && userDeclinedByHost) ? "rgba(255,69,58,0.14)"
+                            : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.surfaceLight
+                              : colors.surfaceLighter,
                       borderWidth: 1,
                       borderColor:
                         rsvpStatus === "pending" ? colors.warning
-                          : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.border
-                            : colors.textMuted,
+                          : (rsvpStatus === "cant" && userDeclinedByHost) ? "rgba(255,69,58,0.45)"
+                            : (eventData.visibility === "public" || rsvpStatus === "going") ? colors.border
+                              : colors.textMuted,
                       alignItems: "center",
                       justifyContent: "center",
                       flexDirection: "row",
@@ -1728,7 +1767,7 @@ export default function EventDetailScreen() {
                       opacity: pressed ? 0.85 : 1,
                     })}
                   >
-                    {rsvpStatus !== "pending" && (
+                    {rsvpStatus !== "pending" && !(rsvpStatus === "cant" && userDeclinedByHost) && (
                       <Ionicons name="checkmark" size={18} color={colors.text} />
                     )}
                     <Text
@@ -1742,7 +1781,8 @@ export default function EventDetailScreen() {
                         : eventData.visibility === "public" ? "Going"
                           : rsvpStatus === "going" ? "Going"
                             : rsvpStatus === "maybe" ? "Maybe"
-                              : "Not going"}
+                              : userDeclinedByHost ? "Request declined"
+                                : "Not going"}
                     </Text>
                   </Pressable>
                   {rsvpStatus !== "pending" && eventData.visibility !== "public" && (
@@ -2173,9 +2213,12 @@ export default function EventDetailScreen() {
                               <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>{initial}</Text>
                             )}
                           </View>
-                          <Text style={{ fontSize: typography.sizes.sm, color: colors.text, flex: 1 }} numberOfLines={1}>{nameToShow}</Text>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={{ fontSize: typography.sizes.sm, color: colors.text }} numberOfLines={1}>{nameToShow}</Text>
+                            <Text style={{ fontSize: typography.sizes.xs, color: colors.warning, marginTop: 2 }}>Waiting for approval</Text>
+                          </View>
                         </View>
-                        {isHostMode && <Ionicons name="ellipsis-horizontal" size={16} color={colors.textMuted} />}
+                        {isHostMode && <Ionicons name="ellipsis-horizontal" size={16} color={colors.warning} />}
                       </Pressable>
                     );
                   })}
@@ -2209,34 +2252,48 @@ export default function EventDetailScreen() {
                   })}
                 </View>
               )}
-              {rsvpsByStatus.cant.length > 0 && (
-                <View style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
-                  <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, marginBottom: spacing.sm }}>NOT GOING ({rsvpsByStatus.cant.length})</Text>
-                  {rsvpsByStatus.cant.map((r) => {
-                    const profile = guestProfiles[r.user_phone];
-                    const displayName = profile ? getDisplayName(profile, r.user_phone) : r.user_phone;
-                    const hideNameOnly = !isHostMode && eventData.hideGuestNames && r.user_phone !== userPhone;
-                    const hideAvatarOnly = !isHostMode && eventData.hideGuestAvatars && r.user_phone !== userPhone;
-                    const nameToShow = hideNameOnly ? "Guest" : displayName;
-                    const avatarUri = profile?.avatarUri;
-                    const initial = getDisplayInitial(profile ?? null, r.user_phone);
-                    return (
-                      <View key={r.user_phone} style={{ flexDirection: "row", alignItems: "center", paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
-                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, overflow: "hidden", justifyContent: "center", alignItems: "center", marginRight: spacing.sm }}>
-                          {hideAvatarOnly ? (
-                            <Ionicons name="person-outline" size={20} color={colors.textMuted} />
-                          ) : avatarUri ? (
-                            <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36 }} resizeMode="cover" />
-                          ) : (
-                            <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>{initial}</Text>
-                          )}
+              {(() => {
+                // Guests who voluntarily declined (not declined by host) — always visible to all
+                // Declined-by-host rows are only visible to host
+                const visibleCant = isHostMode
+                  ? rsvpsByStatus.cant
+                  : rsvpsByStatus.cant.filter((r) => !r.declined_by_host);
+                if (visibleCant.length === 0) return null;
+                return (
+                  <View style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
+                    <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, marginBottom: spacing.sm }}>NOT GOING ({visibleCant.length})</Text>
+                    {visibleCant.map((r) => {
+                      const profile = guestProfiles[r.user_phone];
+                      const displayName = profile ? getDisplayName(profile, r.user_phone) : r.user_phone;
+                      const hideNameOnly = !isHostMode && eventData.hideGuestNames && r.user_phone !== userPhone;
+                      const hideAvatarOnly = !isHostMode && eventData.hideGuestAvatars && r.user_phone !== userPhone;
+                      const nameToShow = hideNameOnly ? "Guest" : displayName;
+                      const avatarUri = profile?.avatarUri;
+                      const initial = getDisplayInitial(profile ?? null, r.user_phone);
+                      const wasDeclined = isHostMode && r.declined_by_host === true;
+                      return (
+                        <View key={r.user_phone} style={{ flexDirection: "row", alignItems: "center", paddingVertical: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+                          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, overflow: "hidden", justifyContent: "center", alignItems: "center", marginRight: spacing.sm }}>
+                            {hideAvatarOnly ? (
+                              <Ionicons name="person-outline" size={20} color={colors.textMuted} />
+                            ) : avatarUri ? (
+                              <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36 }} resizeMode="cover" />
+                            ) : (
+                              <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted }}>{initial}</Text>
+                            )}
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }} numberOfLines={1}>{nameToShow}</Text>
+                            {wasDeclined && (
+                              <Text style={{ fontSize: typography.sizes.xs, color: colors.error, marginTop: 2 }}>Declined by host</Text>
+                            )}
+                          </View>
                         </View>
-                        <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, flex: 1 }} numberOfLines={1}>{nameToShow}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
+                      );
+                    })}
+                  </View>
+                );
+              })()}
               {(rsvpsByStatus.going.length + rsvpsByStatus.pending.length + rsvpsByStatus.maybe.length + rsvpsByStatus.cant.length) === 0 && (
                 <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted, marginTop: spacing.xl, textAlign: "center" }}>No guests yet</Text>
               )}
@@ -2374,7 +2431,7 @@ export default function EventDetailScreen() {
                       onPress={doRemovePlusOne}
                       style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border }}
                     >
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>Remove +1</Text>
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.warning }}>Remove +1</Text>
                     </Pressable>
                   )}
                   {section === "going" && (

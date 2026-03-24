@@ -29,6 +29,7 @@ export interface Event {
   coverUrl?: string;
   lineup?: LineupEntry[];
   attendingStatus?: "going" | "pending" | "maybe" | "cant";
+  declinedByHost?: boolean;
   createdAt: string;
   locationVisibility?: "now" | "reveal";
   revealHoursBefore?: number | null;
@@ -49,7 +50,7 @@ export interface RsvpByStatus {
   going: { user_phone: string; plus_one?: boolean }[];
   pending: { user_phone: string; plus_one?: boolean }[];
   maybe: { user_phone: string; plus_one?: boolean }[];
-  cant: { user_phone: string; plus_one?: boolean }[];
+  cant: { user_phone: string; plus_one?: boolean; declined_by_host?: boolean }[];
 }
 
 interface EventsContextType {
@@ -199,14 +200,16 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       // 2) Event IDs and RSVP status for "going" or "pending" (as guest)
       const { data: rsvpData } = await supabase
         .from("rsvps")
-        .select("event_id, status")
+        .select("event_id, status, declined_by_host")
         .eq("user_phone", phone)
         .in("status", ["going", "pending", "maybe", "cant"]);
 
       const attendingMap = new Map<string, "going" | "pending" | "maybe" | "cant">();
+      const declinedMap = new Map<string, boolean>();
       (rsvpData || []).forEach((r) => {
         if (!createdIds.has(r.event_id)) {
           attendingMap.set(r.event_id, r.status as "going" | "pending" | "maybe" | "cant");
+          if (r.declined_by_host) declinedMap.set(r.event_id, true);
         }
       });
       const attendingIds = Array.from(attendingMap.keys());
@@ -225,6 +228,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       const attendingWithStatus = attendingEvents.map((e) => ({
         ...e,
         attendingStatus: attendingMap.get(e.id),
+        declinedByHost: declinedMap.get(e.id) ?? false,
       }));
       const merged = [...created, ...attendingWithStatus].sort(
         (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
@@ -616,6 +620,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           event_id: eventId,
           user_phone: userPhone,
           status: effectiveStatus,
+          declined_by_host: false,
         };
         // Reset plus_one when not going
         if (effectiveStatus !== "going") {
@@ -656,18 +661,17 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const getRsvpsForEvent = useCallback(async (eventId: string): Promise<RsvpByStatus> => {
     const { data } = await supabase
       .from("rsvps")
-      .select("status, user_phone, plus_one")
+      .select("status, user_phone, plus_one, declined_by_host")
       .eq("event_id", eventId);
     const going: { user_phone: string; plus_one?: boolean }[] = [];
     const pending: { user_phone: string; plus_one?: boolean }[] = [];
     const maybe: { user_phone: string; plus_one?: boolean }[] = [];
-    const cant: { user_phone: string; plus_one?: boolean }[] = [];
+    const cant: { user_phone: string; plus_one?: boolean; declined_by_host?: boolean }[] = [];
     (data || []).forEach((r) => {
-      const row = { user_phone: r.user_phone, plus_one: r.plus_one ?? false };
-      if (r.status === "going") going.push(row);
-      else if (r.status === "pending") pending.push(row);
-      else if (r.status === "maybe") maybe.push(row);
-      else cant.push(row);
+      if (r.status === "going") going.push({ user_phone: r.user_phone, plus_one: r.plus_one ?? false });
+      else if (r.status === "pending") pending.push({ user_phone: r.user_phone, plus_one: r.plus_one ?? false });
+      else if (r.status === "maybe") maybe.push({ user_phone: r.user_phone, plus_one: r.plus_one ?? false });
+      else cant.push({ user_phone: r.user_phone, plus_one: r.plus_one ?? false, declined_by_host: r.declined_by_host ?? false });
     });
     return { going, pending, maybe, cant };
   }, []);
@@ -703,7 +707,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const declineRsvp = useCallback(async (eventId: string, userPhone: string) => {
     const { error } = await supabase
       .from("rsvps")
-      .update({ status: "cant" })
+      .update({ status: "cant", declined_by_host: true })
       .eq("event_id", eventId)
       .eq("user_phone", userPhone);
     if (error) throw error;
