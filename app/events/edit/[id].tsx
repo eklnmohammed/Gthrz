@@ -37,6 +37,7 @@ import { getEventTypeLabel } from "@/src/utils/eventTypeBadge";
 import { LocationCardWithPicker, type LocationSelection } from "@/src/components/LocationCardWithPicker";
 import { isValidCoverUrl } from "@/src/utils/coverUrl";
 import { uploadEventCover } from "@/src/utils/uploadEventCover";
+import { useKeyboardInset } from "@/src/hooks/useKeyboardInset";
 import {
   formatTime24ToDisplay,
   formatLineupTimeRange,
@@ -62,6 +63,7 @@ export default function EditEventScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const { updateEvent, deleteEvent, fetchEvents } = useEvents();
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
 
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -1664,7 +1666,8 @@ export default function EditEventScreen() {
               borderTopLeftRadius: radius.xl,
               borderTopRightRadius: radius.xl,
               padding: spacing.lg,
-              paddingBottom: spacing.xxl + (insets?.bottom ?? 0),
+              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
+              marginBottom: keyboardInset,
               borderWidth: 0.5,
               borderColor: "rgba(255,255,255,0.08)",
             }}
@@ -1775,7 +1778,8 @@ export default function EditEventScreen() {
               borderTopLeftRadius: radius.xl,
               borderTopRightRadius: radius.xl,
               padding: spacing.lg,
-              paddingBottom: spacing.xxl + (insets?.bottom ?? 0),
+              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
+              marginBottom: keyboardInset,
               borderWidth: 0.5,
               borderColor: "rgba(255,255,255,0.08)",
             }}
@@ -1883,7 +1887,8 @@ export default function EditEventScreen() {
               borderTopRightRadius: radius.xl,
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.xl,
-              paddingBottom: spacing.xxl + (insets?.bottom ?? 0),
+              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
+              marginBottom: keyboardInset,
               borderWidth: 0.5,
               borderColor: "rgba(255,255,255,0.08)",
               gap: spacing.xl,

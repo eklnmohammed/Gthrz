@@ -37,6 +37,7 @@ import { getCoverOptions, getCoverSource, getDefaultCoverKey } from "@/src/utils
 import { LocationCardWithPicker, type LocationSelection } from "@/src/components/LocationCardWithPicker";
 import { isValidCoverUrl } from "@/src/utils/coverUrl";
 import { uploadEventCover } from "@/src/utils/uploadEventCover";
+import { useKeyboardInset } from "@/src/hooks/useKeyboardInset";
 import {
   formatTime24ToDisplay,
   formatLineupTimeRange,
@@ -62,6 +63,7 @@ const HERO_RADIUS = 24;
 export default function CreateEventScreen() {
   const { createEvent, addContribution } = useEvents();
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
 
   const [title, setTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -1538,7 +1540,8 @@ export default function CreateEventScreen() {
               borderTopRightRadius: radius.xl,
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.xl,
-              paddingBottom: spacing.xxl + (insets?.bottom ?? 0),
+              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
+              marginBottom: keyboardInset,
               borderWidth: 0.5,
               borderColor: "rgba(255,255,255,0.08)",
               gap: spacing.xl,
@@ -1655,7 +1658,8 @@ export default function CreateEventScreen() {
               borderTopRightRadius: radius.xl,
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.xl,
-              paddingBottom: spacing.xxl + (insets?.bottom ?? 0),
+              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
+              marginBottom: keyboardInset,
               borderWidth: 0.5,
               borderColor: "rgba(255,255,255,0.08)",
               gap: spacing.xl,
@@ -1772,7 +1776,8 @@ export default function CreateEventScreen() {
               borderTopRightRadius: radius.xl,
               paddingHorizontal: spacing.lg,
               paddingTop: spacing.xl,
-              paddingBottom: spacing.xxl + (insets?.bottom ?? 0),
+              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
+              marginBottom: keyboardInset,
               borderWidth: 0.5,
               borderColor: "rgba(255,255,255,0.08)",
               gap: spacing.xl,
