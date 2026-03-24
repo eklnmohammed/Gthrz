@@ -56,7 +56,8 @@ export default function GoingScreen() {
   });
   const goingPending = bySegment.filter((e) => {
     const isGuest = e.hostPhone !== userPhone;
-    const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
+    const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending"
+      || (e.attendingStatus === "cant" && e.declinedByHost);
     return isGuest && rsvp;
   });
   const goingPendingFiltered = (() => {

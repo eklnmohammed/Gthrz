@@ -70,7 +70,8 @@ export default function Home() {
       e.status !== "cancelled" &&
       (e.hostPhone === userPhone ||
         e.attendingStatus === "going" ||
-        e.attendingStatus === "pending")
+        e.attendingStatus === "pending" ||
+        (e.attendingStatus === "cant" && e.declinedByHost))
   );
 
   const recommendedEvents = (() => {

@@ -1583,7 +1583,23 @@ export default function EventDetailScreen() {
               {rsvpStatus && !showRsvpOptions ? (
                 <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
                   <Pressable
-                    onPress={() => handleRsvpChange(rsvpStatus)}
+                    onPress={() => {
+                      if (userDeclinedByHost) {
+                        Alert.alert(
+                          "Request again?",
+                          "This will send a new RSVP request to the host.",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                              text: "Send request",
+                              onPress: () => handleRsvpChange("going"),
+                            },
+                          ]
+                        );
+                      } else {
+                        handleRsvpChange(rsvpStatus);
+                      }
+                    }}
                     style={({ pressed }) => ({
                       flex: 1,
                       height: spacing.buttonHeightMd,
@@ -1620,11 +1636,11 @@ export default function EventDetailScreen() {
                         : eventData.visibility === "public" ? "Going"
                           : rsvpStatus === "going" ? "Going"
                             : rsvpStatus === "maybe" ? "Maybe"
-                              : userDeclinedByHost ? "Request declined"
+                              : userDeclinedByHost ? "Request again"
                                 : "Not going"}
                     </Text>
                   </Pressable>
-                  {rsvpStatus !== "pending" && eventData.visibility !== "public" && (
+                  {rsvpStatus !== "pending" && !userDeclinedByHost && eventData.visibility !== "public" && (
                     <Pressable
                       onPress={() => setShowRsvpOptions(true)}
                       style={({ pressed }) => ({
@@ -1744,7 +1760,23 @@ export default function EventDetailScreen() {
               {rsvpStatus && !showRsvpOptions ? (
                 <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
                   <Pressable
-                    onPress={() => handleRsvpChange(rsvpStatus)}
+                    onPress={() => {
+                      if (userDeclinedByHost) {
+                        Alert.alert(
+                          "Request again?",
+                          "This will send a new RSVP request to the host.",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                              text: "Send request",
+                              onPress: () => handleRsvpChange("going"),
+                            },
+                          ]
+                        );
+                      } else {
+                        handleRsvpChange(rsvpStatus);
+                      }
+                    }}
                     style={({ pressed }) => ({
                       flex: 1,
                       height: spacing.buttonHeightMd,
@@ -1781,11 +1813,11 @@ export default function EventDetailScreen() {
                         : eventData.visibility === "public" ? "Going"
                           : rsvpStatus === "going" ? "Going"
                             : rsvpStatus === "maybe" ? "Maybe"
-                              : userDeclinedByHost ? "Request declined"
+                              : userDeclinedByHost ? "Request again"
                                 : "Not going"}
                     </Text>
                   </Pressable>
-                  {rsvpStatus !== "pending" && eventData.visibility !== "public" && (
+                  {rsvpStatus !== "pending" && !userDeclinedByHost && eventData.visibility !== "public" && (
                     <Pressable
                       onPress={() => setShowRsvpOptions(true)}
                       style={({ pressed }) => ({
