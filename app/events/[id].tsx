@@ -1425,8 +1425,9 @@ export default function EventDetailScreen() {
                       try {
                         await setPlusOne(params.id, userPhone, true);
                         await refetchGoingCount();
-                      } catch {
+                      } catch (err) {
                         setUserPlusOne(false);
+                        Alert.alert("Event is full", "There isn't enough space to add a guest.");
                       }
                       return;
                     }
@@ -2146,7 +2147,12 @@ export default function EventDetailScreen() {
                                 setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
                                 setGoingCount(rsvps.going.length);
                               } catch (err) {
-                                Alert.alert("Error", err instanceof Error ? err.message : "Failed to approve");
+                                const msg = err instanceof Error ? err.message : "";
+                                if (msg.includes("capacity")) {
+                                  Alert.alert("Event is full", "This event is at capacity. You can't approve more guests.");
+                                } else {
+                                  Alert.alert("Error", msg || "Failed to approve");
+                                }
                               }
                             }}
                             style={{ paddingVertical: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radius.sm, backgroundColor: colors.primary }}
