@@ -53,9 +53,8 @@ function getDisplayInitial(profile: UserProfile | null | undefined, phone: strin
 }
 
 function getDisplayName(profile: UserProfile | null | undefined, phone: string): string {
-  if (profile?.firstName || profile?.lastName) {
-    return [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
-  }
+  if (profile?.firstName) return profile.firstName.trim();
+  if (profile?.lastName) return profile.lastName.trim();
   return phone;
 }
 
@@ -2069,7 +2068,7 @@ export default function EventDetailScreen() {
               {rsvpsByStatus.going.length > 0 && (
                 <View style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
                   <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, marginBottom: spacing.sm }}>
-                    Going · {rsvpsByStatus.going.length}
+                    {rsvpsByStatus.going.length} going
                     {plusOneCount > 0
                       ? ` · ${plusOneCount} ${plusOneCount === 1 ? "guest" : "guests"}`
                       : ""}

@@ -536,6 +536,27 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setPlusOne = useCallback(async (eventId: string, userPhone: string, plusOne: boolean) => {
+    if (plusOne) {
+      const { data: eventRow } = await supabase
+        .from("events")
+        .select("capacity")
+        .eq("id", eventId)
+        .single();
+      const capacity = eventRow?.capacity;
+      if (capacity != null && capacity > 0) {
+        const { data: goingRsvps } = await supabase
+          .from("rsvps")
+          .select("plus_one")
+          .eq("event_id", eventId)
+          .eq("status", "going");
+        const totalAttending = (goingRsvps || []).reduce(
+          (sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0
+        );
+        if (totalAttending >= capacity) {
+          throw new Error("Event is full. Cannot add a guest.");
+        }
+      }
+    }
     const { error } = await supabase
       .from("rsvps")
       .update({ plus_one: plusOne })
