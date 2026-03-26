@@ -13,7 +13,6 @@ import {
   Alert,
   ImageBackground,
   StatusBar,
-  Switch,
   useWindowDimensions,
   TextInput,
 } from "react-native";
@@ -982,24 +981,86 @@ export default function CreateEventScreen() {
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Guest list visibility
+                Guest names
               </Text>
-              <View style={{ backgroundColor: colors.surfaceLight, borderRadius: radius.md, borderWidth: 0.5, borderColor: colors.border, overflow: "hidden" }}>
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.md, paddingHorizontal: spacing.lg }}>
-                  <View style={{ flex: 1, marginRight: spacing.lg }}>
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text }}>Hide guest names</Text>
-                    <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>Show avatars only</Text>
-                  </View>
-                  <Switch value={hideGuestNames} onValueChange={setHideGuestNames} trackColor={{ false: colors.surfaceLighter, true: colors.primary }} thumbColor="#fff" />
-                </View>
-                <View style={{ height: 0.5, backgroundColor: colors.border, marginHorizontal: spacing.lg }} />
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.md, paddingHorizontal: spacing.lg }}>
-                  <View style={{ flex: 1, marginRight: spacing.lg }}>
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text }}>Hide guest avatars</Text>
-                    <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>Placeholder instead of photos</Text>
-                  </View>
-                  <Switch value={hideGuestAvatars} onValueChange={setHideGuestAvatars} trackColor={{ false: colors.surfaceLighter, true: colors.primary }} thumbColor="#fff" />
-                </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
+                Guests can see attendee names
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => setHideGuestNames(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: !hideGuestNames ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: !hideGuestNames ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestNames ? colors.text : colors.textMuted }}>
+                    Show names
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setHideGuestNames(true)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: hideGuestNames ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: hideGuestNames ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestNames ? colors.text : colors.textMuted }}>
+                    Hide names
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Guest photos
+              </Text>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
+                Guests can see attendee profile photos
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => setHideGuestAvatars(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: !hideGuestAvatars ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: !hideGuestAvatars ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestAvatars ? colors.text : colors.textMuted }}>
+                    Show photos
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setHideGuestAvatars(true)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: hideGuestAvatars ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: hideGuestAvatars ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestAvatars ? colors.text : colors.textMuted }}>
+                    Hide photos
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </>

@@ -13,7 +13,6 @@ import {
   Alert,
   ImageBackground,
   StatusBar,
-  Switch,
   useWindowDimensions,
   TextInput,
 } from "react-native";
@@ -1149,58 +1148,88 @@ export default function EditEventScreen() {
                 <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
                   Privacy
                 </Text>
-                <View style={{ backgroundColor: colors.surfaceLight, borderRadius: radius.md, borderWidth: 0.5, borderColor: colors.border, overflow: "hidden" }}>
-                  {/* Hide guest names */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                    }}
-                  >
-                    <View style={{ flex: 1, marginRight: spacing.lg }}>
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text }}>
-                        Hide guest names
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                    Guest names
+                  </Text>
+                  <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
+                    Guests can see attendee names
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                    <Pressable
+                      onPress={() => setHideGuestNames(false)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: spacing.md,
+                        borderRadius: radius.md,
+                        backgroundColor: !hideGuestNames ? colors.primary : colors.surfaceLight,
+                        borderWidth: 0.5,
+                        borderColor: !hideGuestNames ? colors.primary : colors.border,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestNames ? colors.text : colors.textMuted }}>
+                        Show names
                       </Text>
-                      <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                        Guests see avatars only, not names.
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setHideGuestNames(true)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: spacing.md,
+                        borderRadius: radius.md,
+                        backgroundColor: hideGuestNames ? colors.primary : colors.surfaceLight,
+                        borderWidth: 0.5,
+                        borderColor: hideGuestNames ? colors.primary : colors.border,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestNames ? colors.text : colors.textMuted }}>
+                        Hide names
                       </Text>
-                    </View>
-                    <Switch
-                      value={hideGuestNames}
-                      onValueChange={setHideGuestNames}
-                      trackColor={{ false: colors.surfaceLighter, true: colors.primary }}
-                      thumbColor="#fff"
-                    />
+                    </Pressable>
                   </View>
-                  {/* Divider */}
-                  <View style={{ height: 0.5, backgroundColor: colors.border, marginHorizontal: spacing.lg }} />
-                  {/* Hide guest avatars */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                    }}
-                  >
-                    <View style={{ flex: 1, marginRight: spacing.lg }}>
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.text }}>
-                        Hide guest avatars
+                </View>
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                    Guest photos
+                  </Text>
+                  <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
+                    Guests can see attendee profile photos
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                    <Pressable
+                      onPress={() => setHideGuestAvatars(false)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: spacing.md,
+                        borderRadius: radius.md,
+                        backgroundColor: !hideGuestAvatars ? colors.primary : colors.surfaceLight,
+                        borderWidth: 0.5,
+                        borderColor: !hideGuestAvatars ? colors.primary : colors.border,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestAvatars ? colors.text : colors.textMuted }}>
+                        Show photos
                       </Text>
-                      <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                        Guests see a placeholder instead of photos.
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setHideGuestAvatars(true)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: spacing.md,
+                        borderRadius: radius.md,
+                        backgroundColor: hideGuestAvatars ? colors.primary : colors.surfaceLight,
+                        borderWidth: 0.5,
+                        borderColor: hideGuestAvatars ? colors.primary : colors.border,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestAvatars ? colors.text : colors.textMuted }}>
+                        Hide photos
                       </Text>
-                    </View>
-                    <Switch
-                      value={hideGuestAvatars}
-                      onValueChange={setHideGuestAvatars}
-                      trackColor={{ false: colors.surfaceLighter, true: colors.primary }}
-                      thumbColor="#fff"
-                    />
+                    </Pressable>
                   </View>
                 </View>
               </View>
