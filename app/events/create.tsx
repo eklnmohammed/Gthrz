@@ -754,7 +754,7 @@ export default function CreateEventScreen() {
                   }}
                 >
                   <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !approvalRequired ? colors.text : colors.textMuted }}>
-                    Auto-approve
+                    Auto approve
                   </Text>
                 </Pressable>
                 <Pressable
@@ -770,10 +770,13 @@ export default function CreateEventScreen() {
                   }}
                 >
                   <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: approvalRequired ? colors.text : colors.textMuted }}>
-                    Approve guests
+                    Manual approval
                   </Text>
                 </Pressable>
               </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                {approvalRequired ? "You approve each request" : "Anyone can join instantly"}
+              </Text>
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
@@ -813,6 +816,9 @@ export default function CreateEventScreen() {
                   </Text>
                 </Pressable>
               </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                Guests can bring one additional person
+              </Text>
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
@@ -855,6 +861,11 @@ export default function CreateEventScreen() {
                   </Text>
                 </Pressable>
               </View>
+              {capacityMode === "set" && capacityValue !== "" && (
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                  Max {capacityValue} guests
+                </Text>
+              )}
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
@@ -901,7 +912,7 @@ export default function CreateEventScreen() {
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Audience
+                Guest type
               </Text>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 {AUDIENCE_OPTIONS.map((opt) => {
@@ -978,13 +989,13 @@ export default function CreateEventScreen() {
                   </Text>
                 </Pressable>
               </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                {locationVisibility === "reveal" ? "Address is hidden until the reveal time" : "Address is visible to all guests"}
+              </Text>
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
                 Guest names
-              </Text>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
-                Guests can see attendee names
               </Text>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 <Pressable
@@ -1020,13 +1031,13 @@ export default function CreateEventScreen() {
                   </Text>
                 </Pressable>
               </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                Guests can see attendee names
+              </Text>
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
                 Guest photos
-              </Text>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
-                Guests can see attendee profile photos
               </Text>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 <Pressable
@@ -1062,6 +1073,9 @@ export default function CreateEventScreen() {
                   </Text>
                 </Pressable>
               </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                Guests can see attendee profile photos
+              </Text>
             </View>
           </>
         ))}
@@ -1465,6 +1479,9 @@ export default function CreateEventScreen() {
             </View>
             {bringItems.length > 0 && (
               <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
+                  {bringItems.length} {bringItems.length === 1 ? "item" : "items"} added
+                </Text>
                 {bringItems.map((item) => (
                   <View key={item} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.surfaceLight, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderWidth: 0.5, borderColor: colors.border }}>
                     <Text style={{ fontSize: typography.sizes.sm, color: colors.text }}>{item}</Text>
