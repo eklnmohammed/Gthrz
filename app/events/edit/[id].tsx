@@ -942,10 +942,10 @@ export default function EditEventScreen() {
                 </Text>
               </View>
 
-              {/* Allow +1 */}
+              {/* Allow extra */}
               <View style={{ gap: spacing.sm }}>
                 <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Allow +1
+                  Allow extra
                 </Text>
                 <View style={{ flexDirection: "row", gap: spacing.sm }}>
                   <Pressable

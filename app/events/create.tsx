@@ -780,7 +780,7 @@ export default function CreateEventScreen() {
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Allow +1
+                Allow extra
               </Text>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 <Pressable

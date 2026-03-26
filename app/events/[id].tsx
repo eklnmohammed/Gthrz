@@ -119,7 +119,7 @@ export default function EventDetailScreen() {
   }>({ going: [], pending: [], maybe: [], cant: [] });
   const plusOneCount = rsvpsByStatus.going.filter((r) => r.plus_one).length;
   const plusOneCountLabel =
-    plusOneCount > 0 ? ` · ${plusOneCount} ${plusOneCount === 1 ? "guest" : "guests"}` : "";
+    plusOneCount > 0 ? ` · ${plusOneCount} extra` : "";
   const [showManageSheet, setShowManageSheet] = useState(false);
   const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
   const [cancelReasonInput, setCancelReasonInput] = useState("");
@@ -1410,14 +1410,14 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          {/* Bring a guest (+1) — same section system as Lineup / Bring */}
+          {/* Bring an extra — same section system as Lineup / Bring */}
           {eventData.allowPlusOne && !isHostMode && !isCancelled && rsvpStatus === "going" ? (
             <View style={lowerSubsectionWrap}>
-              <Text style={lowerSectionLabel}>Bring a guest</Text>
+              <Text style={lowerSectionLabel}>Bring an extra</Text>
               <View style={[lowerRowBase, { borderBottomWidth: 0 }]}>
                 <View style={{ flex: 1, minWidth: 0, paddingRight: spacing.sm }}>
                   <Text style={lowerRowPrimary}>
-                    {userPlusOne ? "Guest added" : "No guest added"}
+                    {userPlusOne ? "Extra added" : "No extra added"}
                   </Text>
                   <Text style={lowerRowSecondary}>
                     {userPlusOne ? "Included with your RSVP" : "Optional"}
@@ -1478,7 +1478,7 @@ export default function EventDetailScreen() {
                       includeFontPadding: false,
                     }}
                   >
-                    {userPlusOne ? "Guest added" : "Bring guest"}
+                    {userPlusOne ? "Extra added" : "Bring extra"}
                   </Text>
                 </Pressable>
               </View>
@@ -2163,7 +2163,7 @@ export default function EventDetailScreen() {
                   <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, marginBottom: spacing.sm }}>
                     {rsvpsByStatus.going.length} going
                     {plusOneCount > 0
-                      ? ` · ${plusOneCount} ${plusOneCount === 1 ? "guest" : "guests"}`
+                      ? ` · ${plusOneCount} extra`
                       : ""}
                   </Text>
                   {rsvpsByStatus.going.map((r) => {
@@ -2202,7 +2202,7 @@ export default function EventDetailScreen() {
                             </Text>
                             {r.plus_one ? (
                               <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginTop: 2 }} numberOfLines={1}>
-                                Bringing 1 guest
+                                Bringing 1 extra
                               </Text>
                             ) : null}
                           </View>
@@ -2403,7 +2403,7 @@ export default function EventDetailScreen() {
             };
 
             const doRemovePlusOne = () => {
-              Alert.alert("Remove +1?", `This will remove ${name}'s guest.`, [
+              Alert.alert("Remove extra?", `This will remove ${name}'s extra.`, [
                 { text: "Cancel", style: "cancel" },
                 {
                   text: "Remove",
@@ -2439,7 +2439,7 @@ export default function EventDetailScreen() {
                 <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg }} />
                 <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.xs }}>{name}</Text>
                 <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginBottom: spacing.lg }}>
-                  {section === "pending" ? "Pending approval" : hasPlusOne ? "Going · bringing 1 guest" : "Going"}
+                  {section === "pending" ? "Pending approval" : hasPlusOne ? "Going · bringing 1 extra" : "Going"}
                 </Text>
                 <View style={{ gap: spacing.sm }}>
                   {section === "pending" && (
@@ -2463,7 +2463,7 @@ export default function EventDetailScreen() {
                       onPress={doRemovePlusOne}
                       style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceLight, borderWidth: 0.5, borderColor: colors.border }}
                     >
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.warning }}>Remove +1</Text>
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.warning }}>Remove extra</Text>
                     </Pressable>
                   )}
                   {section === "going" && (
