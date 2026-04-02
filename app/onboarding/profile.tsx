@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Pressable, Image, Alert } from "react-native";
+import { View, Text, Pressable, Image, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -8,6 +8,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
 import { AppInput } from "../../src/components/AppInput";
+import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { upsertProfile, uploadAvatar } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
@@ -17,6 +18,7 @@ import { typography } from "../../src/theme/typography";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -93,7 +95,19 @@ export default function ProfileScreen() {
 
   return (
     <Screen topPadding={insets.top + spacing.xxxxl + spacing.md}>
-      <View style={{ flex: 1, position: "relative" }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: spacing.xl + keyboardInset,
+        }}
+      >
+      <View style={{ flex: 1, position: "relative", minHeight: 480 }}>
         {/* Soft purple top glow - behind content, no touch */}
         <LinearGradient
           colors={softPurpleGlow}
@@ -236,6 +250,8 @@ export default function ProfileScreen() {
           </View>
         </View>
       </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

@@ -10,6 +10,8 @@ import {
   Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { radius } from "../theme/radius";
@@ -65,6 +67,8 @@ export function LocationPickerModal({
   const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
 
   // Reset state when modal opens
   useEffect(() => {
@@ -175,7 +179,8 @@ export function LocationPickerModal({
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             paddingTop: spacing.lg,
-            paddingBottom: spacing.xxxxl,
+            paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxxxl + (insets.bottom ?? 0),
+            marginBottom: keyboardInset,
             borderWidth: 1,
             borderColor: colors.border,
             borderBottomWidth: 0,

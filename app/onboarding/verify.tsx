@@ -1,9 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { View, Text, TextInput, Alert, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
+import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { verifyOtp, sendOtp, syncCurrentProfileFromServer } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
@@ -23,6 +33,7 @@ export default function VerifyScreen() {
   const [error, setError] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(RESEND_COOLDOWN);
   const inputRef = useRef<TextInput>(null);
+  const keyboardInset = useKeyboardInset();
 
   // Auto-focus the hidden input
   useEffect(() => {
@@ -91,13 +102,20 @@ export default function VerifyScreen() {
 
   return (
     <Screen>
-      <View
-        style={{
-          flex: 1,
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
           paddingVertical: spacing.xxxxl,
           paddingHorizontal: spacing.xxl,
           alignItems: "center",
           justifyContent: "center",
+          paddingBottom: spacing.xxl + keyboardInset,
         }}
       >
         {/* Icon */}
@@ -243,7 +261,8 @@ export default function VerifyScreen() {
               : "Resend code"}
           </Text>
         </Pressable>
-      </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

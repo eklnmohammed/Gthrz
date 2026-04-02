@@ -44,6 +44,9 @@ export interface Event {
   dressCode?: string;
   audience?: string;
   allowPlusOne?: boolean;
+  priceMode?: "free" | "paid";
+  priceAmount?: number | null;
+  priceCurrency?: string;
 }
 
 /** Result of resolving an invite code — distinguishes wrong code vs connectivity vs server errors. */
@@ -113,6 +116,9 @@ interface EventsContextType {
     dressCode?: string;
     audience?: string;
     allowPlusOne?: boolean;
+    priceMode?: "free" | "paid";
+    priceAmount?: number | null;
+    priceCurrency?: string;
   }) => Promise<string | undefined>;
   updateEvent: (
     id: string,
@@ -139,6 +145,9 @@ interface EventsContextType {
       dressCode?: string;
       audience?: string;
       allowPlusOne?: boolean;
+      priceMode?: "free" | "paid";
+      priceAmount?: number | null;
+      priceCurrency?: string;
     }
   ) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -200,6 +209,9 @@ function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
     dressCode: dbEvent.dress_code ?? undefined,
     audience: dbEvent.audience ?? undefined,
     allowPlusOne: dbEvent.allow_plus_one ?? false,
+    priceMode: dbEvent.price_mode === "paid" ? "paid" : "free",
+    priceAmount: dbEvent.price_amount ?? null,
+    priceCurrency: dbEvent.price_currency ?? "SAR",
   };
 }
 
@@ -298,6 +310,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       dressCode?: string;
       audience?: string;
       allowPlusOne?: boolean;
+      priceMode?: "free" | "paid";
+      priceAmount?: number | null;
+      priceCurrency?: string;
     }) => {
       setError(null);
       try {
@@ -350,6 +365,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
               dress_code: event.dressCode || null,
               audience: event.audience || null,
               allow_plus_one: event.allowPlusOne ?? false,
+              price_mode: event.priceMode ?? "free",
+              price_amount: event.priceMode === "paid" ? (event.priceAmount ?? null) : null,
+              price_currency: event.priceMode === "paid" ? (event.priceCurrency ?? "SAR") : null,
             })
             .select("*")
             .single();
@@ -408,6 +426,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         dressCode?: string;
         audience?: string;
         allowPlusOne?: boolean;
+        priceMode?: "free" | "paid";
+        priceAmount?: number | null;
+        priceCurrency?: string;
       }
     ) => {
       setError(null);
@@ -449,6 +470,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           dress_code: event.dressCode || null,
           audience: event.audience || null,
           allow_plus_one: event.allowPlusOne ?? false,
+          price_mode: event.priceMode ?? "free",
+          price_amount: event.priceMode === "paid" ? (event.priceAmount ?? null) : null,
+          price_currency: event.priceMode === "paid" ? (event.priceCurrency ?? "SAR") : null,
         };
         const { data, error: updateError } = await supabase
           .from("events")

@@ -95,6 +95,12 @@ export interface Event {
   audience?: string | null;
   /** Whether guests can bring a +1 */
   allow_plus_one?: boolean | null;
+  /** "free" or "paid" */
+  price_mode?: "free" | "paid" | null;
+  /** Amount (only relevant when price_mode === "paid") */
+  price_amount?: number | null;
+  /** Currency symbol or code: "SAR", "$", "£" */
+  price_currency?: string | null;
 }
 
 export interface Rsvp {

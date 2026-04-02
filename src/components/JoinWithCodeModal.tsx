@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { View, Text, TextInput, Modal, Pressable, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEvents } from "../state/eventsStore";
+import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
@@ -14,6 +16,8 @@ export interface JoinWithCodeModalProps {
 
 export function JoinWithCodeModal({ visible, onClose, onJoined }: JoinWithCodeModalProps) {
   const { fetchEventByInviteCode } = useEvents();
+  const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
   const [inviteCode, setInviteCode] = useState("");
   const [inviteError, setInviteError] = useState("");
   const [joiningWithCode, setJoiningWithCode] = useState(false);
@@ -72,7 +76,8 @@ export function JoinWithCodeModal({ visible, onClose, onJoined }: JoinWithCodeMo
             borderTopRightRadius: radius.xxl,
             paddingHorizontal: spacing.xxl,
             paddingTop: spacing.xl,
-            paddingBottom: spacing.xxl,
+            paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets.bottom ?? 0),
+            marginBottom: keyboardInset,
             borderWidth: 0.5,
             borderColor: "rgba(255, 255, 255, 0.06)",
             borderBottomWidth: 0,

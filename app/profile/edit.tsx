@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, Pressable, Image, Alert } from "react-native";
+import { View, Text, Pressable, Image, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { router, useFocusEffect, Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -7,6 +7,7 @@ import { Screen } from "../../src/components/Screen";
 import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { AppButton } from "../../src/components/AppButton";
 import { AppInput } from "../../src/components/AppInput";
+import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore, UserProfile } from "../../src/state/onboardingStore";
 import { uploadAvatar, upsertProfile } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
@@ -15,6 +16,7 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 
 export default function ProfileEditScreen() {
+  const keyboardInset = useKeyboardInset();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
   const [editFirstName, setEditFirstName] = useState("");
@@ -122,7 +124,18 @@ export default function ProfileEditScreen() {
           ),
         }}
       />
-      <View style={{ flex: 1, paddingVertical: spacing.xl }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingVertical: spacing.xl,
+          paddingBottom: spacing.xxl + keyboardInset,
+        }}
+      >
         {/* Avatar + form */}
         <View style={{ alignItems: "center", marginBottom: spacing.xxl }}>
           <View style={{ position: "relative", marginBottom: spacing.lg }}>
@@ -202,7 +215,8 @@ export default function ProfileEditScreen() {
             style={{ flex: 1 }}
           />
         </View>
-      </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

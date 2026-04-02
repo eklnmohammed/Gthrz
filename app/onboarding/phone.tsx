@@ -8,11 +8,14 @@ import {
   ScrollView,
   Alert,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
+import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { isDevMode, setDevMode, setDevPhone, sendOtp, syncCurrentProfileFromServer } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
@@ -46,6 +49,7 @@ export default function PhoneLoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [devModeOn, setDevModeOn] = useState(false);
   const [showDevSheet, setShowDevSheet] = useState(false);
+  const keyboardInset = useKeyboardInset();
 
   const showDevLink = __DEV__ || process.env.EXPO_PUBLIC_DEV_MENU === "true";
 
@@ -128,6 +132,10 @@ export default function PhoneLoginScreen() {
 
   return (
     <Screen>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -135,6 +143,7 @@ export default function PhoneLoginScreen() {
           paddingHorizontal: spacing.xxl,
           alignItems: "center",
           justifyContent: "center",
+          paddingBottom: spacing.xxxxl + keyboardInset,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -342,6 +351,7 @@ export default function PhoneLoginScreen() {
           </Pressable>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Developer options bottom sheet */}
       <Modal

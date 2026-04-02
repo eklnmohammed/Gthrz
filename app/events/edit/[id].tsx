@@ -34,6 +34,7 @@ import { formatEventDate } from "@/src/utils/formatEventDate";
 import { getCoverOptions, getCoverSource } from "@/src/utils/covers";
 import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
 import { bringTitleKey } from "@/src/utils/bringTitleKey";
+import { getEntryFeePreviewLine } from "@/src/utils/entryFeePreview";
 import {
   EVENT_FORM_HERO_PADDING_H,
   eventFormScrollPaddingBottom,
@@ -162,6 +163,9 @@ export default function EditEventScreen() {
   const [dressCodeSheetCustom, setDressCodeSheetCustom] = useState<string>("");
   const [audience, setAudience] = useState<string>("");
   const [allowPlusOne, setAllowPlusOne] = useState(false);
+  const [priceMode, setPriceMode] = useState<"free" | "paid">("free");
+  const [priceAmount, setPriceAmount] = useState("");
+  const [priceCurrency, setPriceCurrency] = useState("SAR");
 
   const AUDIENCE_OPTIONS = ["Men only", "Mixed", "Women only"];
 
@@ -418,6 +422,9 @@ export default function EditEventScreen() {
           }
           setAudience(data.audience ?? "");
           setAllowPlusOne(data.allow_plus_one ?? false);
+          setPriceMode(data.price_mode === "paid" ? "paid" : "free");
+          setPriceAmount(data.price_amount != null ? String(data.price_amount) : "");
+          setPriceCurrency(data.price_currency ?? "SAR");
           const loaded = await getContributions(params.id!);
           const bringRowsSnapshot = loaded.map((c) => ({ id: c.id, title: c.title }));
           setBringRows(bringRowsSnapshot);
@@ -565,6 +572,9 @@ export default function EditEventScreen() {
         dressCode: dressCodeValue || undefined,
         audience: audience || undefined,
         allowPlusOne,
+        priceMode,
+        priceAmount: priceMode === "paid" && priceAmount.trim() !== "" ? parseFloat(priceAmount) : null,
+        priceCurrency: priceMode === "paid" ? priceCurrency : undefined,
       });
       await applyBringContributionChanges(
         params.id,
@@ -659,6 +669,7 @@ export default function EditEventScreen() {
   };
 
   const ctaBottom = Math.max(spacing.lg, insets.bottom);
+  const entryFeePreviewLine = getEntryFeePreviewLine(priceAmount, priceCurrency);
   const coverSource = isValidCoverUrl(coverUrl)
     ? { uri: coverUrl! }
     : getCoverSource(coverKey || undefined, eventType);
@@ -1570,6 +1581,118 @@ export default function EditEventScreen() {
                     </Pressable>
                   </View>
                 ))}
+              </View>
+            )}
+          </>
+        </EventFormSectionCard>
+
+        {/* ── Price ── */}
+        <EventFormSectionCard title="Price">
+          <>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Entry fee
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => { setPriceMode("free"); setPriceAmount(""); }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: priceMode === "free" ? colors.primary : colors.surfaceLight,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    alignItems: "center",
+                    borderWidth: 0.5,
+                    borderColor: priceMode === "free" ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: priceMode === "free" ? colors.text : colors.textMuted }}>
+                    Free
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setPriceMode("paid")}
+                  style={{
+                    flex: 1,
+                    backgroundColor: priceMode === "paid" ? colors.primary : colors.surfaceLight,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    alignItems: "center",
+                    borderWidth: 0.5,
+                    borderColor: priceMode === "paid" ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: priceMode === "paid" ? colors.text : colors.textMuted }}>
+                    Paid
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+            {priceMode === "paid" && (
+              <View style={{ gap: spacing.sm }}>
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                    Amount
+                  </Text>
+                  <TextInput
+                    value={priceAmount}
+                    onChangeText={setPriceAmount}
+                    placeholder="0"
+                    placeholderTextColor={colors.textDim}
+                    keyboardType="decimal-pad"
+                    style={{
+                      backgroundColor: colors.surfaceLight,
+                      borderRadius: radius.md,
+                      paddingVertical: spacing.md,
+                      paddingHorizontal: spacing.lg,
+                      fontSize: typography.sizes.md,
+                      color: colors.text,
+                      borderWidth: 0.5,
+                      borderColor: colors.border,
+                    }}
+                  />
+                </View>
+                <View style={{ gap: spacing.xs }}>
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                    Currency
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                    {(["SAR", "$", "£"] as const).map((cur) => (
+                      <Pressable
+                        key={cur}
+                        onPress={() => setPriceCurrency(cur)}
+                        style={{
+                          flex: 1,
+                          backgroundColor: priceCurrency === cur ? colors.primary : colors.surfaceLight,
+                          borderRadius: radius.md,
+                          paddingVertical: spacing.md,
+                          alignItems: "center",
+                          borderWidth: 0.5,
+                          borderColor: priceCurrency === cur ? colors.primary : colors.border,
+                        }}
+                      >
+                        <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: priceCurrency === cur ? colors.text : colors.textMuted }}>
+                          {cur}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                {entryFeePreviewLine ? (
+                  <Text
+                    style={{
+                      fontSize: typography.sizes.sm,
+                      fontWeight: typography.weights.semibold,
+                      color: colors.text,
+                      marginTop: spacing.xs,
+                    }}
+                  >
+                    {entryFeePreviewLine}
+                  </Text>
+                ) : null}
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                  Display only — no payments are processed
+                </Text>
               </View>
             )}
           </>

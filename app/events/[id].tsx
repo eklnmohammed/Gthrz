@@ -42,6 +42,7 @@ import { isValidCoverUrl } from "../../src/utils/coverUrl";
 import { formatLineupTimeRange } from "../../src/utils/lineupTime";
 import { BRING_SUGGESTIONS } from "../../src/constants/eventFormOptions";
 import { bringTitleKey } from "../../src/utils/bringTitleKey";
+import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 
 const RSVP_BAR_HEIGHT = spacing.buttonHeightMd + spacing.sm * 2;
 const SHEET_RADIUS = 24;
@@ -125,6 +126,9 @@ export default function EventDetailScreen() {
     dressCode: "" as string,
     audience: "" as string,
     allowPlusOne: false as boolean,
+    priceMode: "free" as "free" | "paid",
+    priceAmount: null as number | null,
+    priceCurrency: "SAR" as string,
   });
   const [goingCount, setGoingCount] = useState<number>(0);
   const [rsvpsByStatus, setRsvpsByStatus] = useState<{
@@ -187,6 +191,7 @@ export default function EventDetailScreen() {
   };
 
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
 
   // Fetch latest event data and going count when screen comes into focus.
   // If the user just did an RSVP change (set/undo), don't overwrite with stale focus-fetch data.
@@ -235,6 +240,9 @@ export default function EventDetailScreen() {
               dressCode: data.dress_code ?? "",
               audience: data.audience ?? "",
               allowPlusOne: data.allow_plus_one ?? false,
+              priceMode: data.price_mode === "paid" ? "paid" : "free",
+              priceAmount: data.price_amount ?? null,
+              priceCurrency: data.price_currency ?? "SAR",
             });
           }
 
@@ -684,11 +692,14 @@ export default function EventDetailScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingBottom: isHostMode || isCancelled
-            ? insets.bottom + spacing.xxl
-            : RSVP_BAR_HEIGHT + insets.bottom + spacing.lg,
+          paddingBottom:
+            (isHostMode || isCancelled
+              ? insets.bottom + spacing.xxl
+              : RSVP_BAR_HEIGHT + insets.bottom + spacing.lg) + keyboardInset,
         }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         {/* ── POSTER CARD (Open-style) ───────────────────────────────────── */}
         <View style={{ paddingHorizontal: spacing.xxl, paddingTop: (insets.top || 0) + spacing.xl + 10 }}>
@@ -1208,6 +1219,30 @@ export default function EventDetailScreen() {
               </Text>
               <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
                 {eventData.audience}
+              </Text>
+              {!(eventData.lineup && eventData.lineup.length > 0) && eventData.priceMode !== "paid" ? (
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: colors.overlayWhite10,
+                    marginTop: spacing.md,
+                    marginBottom: 0,
+                  }}
+                />
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* Price — only shown when paid */}
+          {eventData.priceMode === "paid" && eventData.priceAmount != null ? (
+            <View style={{ marginBottom: spacing.lg }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted, marginBottom: spacing.xs }}>
+                Price
+              </Text>
+              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
+                {eventData.priceCurrency === "SAR"
+                  ? `${eventData.priceAmount} SAR`
+                  : `${eventData.priceCurrency}${eventData.priceAmount}`}
               </Text>
               {!(eventData.lineup && eventData.lineup.length > 0) ? (
                 <View

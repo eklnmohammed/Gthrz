@@ -231,6 +231,8 @@ export default function DiscoverScreen() {
         numColumns={2}
         columnWrapperStyle={{ marginBottom: GRID_GAP, gap: GRID_GAP }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={{
           paddingHorizontal: LIST_PADDING_H,
           paddingBottom: spacing.xxl,
