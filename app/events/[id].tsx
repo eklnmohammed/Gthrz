@@ -40,6 +40,8 @@ import { formatEventDate } from "../../src/utils/formatEventDate";
 import { getCoverSource } from "../../src/utils/covers";
 import { isValidCoverUrl } from "../../src/utils/coverUrl";
 import { formatLineupTimeRange } from "../../src/utils/lineupTime";
+import { BRING_SUGGESTIONS } from "../../src/constants/eventFormOptions";
+import { bringTitleKey } from "../../src/utils/bringTitleKey";
 
 const RSVP_BAR_HEIGHT = spacing.buttonHeightMd + spacing.sm * 2;
 const SHEET_RADIUS = 24;
@@ -144,7 +146,7 @@ export default function EventDetailScreen() {
   const [selectedGuestSection, setSelectedGuestSection] = useState<"going" | "pending" | "maybe" | "cant" | null>(null);
   const [contributions, setContributions] = useState<{ id: string; title: string; assigned_user_phone: string | null; status: "open" | "done" }[]>([]);
   const [newContribTitle, setNewContribTitle] = useState("");
-  const CONTRIB_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
+  const [addingBringItem, setAddingBringItem] = useState(false);
   const [bringToast, setBringToast] = useState<null | { contribId: string; itemTitle: string }>(null);
   const bringToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [goingProfiles, setGoingProfiles] = useState<Record<string, UserProfile | null>>({});
@@ -381,6 +383,26 @@ export default function EventDetailScreen() {
       id: c.id, title: c.title, assigned_user_phone: c.assigned_user_phone, status: c.status,
     })));
   }, [params.id, getContributions]);
+
+  /** Same uniqueness + chip behavior as Create/Edit — persist immediately on event details. */
+  const addHostBringItemIfNew = useCallback(
+    async (rawTitle: string) => {
+      const t = rawTitle.trim();
+      if (!t || !params.id) return;
+      if (contributions.some((c) => bringTitleKey(c.title) === bringTitleKey(t))) return;
+      setAddingBringItem(true);
+      try {
+        await addContribution(params.id, t);
+        setNewContribTitle("");
+        await refetchContribs();
+      } catch (err) {
+        Alert.alert("Error", err instanceof Error ? err.message : "Failed to add item");
+      } finally {
+        setAddingBringItem(false);
+      }
+    },
+    [params.id, contributions, addContribution, refetchContribs],
+  );
 
   const clearBringToast = () => {
     if (bringToastTimeoutRef.current) {
@@ -1362,29 +1384,45 @@ export default function EventDetailScreen() {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xs }}
                   >
-                    {CONTRIB_SUGGESTIONS.map((s) => (
-                      <Pressable
-                        key={s}
-                        onPress={() => setNewContribTitle(s)}
-                        style={({ pressed }) => ({
-                          paddingVertical: spacing.xs,
-                          paddingHorizontal: spacing.sm,
-                          borderRadius: 999,
-                          backgroundColor: newContribTitle === s ? colors.primary : (pressed ? colors.surfaceLight : colors.surfaceLight),
-                          borderWidth: 0.5,
-                          borderColor: newContribTitle === s ? colors.primary : colors.border,
-                        })}
-                      >
-                        <Text style={{ fontSize: typography.sizes.xs, color: newContribTitle === s ? colors.text : colors.textMuted }}>{s}</Text>
-                      </Pressable>
-                    ))}
+                    {BRING_SUGGESTIONS.map((s) => {
+                      const alreadyAdded = contributions.some((c) => bringTitleKey(c.title) === bringTitleKey(s));
+                      return (
+                        <Pressable
+                          key={s}
+                          disabled={alreadyAdded || addingBringItem}
+                          onPress={() => {
+                            if (alreadyAdded) return;
+                            void addHostBringItemIfNew(s);
+                          }}
+                          style={{
+                            paddingVertical: spacing.xs,
+                            paddingHorizontal: spacing.sm,
+                            borderRadius: 999,
+                            opacity: alreadyAdded ? 0.45 : 1,
+                            backgroundColor: colors.surfaceLight,
+                            borderWidth: 0.5,
+                            borderColor: colors.border,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: typography.sizes.xs,
+                              color: alreadyAdded ? colors.textDim : colors.textMuted,
+                            }}
+                          >
+                            {s}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
                   </ScrollView>
                 <View style={{ flexDirection: "row", gap: spacing.sm }}>
                   <TextInput
                     value={newContribTitle}
                     onChangeText={setNewContribTitle}
-                    placeholder="Add item (e.g., Drinks)"
+                    placeholder="Add custom item"
                     placeholderTextColor={colors.textDim}
+                    editable={!addingBringItem}
                     style={{
                       flex: 1,
                       backgroundColor: colors.surfaceLight,
@@ -1398,17 +1436,8 @@ export default function EventDetailScreen() {
                     }}
                   />
                   <Pressable
-                    onPress={async () => {
-                      const t = newContribTitle.trim();
-                      if (!t) return;
-                      try {
-                        await addContribution(params.id!, t);
-                        setNewContribTitle("");
-                        refetchContribs();
-                      } catch (err) {
-                        Alert.alert("Error", err instanceof Error ? err.message : "Failed to add item");
-                      }
-                    }}
+                    onPress={() => void addHostBringItemIfNew(newContribTitle)}
+                    disabled={addingBringItem}
                     style={({ pressed }) => ({
                       paddingVertical: spacing.sm,
                       paddingHorizontal: spacing.md,

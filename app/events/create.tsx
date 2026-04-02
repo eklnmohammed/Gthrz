@@ -45,6 +45,7 @@ import {
 } from "@/src/utils/lineupTime";
 import type { EndDayOffset } from "@/src/lib/supabase";
 import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
+import { bringTitleKey } from "@/src/utils/bringTitleKey";
 import {
   EVENT_FORM_HERO_PADDING_H,
   eventFormScrollPaddingBottom,
@@ -67,11 +68,6 @@ function serializeLocationForDirty(loc: LocationSelection): string {
 
 function serializeBringStringsForDirty(items: string[]): string {
   return JSON.stringify([...items]);
-}
-
-/** Normalize for duplicate detection (trim, collapse spaces, lowercase). */
-function bringTitleKey(title: string): string {
-  return title.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 const HERO_PADDING_H = EVENT_FORM_HERO_PADDING_H;

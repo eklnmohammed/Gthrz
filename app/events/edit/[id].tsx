@@ -33,6 +33,7 @@ import { typography } from "@/src/theme/typography";
 import { formatEventDate } from "@/src/utils/formatEventDate";
 import { getCoverOptions, getCoverSource } from "@/src/utils/covers";
 import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
+import { bringTitleKey } from "@/src/utils/bringTitleKey";
 import {
   EVENT_FORM_HERO_PADDING_H,
   eventFormScrollPaddingBottom,
@@ -69,10 +70,6 @@ const BRING_LOCAL_PREFIX = "local:";
 
 function generateLocalBringId(): string {
   return `${BRING_LOCAL_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function bringTitleKey(title: string): string {
-  return title.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function serializeBringRowsForDirty(rows: { id: string; title: string }[]): string {
