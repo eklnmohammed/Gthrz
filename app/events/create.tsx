@@ -46,6 +46,19 @@ import {
 } from "@/src/utils/lineupTime";
 import type { EndDayOffset } from "@/src/lib/supabase";
 
+function serializeLocationForDirty(loc: LocationSelection): string {
+  return JSON.stringify({
+    name: (loc.name ?? "").trim(),
+    address: loc.address ?? undefined,
+    lat: loc.lat ?? undefined,
+    lng: loc.lng ?? undefined,
+  });
+}
+
+function serializeBringStringsForDirty(items: string[]): string {
+  return JSON.stringify([...items]);
+}
+
 const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
   { value: "party", label: "Party", emoji: "🎉" },
   { value: "birthday", label: "Birthday", emoji: "🎂" },
@@ -217,21 +230,32 @@ export default function CreateEventScreen() {
   const initialValues = useRef({
     title: "",
     dateTime: null as number | null,
-    locationName: "",
+    locationJson: serializeLocationForDirty({ name: "" }),
     details: "",
     capacityMode: "unlimited" as const,
     capacityValue: "",
     visibility: "private" as const,
     approvalRequired: false,
     eventType: "party" as EventType,
+    selectedCoverType: "party" as EventType,
+    coverKey: getDefaultCoverKey("party"),
+    coverUrl: null as string | null,
     locationVisibility: "now" as const,
     revealHoursBefore: null as number | null,
+    allowPlusOne: false,
+    hideGuestNames: false,
+    hideGuestAvatars: false,
+    dressEffective: "",
+    audience: "",
+    lineupJson: "[]" as string,
+    bringItemsJson: "[]" as string,
   });
 
   const isDirty =
+    draftLineup !== null ||
     title.trim() !== initialValues.current.title ||
     (selectedDate ? selectedDate.getTime() : null) !== initialValues.current.dateTime ||
-    locationData.name.trim() !== initialValues.current.locationName ||
+    serializeLocationForDirty(locationData) !== initialValues.current.locationJson ||
     details.trim() !== initialValues.current.details ||
     capacityMode !== initialValues.current.capacityMode ||
     capacityValue !== initialValues.current.capacityValue ||
@@ -239,7 +263,17 @@ export default function CreateEventScreen() {
     approvalRequired !== initialValues.current.approvalRequired ||
     locationVisibility !== initialValues.current.locationVisibility ||
     revealHoursBefore !== initialValues.current.revealHoursBefore ||
-    eventType !== initialValues.current.eventType;
+    eventType !== initialValues.current.eventType ||
+    selectedCoverType !== initialValues.current.selectedCoverType ||
+    coverKey !== initialValues.current.coverKey ||
+    coverUrl !== initialValues.current.coverUrl ||
+    allowPlusOne !== initialValues.current.allowPlusOne ||
+    hideGuestNames !== initialValues.current.hideGuestNames ||
+    hideGuestAvatars !== initialValues.current.hideGuestAvatars ||
+    dressCodeValue !== initialValues.current.dressEffective ||
+    audience !== initialValues.current.audience ||
+    JSON.stringify(lineup) !== initialValues.current.lineupJson ||
+    serializeBringStringsForDirty(bringItems) !== initialValues.current.bringItemsJson;
 
   const handleBack = () => {
     if (isDirty) {

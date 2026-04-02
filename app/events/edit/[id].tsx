@@ -47,6 +47,29 @@ import {
 } from "@/src/utils/lineupTime";
 import type { EndDayOffset } from "@/src/lib/supabase";
 
+function serializeLocationForDirty(loc: LocationSelection): string {
+  return JSON.stringify({
+    name: (loc.name ?? "").trim(),
+    address: loc.address ?? undefined,
+    lat: loc.lat ?? undefined,
+    lng: loc.lng ?? undefined,
+  });
+}
+
+function serializeBringContributionsForDirty(items: EventContribution[]): string {
+  return JSON.stringify(
+    [...items]
+      .slice()
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((i) => ({
+        id: i.id,
+        title: i.title,
+        status: i.status,
+        assigned_user_phone: i.assigned_user_phone,
+      }))
+  );
+}
+
 const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
   { value: "party", label: "Party", emoji: "🎉" },
   { value: "birthday", label: "Birthday", emoji: "🎂" },
@@ -220,37 +243,52 @@ export default function EditEventScreen() {
   type InitialSnapshot = {
     title: string;
     dateTime: number | null;
-    locationName: string;
+    locationJson: string;
     details: string;
     capacityMode: "unlimited" | "set";
     capacityValue: string;
     visibility: "private" | "public";
     approvalRequired: boolean;
     eventType: EventType;
+    selectedCoverType: EventType;
     coverKey: string;
     coverUrl: string | null;
     lineup: string;
     locationVisibility: "now" | "reveal";
     revealHoursBefore: number | null;
+    hideGuestNames: boolean;
+    hideGuestAvatars: boolean;
+    allowPlusOne: boolean;
+    dressEffective: string;
+    audience: string;
+    bringItemsJson: string;
   };
   const initialValuesRef = useRef<InitialSnapshot | null>(null);
 
   const isDirty =
     initialValuesRef.current !== null &&
-    (title.trim() !== initialValuesRef.current.title ||
+    (draftLineup !== null ||
+      title.trim() !== initialValuesRef.current.title ||
       (selectedDate ? selectedDate.getTime() : null) !== initialValuesRef.current.dateTime ||
-      locationData.name.trim() !== initialValuesRef.current.locationName ||
+      serializeLocationForDirty(locationData) !== initialValuesRef.current.locationJson ||
       details.trim() !== initialValuesRef.current.details ||
       capacityMode !== initialValuesRef.current.capacityMode ||
       capacityValue !== initialValuesRef.current.capacityValue ||
       visibility !== initialValuesRef.current.visibility ||
       approvalRequired !== initialValuesRef.current.approvalRequired ||
       eventType !== initialValuesRef.current.eventType ||
+      selectedCoverType !== initialValuesRef.current.selectedCoverType ||
       coverKey !== initialValuesRef.current.coverKey ||
       coverUrl !== initialValuesRef.current.coverUrl ||
       JSON.stringify(lineup) !== initialValuesRef.current.lineup ||
       locationVisibility !== initialValuesRef.current.locationVisibility ||
-      revealHoursBefore !== initialValuesRef.current.revealHoursBefore);
+      revealHoursBefore !== initialValuesRef.current.revealHoursBefore ||
+      hideGuestNames !== initialValuesRef.current.hideGuestNames ||
+      hideGuestAvatars !== initialValuesRef.current.hideGuestAvatars ||
+      allowPlusOne !== initialValuesRef.current.allowPlusOne ||
+      dressCodeValue !== initialValuesRef.current.dressEffective ||
+      audience !== initialValuesRef.current.audience ||
+      serializeBringContributionsForDirty(bringItems) !== initialValuesRef.current.bringItemsJson);
 
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -336,6 +374,7 @@ export default function EditEventScreen() {
           setHideGuestNames(data.hide_guest_names ?? false);
           setHideGuestAvatars(data.hide_guest_avatars ?? false);
           setEventType(data.event_type || "party");
+          setSelectedCoverType(data.event_type || "party");
           setCoverKey(data.cover_key ?? "");
           setCoverUrl(isValidCoverUrl(data.cover_url) ? data.cover_url : null);
           setLocationVisibility(
@@ -362,13 +401,19 @@ export default function EditEventScreen() {
           initialValuesRef.current = {
             title: data.title || "",
             dateTime: data.date_time ? new Date(data.date_time).getTime() : null,
-            locationName: data.location_name || data.location || "",
+            locationJson: serializeLocationForDirty({
+              name: data.location_name || data.location || "",
+              address: data.location_address || undefined,
+              lat: data.location_lat ?? undefined,
+              lng: data.location_lng ?? undefined,
+            }),
             details: data.details || "",
             capacityMode: capStr !== "" ? "set" : "unlimited",
             capacityValue: capStr,
             visibility: data.visibility || "private",
             approvalRequired: data.approval_required ?? false,
             eventType: data.event_type || "party",
+            selectedCoverType: data.event_type || "party",
             coverKey: data.cover_key ?? "",
             coverUrl: sanitizedCoverUrl,
             lineup: JSON.stringify(loadedLineup),
@@ -378,6 +423,12 @@ export default function EditEventScreen() {
               typeof data.reveal_hours_before === "number"
                 ? data.reveal_hours_before
                 : null,
+            hideGuestNames: data.hide_guest_names ?? false,
+            hideGuestAvatars: data.hide_guest_avatars ?? false,
+            allowPlusOne: data.allow_plus_one ?? false,
+            dressEffective: (data.dress_code ?? "").trim(),
+            audience: data.audience ?? "",
+            bringItemsJson: serializeBringContributionsForDirty(loaded),
           };
         }
       } catch (err) {
