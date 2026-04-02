@@ -59,6 +59,11 @@ function serializeBringStringsForDirty(items: string[]): string {
   return JSON.stringify([...items]);
 }
 
+/** Normalize for duplicate detection (trim, collapse spaces, lowercase). */
+function bringTitleKey(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
   { value: "party", label: "Party", emoji: "🎉" },
   { value: "birthday", label: "Birthday", emoji: "🎂" },
@@ -1452,23 +1457,34 @@ export default function CreateEventScreen() {
               contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xs }}
             >
               {BRING_SUGGESTIONS.map((s) => {
-                const alreadyAdded = bringItems.includes(s);
+                const alreadyAdded = bringItems.some((b) => bringTitleKey(b) === bringTitleKey(s));
                 return (
                   <Pressable
                     key={s}
+                    disabled={alreadyAdded}
                     onPress={() => {
-                      if (!alreadyAdded) setBringItems((prev) => [...prev, s]);
+                      if (alreadyAdded) return;
+                      setBringItems((prev) => {
+                        if (prev.some((b) => bringTitleKey(b) === bringTitleKey(s))) return prev;
+                        return [...prev, s];
+                      });
                     }}
                     style={({ pressed }) => ({
                       paddingVertical: spacing.xs,
                       paddingHorizontal: spacing.sm,
                       borderRadius: 999,
-                      backgroundColor: alreadyAdded ? colors.primary : (pressed ? colors.surfaceLight : colors.surfaceLight),
+                      opacity: alreadyAdded ? 0.45 : 1,
+                      backgroundColor: colors.surfaceLight,
                       borderWidth: 0.5,
-                      borderColor: alreadyAdded ? colors.primary : colors.border,
+                      borderColor: colors.border,
                     })}
                   >
-                    <Text style={{ fontSize: typography.sizes.xs, color: alreadyAdded ? colors.text : colors.textMuted }}>
+                    <Text
+                      style={{
+                        fontSize: typography.sizes.xs,
+                        color: alreadyAdded ? colors.textDim : colors.textMuted,
+                      }}
+                    >
                       {s}
                     </Text>
                   </Pressable>
@@ -1497,7 +1513,10 @@ export default function CreateEventScreen() {
                 onPress={() => {
                   const t = bringInput.trim();
                   if (!t) return;
-                  if (!bringItems.includes(t)) setBringItems((prev) => [...prev, t]);
+                  setBringItems((prev) => {
+                    if (prev.some((b) => bringTitleKey(b) === bringTitleKey(t))) return prev;
+                    return [...prev, t];
+                  });
                   setBringInput("");
                 }}
                 style={({ pressed }) => ({
@@ -1519,7 +1538,11 @@ export default function CreateEventScreen() {
                 {bringItems.map((item) => (
                   <View key={item} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.surfaceLight, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderWidth: 0.5, borderColor: colors.border }}>
                     <Text style={{ fontSize: typography.sizes.sm, color: colors.text }}>{item}</Text>
-                    <Pressable onPress={() => setBringItems((prev) => prev.filter((x) => x !== item))}>
+                    <Pressable
+                      onPress={() =>
+                        setBringItems((prev) => prev.filter((x) => bringTitleKey(x) !== bringTitleKey(item)))
+                      }
+                    >
                       <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>✕</Text>
                     </Pressable>
                   </View>

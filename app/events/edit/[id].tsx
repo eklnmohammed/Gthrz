@@ -23,7 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEvents, type LineupEntry } from "@/src/state/eventsStore";
 import { supabase } from "@/src/lib/supabase";
-import { EventType, EventContribution } from "@/src/lib/supabase";
+import { EventType } from "@/src/lib/supabase";
 import { HeaderBackTextButton } from "@/src/components/HeaderBackTextButton";
 import { AppButton } from "@/src/components/AppButton";
 import { AppInput } from "@/src/components/AppInput";
@@ -56,18 +56,44 @@ function serializeLocationForDirty(loc: LocationSelection): string {
   });
 }
 
-function serializeBringContributionsForDirty(items: EventContribution[]): string {
+const BRING_LOCAL_PREFIX = "local:";
+
+function generateLocalBringId(): string {
+  return `${BRING_LOCAL_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function bringTitleKey(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function serializeBringRowsForDirty(rows: { id: string; title: string }[]): string {
   return JSON.stringify(
-    [...items]
+    [...rows]
       .slice()
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map((i) => ({
-        id: i.id,
-        title: i.title,
-        status: i.status,
-        assigned_user_phone: i.assigned_user_phone,
-      }))
+      .map((r) => ({ id: r.id, title: r.title }))
   );
+}
+
+async function applyBringContributionChanges(
+  eventId: string,
+  initial: { id: string; title: string }[],
+  current: { id: string; title: string }[],
+  addContribution: (eventId: string, title: string) => Promise<void>,
+  removeContribution: (id: string) => Promise<void>,
+) {
+  const isLocal = (id: string) => id.startsWith(BRING_LOCAL_PREFIX);
+  const currentIds = new Set(current.map((c) => c.id));
+  for (const row of initial) {
+    if (!currentIds.has(row.id) && !isLocal(row.id)) {
+      await removeContribution(row.id);
+    }
+  }
+  for (const row of current) {
+    if (isLocal(row.id)) {
+      await addContribution(eventId, row.title);
+    }
+  }
 }
 
 const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
@@ -131,7 +157,7 @@ export default function EditEventScreen() {
     return d;
   });
 
-  const [bringItems, setBringItems] = useState<EventContribution[]>([]);
+  const [bringRows, setBringRows] = useState<{ id: string; title: string }[]>([]);
   const [bringInput, setBringInput] = useState("");
 
   const [dressCode, setDressCode] = useState<string>("");
@@ -264,6 +290,8 @@ export default function EditEventScreen() {
     bringItemsJson: string;
   };
   const initialValuesRef = useRef<InitialSnapshot | null>(null);
+  /** Snapshot of bring rows at load; used to diff removals/adds on save. */
+  const initialBringRowsRef = useRef<{ id: string; title: string }[] | null>(null);
 
   const isDirty =
     initialValuesRef.current !== null &&
@@ -288,7 +316,7 @@ export default function EditEventScreen() {
       allowPlusOne !== initialValuesRef.current.allowPlusOne ||
       dressCodeValue !== initialValuesRef.current.dressEffective ||
       audience !== initialValuesRef.current.audience ||
-      serializeBringContributionsForDirty(bringItems) !== initialValuesRef.current.bringItemsJson);
+      serializeBringRowsForDirty(bringRows) !== initialValuesRef.current.bringItemsJson);
 
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -396,7 +424,9 @@ export default function EditEventScreen() {
           setAudience(data.audience ?? "");
           setAllowPlusOne(data.allow_plus_one ?? false);
           const loaded = await getContributions(params.id!);
-          setBringItems(loaded);
+          const bringRowsSnapshot = loaded.map((c) => ({ id: c.id, title: c.title }));
+          setBringRows(bringRowsSnapshot);
+          initialBringRowsRef.current = bringRowsSnapshot.map((r) => ({ ...r }));
           const sanitizedCoverUrl = isValidCoverUrl(data.cover_url) ? data.cover_url : null;
           initialValuesRef.current = {
             title: data.title || "",
@@ -428,7 +458,7 @@ export default function EditEventScreen() {
             allowPlusOne: data.allow_plus_one ?? false,
             dressEffective: (data.dress_code ?? "").trim(),
             audience: data.audience ?? "",
-            bringItemsJson: serializeBringContributionsForDirty(loaded),
+            bringItemsJson: serializeBringRowsForDirty(bringRowsSnapshot),
           };
         }
       } catch (err) {
@@ -508,7 +538,7 @@ export default function EditEventScreen() {
     setSaving(true);
     setError(null);
     try {
-      const phone = await onboardingStore.getPhone();
+      await onboardingStore.getPhone();
       await updateEvent(params.id, {
         title: title.trim(),
         dateTime: selectedDate.toISOString(),
@@ -541,6 +571,14 @@ export default function EditEventScreen() {
         audience: audience || undefined,
         allowPlusOne,
       });
+      await applyBringContributionChanges(
+        params.id,
+        initialBringRowsRef.current ?? [],
+        bringRows,
+        addContribution,
+        removeContribution,
+      );
+      setSaving(false);
       Alert.alert("Event Updated", "Your changes have been saved.", [
         {
           text: "OK",
@@ -1645,26 +1683,34 @@ export default function EditEventScreen() {
               contentContainerStyle={{ gap: spacing.xs, paddingVertical: spacing.xs }}
             >
               {BRING_SUGGESTIONS.map((s) => {
-                const alreadyAdded = bringItems.some((b) => b.title === s);
+                const alreadyAdded = bringRows.some((b) => bringTitleKey(b.title) === bringTitleKey(s));
                 return (
                   <Pressable
                     key={s}
-                    onPress={async () => {
+                    disabled={alreadyAdded}
+                    onPress={() => {
                       if (alreadyAdded) return;
-                      await addContribution(params.id!, s);
-                      const updated = await getContributions(params.id!);
-                      setBringItems(updated);
+                      setBringRows((prev) => {
+                        if (prev.some((b) => bringTitleKey(b.title) === bringTitleKey(s))) return prev;
+                        return [...prev, { id: generateLocalBringId(), title: s }];
+                      });
                     }}
                     style={({ pressed }) => ({
                       paddingVertical: spacing.xs,
                       paddingHorizontal: spacing.sm,
                       borderRadius: 999,
-                      backgroundColor: alreadyAdded ? colors.primary : (pressed ? colors.surfaceLight : colors.surfaceLight),
+                      opacity: alreadyAdded ? 0.45 : 1,
+                      backgroundColor: colors.surfaceLight,
                       borderWidth: 0.5,
-                      borderColor: alreadyAdded ? colors.primary : colors.border,
+                      borderColor: colors.border,
                     })}
                   >
-                    <Text style={{ fontSize: typography.sizes.xs, color: alreadyAdded ? colors.text : colors.textMuted }}>
+                    <Text
+                      style={{
+                        fontSize: typography.sizes.xs,
+                        color: alreadyAdded ? colors.textDim : colors.textMuted,
+                      }}
+                    >
                       {s}
                     </Text>
                   </Pressable>
@@ -1690,13 +1736,13 @@ export default function EditEventScreen() {
                 }}
               />
               <Pressable
-                onPress={async () => {
+                onPress={() => {
                   const t = bringInput.trim();
                   if (!t) return;
-                  if (bringItems.some((b) => b.title === t)) return;
-                  await addContribution(params.id!, t);
-                  const updated = await getContributions(params.id!);
-                  setBringItems(updated);
+                  setBringRows((prev) => {
+                    if (prev.some((b) => bringTitleKey(b.title) === bringTitleKey(t))) return prev;
+                    return [...prev, { id: generateLocalBringId(), title: t }];
+                  });
                   setBringInput("");
                 }}
                 style={({ pressed }) => ({
@@ -1710,18 +1756,15 @@ export default function EditEventScreen() {
                 <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Add</Text>
               </Pressable>
             </View>
-            {bringItems.length > 0 && (
+            {bringRows.length > 0 && (
               <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
                 <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
-                  {bringItems.length} {bringItems.length === 1 ? "item" : "items"} added
+                  {bringRows.length} {bringRows.length === 1 ? "item" : "items"} added
                 </Text>
-                {bringItems.map((item) => (
+                {bringRows.map((item) => (
                   <View key={item.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.surfaceLight, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderWidth: 0.5, borderColor: colors.border }}>
                     <Text style={{ fontSize: typography.sizes.sm, color: colors.text }}>{item.title}</Text>
-                    <Pressable onPress={async () => {
-                      await removeContribution(item.id);
-                      setBringItems((prev) => prev.filter((b) => b.id !== item.id));
-                    }}>
+                    <Pressable onPress={() => setBringRows((prev) => prev.filter((b) => b.id !== item.id))}>
                       <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>✕</Text>
                     </Pressable>
                   </View>
