@@ -60,6 +60,20 @@ function getDisplayName(profile: UserProfile | null | undefined, phone: string):
 
 type RsvpStatus = "cant" | "maybe" | "going" | "pending" | null;
 
+/** Primary sticky-bar label. Declined-by-host must be evaluated before the public "Going" shortcut. */
+function getRsvpStickyPrimaryLabel(
+  rsvpStatus: RsvpStatus,
+  visibility: "public" | "private",
+  userDeclinedByHost: boolean,
+): string {
+  if (rsvpStatus === "pending") return "Pending";
+  if (userDeclinedByHost) return "Request again";
+  if (visibility === "public") return "Going";
+  if (rsvpStatus === "going") return "Going";
+  if (rsvpStatus === "maybe") return "Maybe";
+  return "Not going";
+}
+
 export default function EventDetailScreen() {
   // Host vs guest rendering is derived from `eventData.hostPhone === userPhone` (DB source of truth).
   const params = useLocalSearchParams<{
@@ -1632,12 +1646,11 @@ export default function EventDetailScreen() {
                         color: colors.text,
                       }}
                     >
-                      {rsvpStatus === "pending" ? "Pending"
-                        : eventData.visibility === "public" ? "Going"
-                          : rsvpStatus === "going" ? "Going"
-                            : rsvpStatus === "maybe" ? "Maybe"
-                              : userDeclinedByHost ? "Request again"
-                                : "Not going"}
+                      {getRsvpStickyPrimaryLabel(
+                        rsvpStatus,
+                        eventData.visibility === "public" ? "public" : "private",
+                        userDeclinedByHost,
+                      )}
                     </Text>
                   </Pressable>
                   {rsvpStatus !== "pending" && !userDeclinedByHost && eventData.visibility !== "public" && (
@@ -1809,12 +1822,11 @@ export default function EventDetailScreen() {
                         color: colors.text,
                       }}
                     >
-                      {rsvpStatus === "pending" ? "Pending"
-                        : eventData.visibility === "public" ? "Going"
-                          : rsvpStatus === "going" ? "Going"
-                            : rsvpStatus === "maybe" ? "Maybe"
-                              : userDeclinedByHost ? "Request again"
-                                : "Not going"}
+                      {getRsvpStickyPrimaryLabel(
+                        rsvpStatus,
+                        eventData.visibility === "public" ? "public" : "private",
+                        userDeclinedByHost,
+                      )}
                     </Text>
                   </Pressable>
                   {rsvpStatus !== "pending" && !userDeclinedByHost && eventData.visibility !== "public" && (
