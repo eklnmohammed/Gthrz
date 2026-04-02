@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   View,
@@ -19,7 +19,6 @@ import {
 import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { onboardingStore } from "@/src/state/onboardingStore";
-import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEvents, type LineupEntry } from "@/src/state/eventsStore";
 import { supabase } from "@/src/lib/supabase";
@@ -33,7 +32,17 @@ import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
 import { formatEventDate } from "@/src/utils/formatEventDate";
 import { getCoverOptions, getCoverSource } from "@/src/utils/covers";
-import { getEventTypeLabel } from "@/src/utils/eventTypeBadge";
+import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
+import {
+  EVENT_FORM_HERO_PADDING_H,
+  eventFormScrollPaddingBottom,
+  EventFormSectionCard,
+  EventFormHero,
+  EventFormEventTypeChips,
+  EventFormErrorBanner,
+  EventFormFooter,
+  EventFormEssentialsHeading,
+} from "@/src/components/event-form";
 import { LocationCardWithPicker, type LocationSelection } from "@/src/components/LocationCardWithPicker";
 import { isValidCoverUrl } from "@/src/utils/coverUrl";
 import { uploadEventCover } from "@/src/utils/uploadEventCover";
@@ -96,18 +105,7 @@ async function applyBringContributionChanges(
   }
 }
 
-const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
-  { value: "party", label: "Party", emoji: "🎉" },
-  { value: "birthday", label: "Birthday", emoji: "🎂" },
-  { value: "wedding", label: "Wedding", emoji: "💍" },
-  { value: "graduation", label: "Graduation", emoji: "🎓" },
-  { value: "majlis", label: "Majlis", emoji: "☕" },
-  { value: "istiraha", label: "Istiraha", emoji: "🏕️" },
-  { value: "ramadan", label: "Ramadan", emoji: "🌙" },
-];
-const HERO_PADDING_H = spacing.xxl;
-const HERO_RADIUS = 24;
-const BRING_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
+const HERO_PADDING_H = EVENT_FORM_HERO_PADDING_H;
 
 export default function EditEventScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -668,29 +666,6 @@ export default function EditEventScreen() {
     ? { uri: coverUrl! }
     : getCoverSource(coverKey || undefined, eventType);
 
-  const sectionCard = (title: string, children: ReactNode) => (
-    <View
-      style={{
-        marginHorizontal: HERO_PADDING_H,
-        marginBottom: spacing.xl,
-        backgroundColor: colors.surface,
-        borderRadius: radius.lg,
-        overflow: "hidden",
-        borderWidth: 0.5,
-        borderColor: colors.border,
-      }}
-    >
-      <View style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
-        <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.8, textTransform: "uppercase" }}>
-          {title}
-        </Text>
-      </View>
-      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-        {children}
-      </View>
-    </View>
-  );
-
   if (loading) {
     return (
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -718,179 +693,53 @@ export default function EditEventScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 + ctaBottom, gap: spacing.lg }}
+        contentContainerStyle={{ paddingBottom: eventFormScrollPaddingBottom(ctaBottom), gap: spacing.lg }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Hero poster: square cover (same as create flow) ── */}
-        <View
-          style={{
-            width: heroWidth,
-            alignSelf: "center",
-            aspectRatio: 1,
-            borderRadius: HERO_RADIUS,
-            overflow: "hidden",
-            marginTop: spacing.lg,
-            marginBottom: spacing.lg,
+        <EventFormHero
+          heroWidth={heroWidth}
+          coverSource={coverSource as any}
+          title={title}
+          selectedDate={selectedDate}
+          onPressChangeCover={() => {
+            setSelectedCoverType(eventType);
+            setShowCoverModal(true);
           }}
-        >
-          <ImageBackground
-            source={coverSource as any}
-            resizeMode="cover"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.75)"]}
-              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "28%" }}
-            />
-            <View style={{ position: "absolute", top: spacing.md, right: spacing.md }}>
-              <Pressable
-                onPress={() => { setSelectedCoverType(eventType); setShowCoverModal(true); }}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.xs,
-                  paddingVertical: spacing.sm,
-                  paddingHorizontal: spacing.md,
-                  borderRadius: radius.full,
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  opacity: pressed ? 0.85 : 1,
-                })}
-              >
-                <Text style={{ fontSize: 14 }}>📷</Text>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: "#fff" }}>
-                  Change cover
-                </Text>
-              </Pressable>
-            </View>
-            <View
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                paddingHorizontal: spacing.lg,
-                paddingBottom: spacing.xl,
-                gap: spacing.xs,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: typography.sizes.xxl,
-                  fontWeight: typography.weights.bold,
-                  color: "#fff",
-                  lineHeight: 32,
-                }}
-                numberOfLines={2}
-              >
-                {title || "Your event title"}
-              </Text>
-              {selectedDate ? (
-                <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.85)", fontWeight: typography.weights.medium }}>
-                  {formatEventDate(selectedDate.toISOString())}
-                </Text>
-              ) : (
-                <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.55)" }}>
-                  Date & time not set
-                </Text>
-              )}
-            </View>
-          </ImageBackground>
-        </View>
+        />
 
-        {/* ── Event type chips ── */}
+        <EventFormEventTypeChips eventType={eventType} onSelect={setEventType} />
+
+        {error ? <EventFormErrorBanner message={error} /> : null}
+
+        {/* ── Essentials: Title, Date/Time, Location ── */}
         <View style={{ paddingHorizontal: HERO_PADDING_H, marginBottom: spacing.xl }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: spacing.sm, paddingRight: HERO_PADDING_H }}
-          >
-            {EVENT_TYPE_OPTIONS.map((option) => {
-              const selected = eventType === option.value;
-              const label = getEventTypeLabel(option.value).label;
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setEventType(option.value)}
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.xs,
-                    paddingVertical: spacing.sm,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.full,
-                    backgroundColor: selected ? colors.primaryLight20 : pressed ? colors.surfaceLighter : colors.surfaceLight,
-                    borderWidth: 1,
-                    borderColor: selected ? colors.primary : colors.border,
-                  })}
-                >
-                  <Text style={{ fontSize: 13 }}>{option.emoji}</Text>
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.xs,
-                      fontWeight: selected ? typography.weights.semibold : typography.weights.medium,
-                      color: selected ? colors.text : colors.textMuted,
-                    }}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* ── Error ── */}
-        {error && (
-          <View
-            style={{
-              marginHorizontal: HERO_PADDING_H,
-              marginBottom: spacing.lg,
-              backgroundColor: "rgba(255,71,87,0.12)",
-              borderRadius: radius.lg,
-              padding: spacing.lg,
-              borderWidth: 0.5,
-              borderColor: colors.error,
-            }}
-          >
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.error, textAlign: "center" }}>
-              {error}
-            </Text>
-          </View>
-        )}
-
-        {/* ── Essentials ── */}
-        {sectionCard("Essentials", (
-          <>
-          <AppInput
-            label="Title *"
-            value={title}
-            onChangeText={setTitle}
-            placeholder="e.g., Eid gathering, Istiraha night..."
-            error={showValidationErrors && !title.trim() ? "Title is required" : undefined}
-          />
+          <EventFormEssentialsHeading />
+          <View style={{ gap: spacing.xl }}>
+            <AppInput
+              label="Title *"
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g., Eid gathering, Istiraha night..."
+              error={showValidationErrors && !title.trim() ? "Title is required" : undefined}
+            />
 
           <View style={{ gap: spacing.sm }}>
-            <Text
-              style={{
-                fontSize: typography.sizes.sm,
-                fontWeight: typography.weights.medium,
-                color: colors.textMuted,
-              }}
-            >
+            <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
               Date & Time *
             </Text>
             <Pressable
               onPress={openDatePicker}
               style={({ pressed }) => ({
-                backgroundColor: pressed ? colors.surfaceLighter : colors.surfaceLight,
+                backgroundColor: colors.surfaceLight,
                 borderRadius: radius.md,
-                paddingVertical: spacing.lg,
+                paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,
-                minHeight: 52,
+                minHeight: 48,
                 justifyContent: "center",
-                borderWidth: 1,
+                borderWidth: 0.5,
                 borderColor: showValidationErrors && !selectedDate ? colors.error : colors.border,
+                opacity: pressed ? 0.9 : 1,
               })}
             >
               <Text style={{ fontSize: typography.sizes.md, color: selectedDate ? colors.text : colors.textDim }}>
@@ -904,8 +753,7 @@ export default function EditEventScreen() {
             )}
           </View>
 
-          {/* Location */}
-          <View style={{ gap: spacing.md }}>
+          <View style={{ gap: spacing.sm }}>
             <LocationCardWithPicker
               value={locationData}
               onChange={setLocationData}
@@ -920,443 +768,398 @@ export default function EditEventScreen() {
             multiline
             numberOfLines={4}
           />
+          </View>
+        </View>
 
-          {/* Visibility */}
-          <View style={{ gap: spacing.sm }}>
-            <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-              Visibility
-            </Text>
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              {(["private", "public"] as const).map((v) => (
+        {/* ── Access: visibility, approval, capacity ── */}
+        <EventFormSectionCard title="Access">
+          <>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Who can join
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                {(["private", "public"] as const).map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => setVisibility(v)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: visibility === v ? colors.primary : colors.surfaceLight,
+                      borderRadius: radius.md,
+                      paddingVertical: spacing.md,
+                      alignItems: "center",
+                      borderWidth: 0.5,
+                      borderColor: visibility === v ? colors.primary : colors.border,
+                    }}
+                  >
+                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: visibility === v ? colors.text : colors.textMuted }}>
+                      {v === "private" ? "Private" : "Public"}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                {visibility === "private"
+                  ? "Only people with the code can find this event."
+                  : "Visible in Discover. Share the code for quick access."}
+              </Text>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Guest approval
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 <Pressable
-                  key={v}
-                  onPress={() => setVisibility(v)}
+                  onPress={() => setApprovalRequired(false)}
                   style={{
                     flex: 1,
-                    backgroundColor: visibility === v ? colors.primary : colors.surfaceLight,
+                    backgroundColor: !approvalRequired ? colors.primary : colors.surfaceLight,
                     borderRadius: radius.md,
                     paddingVertical: spacing.md,
                     alignItems: "center",
                     borderWidth: 0.5,
-                    borderColor: visibility === v ? colors.primary : colors.border,
+                    borderColor: !approvalRequired ? colors.primary : colors.border,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      fontWeight: typography.weights.semibold,
-                      color: visibility === v ? colors.text : colors.textMuted,
-                    }}
-                  >
-                    {v === "private" ? "Private" : "Public"}
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !approvalRequired ? colors.text : colors.textMuted }}>
+                    Auto approve
                   </Text>
                 </Pressable>
-              ))}
+                <Pressable
+                  onPress={() => setApprovalRequired(true)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: approvalRequired ? colors.primary : colors.surfaceLight,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    alignItems: "center",
+                    borderWidth: 0.5,
+                    borderColor: approvalRequired ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: approvalRequired ? colors.text : colors.textMuted }}>
+                    Manual approval
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                {approvalRequired ? "You approve each request" : "Anyone can join instantly"}
+              </Text>
             </View>
-            <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-              {visibility === "private"
-                ? "Only people with the code can find this event."
-                : "Visible in Discover. Share the code for quick access."}
-            </Text>
-          </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Allow extra
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => setAllowPlusOne(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: !allowPlusOne ? colors.primary : colors.surfaceLight,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    alignItems: "center",
+                    borderWidth: 0.5,
+                    borderColor: !allowPlusOne ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !allowPlusOne ? colors.text : colors.textMuted }}>
+                    No
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setAllowPlusOne(true)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: allowPlusOne ? colors.primary : colors.surfaceLight,
+                    borderRadius: radius.md,
+                    paddingVertical: spacing.md,
+                    alignItems: "center",
+                    borderWidth: 0.5,
+                    borderColor: allowPlusOne ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: allowPlusOne ? colors.text : colors.textMuted }}>
+                    Yes
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                Guests can bring one additional person
+              </Text>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Capacity
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => setCapacityMode("unlimited")}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: capacityMode === "unlimited" ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: capacityMode === "unlimited" ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: capacityMode === "unlimited" ? colors.text : colors.textMuted }}>
+                    Unlimited
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setCapacitySheetTemp(capacityValue || "50");
+                    setShowCapacitySheet(true);
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: capacityMode === "set" ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: capacityMode === "set" ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: capacityMode === "set" ? colors.text : colors.textMuted }}>
+                    {capacityMode === "set" && capacityValue !== "" ? `${capacityValue} guests` : "Set limit"}
+                  </Text>
+                </Pressable>
+              </View>
+              {capacityMode === "set" && capacityValue !== "" && (
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                  Max {capacityValue} guests
+                </Text>
+              )}
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Dress code
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => { setDressCode(""); setDressCodeCustom(""); }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: dressCode === "" ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: dressCode === "" ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode === "" ? colors.text : colors.textMuted }}>
+                    None
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setDressCodeSheetTemp(dressCode || "");
+                    setDressCodeSheetCustom(dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom : "");
+                    setShowDressCodeSheet(true);
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: dressCode !== "" ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: dressCode !== "" ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode !== "" ? colors.text : colors.textMuted }} numberOfLines={1}>
+                    {dressCodeValue !== "" ? dressCodeValue : "Set dress code"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Guest type
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                {AUDIENCE_OPTIONS.map((opt) => {
+                  const selected = audience === opt;
+                  return (
+                    <Pressable
+                      key={opt}
+                      onPress={() => setAudience(selected ? "" : opt)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: spacing.md,
+                        borderRadius: radius.md,
+                        backgroundColor: selected ? colors.primary : colors.surfaceLight,
+                        borderWidth: 0.5,
+                        borderColor: selected ? colors.primary : colors.border,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
+                        {opt}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
           </>
-        ))}
+        </EventFormSectionCard>
 
-        {/* ── Options (always visible) ── */}
-        <View
-          style={{
-            marginHorizontal: spacing.lg,
-            backgroundColor: colors.surface,
-            borderRadius: radius.xl,
-            overflow: "hidden",
-            borderWidth: 0.5,
-            borderColor: colors.border,
-          }}
-        >
-          <View style={{ padding: spacing.xl }}>
-            <Text
-              style={{
-                fontSize: typography.sizes.xs,
-                fontWeight: typography.weights.semibold,
-                color: colors.textMuted,
-                letterSpacing: 0.8,
-                textTransform: "uppercase",
-                marginBottom: spacing.xl,
-              }}
-            >
-              Options
+        {/* ── Privacy: location visibility + guest visibility toggles ── */}
+        <EventFormSectionCard title="Privacy">
+          <>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                When do guests see the address?
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => { setLocationVisibility("now"); setRevealHoursBefore(null); }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: locationVisibility === "now" ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: locationVisibility === "now" ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: locationVisibility === "now" ? colors.text : colors.textMuted }}>
+                    Visible now
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setRevealSheetTemp(revealHoursBefore ?? 24);
+                    setRevealSheetCustom(revealHoursBefore != null && revealHoursBefore > 0 && ![1, 2, 5, 24].includes(revealHoursBefore) ? String(revealHoursBefore) : "");
+                    setShowRevealSheet(true);
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: locationVisibility === "reveal" ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: locationVisibility === "reveal" ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: locationVisibility === "reveal" ? colors.text : colors.textMuted }} numberOfLines={1}>
+                    {locationVisibility === "reveal" && revealHoursBefore != null && revealHoursBefore > 0
+                      ? `${revealHoursBefore}h before`
+                      : "Reveal later"}
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                {locationVisibility === "reveal" ? "Address is hidden until the reveal time" : "Address is visible to all guests"}
+              </Text>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Guest names
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => setHideGuestNames(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: !hideGuestNames ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: !hideGuestNames ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestNames ? colors.text : colors.textMuted }}>
+                    Show names
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setHideGuestNames(true)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: hideGuestNames ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: hideGuestNames ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestNames ? colors.text : colors.textMuted }}>
+                    Hide names
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                Guests can see attendee names
+              </Text>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Guest photos
+              </Text>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <Pressable
+                  onPress={() => setHideGuestAvatars(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: !hideGuestAvatars ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: !hideGuestAvatars ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestAvatars ? colors.text : colors.textMuted }}>
+                    Show photos
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setHideGuestAvatars(true)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.md,
+                    backgroundColor: hideGuestAvatars ? colors.primary : colors.surfaceLight,
+                    borderWidth: 0.5,
+                    borderColor: hideGuestAvatars ? colors.primary : colors.border,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestAvatars ? colors.text : colors.textMuted }}>
+                    Hide photos
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
+                Guests can see attendee profile photos
+              </Text>
+            </View>
+          </>
+        </EventFormSectionCard>
+
+        {/* ── Extras: optional lineup ── */}
+        <EventFormSectionCard title="Extras">
+          <>
+            <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
+              Optional - add a lineup
             </Text>
-            <View style={{ gap: spacing.xl }}>
-              {/* Guest approval */}
-              <View style={{ gap: spacing.sm }}>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Guest approval
+            <View style={{ gap: spacing.sm }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                  Lineup
                 </Text>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  <Pressable
-                    onPress={() => setApprovalRequired(false)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: !approvalRequired ? colors.primary : colors.surfaceLight,
-                      borderRadius: radius.md,
-                      paddingVertical: spacing.md,
-                      alignItems: "center",
-                      borderWidth: 0.5,
-                      borderColor: !approvalRequired ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !approvalRequired ? colors.text : colors.textMuted }}>
-                      Auto approve
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setApprovalRequired(true)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: approvalRequired ? colors.primary : colors.surfaceLight,
-                      borderRadius: radius.md,
-                      paddingVertical: spacing.md,
-                      alignItems: "center",
-                      borderWidth: 0.5,
-                      borderColor: approvalRequired ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: approvalRequired ? colors.text : colors.textMuted }}>
-                      Manual approval
-                    </Text>
-                  </Pressable>
-                </View>
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                  {approvalRequired ? "You approve each request" : "Anyone can join instantly"}
-                </Text>
-              </View>
-
-              {/* Allow extra */}
-              <View style={{ gap: spacing.sm }}>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Allow extra
-                </Text>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  <Pressable
-                    onPress={() => setAllowPlusOne(false)}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: !allowPlusOne ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: !allowPlusOne ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !allowPlusOne ? colors.text : colors.textMuted }}>
-                      No
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setAllowPlusOne(true)}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: allowPlusOne ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: allowPlusOne ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: allowPlusOne ? colors.text : colors.textMuted }}>
-                      Yes
-                    </Text>
-                  </Pressable>
-                </View>
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                  Guests can bring one additional person
-                </Text>
-              </View>
-
-              {/* Capacity */}
-              <View style={{ gap: spacing.xs }}>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Capacity
-                </Text>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  <Pressable
-                    onPress={() => setCapacityMode("unlimited")}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: capacityMode === "unlimited" ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: capacityMode === "unlimited" ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: capacityMode === "unlimited" ? colors.text : colors.textMuted }}>
-                      Unlimited
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setCapacitySheetTemp(capacityValue || "50");
-                      setShowCapacitySheet(true);
-                    }}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: capacityMode === "set" ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: capacityMode === "set" ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: capacityMode === "set" ? colors.text : colors.textMuted }}>
-                      {capacityMode === "set" && capacityValue !== "" ? `${capacityValue} guests` : "Set limit"}
-                    </Text>
-                  </Pressable>
-                </View>
-                {capacityMode === "set" && capacityValue !== "" && (
-                  <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                    Max {capacityValue} guests
-                  </Text>
-                )}
-              </View>
-
-              {/* Location visibility */}
-              <View style={{ gap: spacing.xs }}>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Location visibility
-                </Text>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  <Pressable
-                    onPress={() => { setLocationVisibility("now"); setRevealHoursBefore(null); }}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: locationVisibility === "now" ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: locationVisibility === "now" ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: locationVisibility === "now" ? colors.text : colors.textMuted }}>
-                      Visible now
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setRevealSheetTemp(revealHoursBefore ?? 24);
-                      setRevealSheetCustom(revealHoursBefore != null && revealHoursBefore > 0 && ![1, 2, 5, 24].includes(revealHoursBefore) ? String(revealHoursBefore) : "");
-                      setShowRevealSheet(true);
-                    }}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: locationVisibility === "reveal" ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: locationVisibility === "reveal" ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: locationVisibility === "reveal" ? colors.text : colors.textMuted }} numberOfLines={1}>
-                      {locationVisibility === "reveal" && revealHoursBefore != null && revealHoursBefore > 0
-                        ? `${revealHoursBefore}h before`
-                        : "Reveal later"}
-                    </Text>
-                  </Pressable>
-                </View>
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                  {locationVisibility === "reveal" ? "Address is hidden until the reveal time" : "Address is visible to all guests"}
-                </Text>
-              </View>
-
-              {/* Dress code */}
-              <View style={{ gap: spacing.xs }}>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Dress code
-                </Text>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  <Pressable
-                    onPress={() => { setDressCode(""); setDressCodeCustom(""); }}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: dressCode === "" ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: dressCode === "" ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode === "" ? colors.text : colors.textMuted }}>
-                      None
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setDressCodeSheetTemp(dressCode || "");
-                      setDressCodeSheetCustom(dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom : "");
-                      setShowDressCodeSheet(true);
-                    }}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: dressCode !== "" ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: dressCode !== "" ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode !== "" ? colors.text : colors.textMuted }} numberOfLines={1}>
-                      {dressCodeValue !== "" ? dressCodeValue : "Set dress code"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Audience */}
-              <View style={{ gap: spacing.xs }}>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Guest type
-                </Text>
-                <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                  {AUDIENCE_OPTIONS.map((opt) => {
-                    const selected = audience === opt;
-                    return (
-                      <Pressable
-                        key={opt}
-                        onPress={() => setAudience(selected ? "" : opt)}
-                        style={{
-                          flex: 1,
-                          paddingVertical: spacing.md,
-                          paddingHorizontal: spacing.md,
-                          borderRadius: radius.md,
-                          backgroundColor: selected ? colors.primary : colors.surfaceLight,
-                          borderWidth: 0.5,
-                          borderColor: selected ? colors.primary : colors.border,
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
-                          {opt}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Privacy */}
-              <View style={{ gap: spacing.sm }}>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Privacy
-                </Text>
-                <View style={{ gap: spacing.xs }}>
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                    Guest names
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                    <Pressable
-                      onPress={() => setHideGuestNames(false)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: spacing.md,
-                        borderRadius: radius.md,
-                        backgroundColor: !hideGuestNames ? colors.primary : colors.surfaceLight,
-                        borderWidth: 0.5,
-                        borderColor: !hideGuestNames ? colors.primary : colors.border,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestNames ? colors.text : colors.textMuted }}>
-                        Show names
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => setHideGuestNames(true)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: spacing.md,
-                        borderRadius: radius.md,
-                        backgroundColor: hideGuestNames ? colors.primary : colors.surfaceLight,
-                        borderWidth: 0.5,
-                        borderColor: hideGuestNames ? colors.primary : colors.border,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestNames ? colors.text : colors.textMuted }}>
-                        Hide names
-                      </Text>
-                    </Pressable>
-                  </View>
-                  <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                    Guests can see attendee names
-                  </Text>
-                </View>
-                <View style={{ gap: spacing.xs }}>
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                    Guest photos
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                    <Pressable
-                      onPress={() => setHideGuestAvatars(false)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: spacing.md,
-                        borderRadius: radius.md,
-                        backgroundColor: !hideGuestAvatars ? colors.primary : colors.surfaceLight,
-                        borderWidth: 0.5,
-                        borderColor: !hideGuestAvatars ? colors.primary : colors.border,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestAvatars ? colors.text : colors.textMuted }}>
-                        Show photos
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => setHideGuestAvatars(true)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: spacing.md,
-                        borderRadius: radius.md,
-                        backgroundColor: hideGuestAvatars ? colors.primary : colors.surfaceLight,
-                        borderWidth: 0.5,
-                        borderColor: hideGuestAvatars ? colors.primary : colors.border,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestAvatars ? colors.text : colors.textMuted }}>
-                        Hide photos
-                      </Text>
-                    </Pressable>
-                  </View>
-                  <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                    Guests can see attendee profile photos
-                  </Text>
-                </View>
-              </View>
-
-              {/* Lineup */}
-              <View style={{ gap: spacing.sm }}>
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
-                  Optional - add a lineup
-                </Text>
-                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                      Lineup
-                    </Text>
                     {!draftLineup && (
                       <Pressable
                         onPress={openDraft}
@@ -1424,59 +1227,61 @@ export default function EditEventScreen() {
                             label="Name *"
                             value={draftLineup.name}
                             onChangeText={(v) => updateDraftEntry("name", v)}
-                            placeholder="Lineup item name"
+                            placeholder="DJ / Performer name"
                           />
                         </View>
                       </View>
-                      <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-end" }}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.medium, color: colors.textMuted, marginBottom: spacing.xs }}>
-                            Start
-                          </Text>
-                          <Pressable
-                            onPress={() => openLineupTimePicker(DRAFT_INDEX, "startTime")}
-                            style={({ pressed }) => ({
-                              paddingVertical: spacing.sm,
-                              paddingHorizontal: spacing.md,
-                              borderRadius: radius.md,
-                              backgroundColor: colors.surface,
-                              borderWidth: 0.5,
-                              borderColor: colors.border,
-                              opacity: pressed ? 0.9 : 1,
-                            })}
-                          >
-                            <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.startTime ? colors.text : colors.textMuted }}>
-                              {draftLineup.startTime ? formatTime24ToDisplay(draftLineup.startTime) : "Start time"}
+                      <View style={{ gap: spacing.xs }}>
+                        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginBottom: 4 }}>
+                              Start
                             </Text>
-                          </Pressable>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.medium, color: colors.textMuted, marginBottom: spacing.xs }}>
-                            End
-                          </Text>
-                          <Pressable
-                            onPress={() => openLineupTimePicker(DRAFT_INDEX, "endTime")}
-                            style={({ pressed }) => ({
-                              paddingVertical: spacing.sm,
-                              paddingHorizontal: spacing.md,
-                              borderRadius: radius.md,
-                              backgroundColor: colors.surface,
-                              borderWidth: 0.5,
-                              borderColor: colors.border,
-                              opacity: pressed ? 0.9 : 1,
-                            })}
-                          >
-                            <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.endTime ? colors.text : colors.textMuted }}>
-                              {draftLineup.endTime ? formatTime24ToDisplay(draftLineup.endTime) : "End time"}
+                            <Pressable
+                              onPress={() => openLineupTimePicker(DRAFT_INDEX, "startTime")}
+                              style={({ pressed }) => ({
+                                backgroundColor: colors.surface,
+                                borderRadius: radius.md,
+                                paddingVertical: spacing.sm,
+                                paddingHorizontal: spacing.md,
+                                borderWidth: 0.5,
+                                borderColor: "rgba(255,255,255,0.08)",
+                                opacity: pressed ? 0.9 : 1,
+                              })}
+                            >
+                              <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.startTime ? colors.text : colors.textDim }}>
+                                {draftLineup.startTime ? formatTime24ToDisplay(draftLineup.startTime) : "Start time"}
+                              </Text>
+                            </Pressable>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginBottom: 4 }}>
+                              End
                             </Text>
-                          </Pressable>
+                            <Pressable
+                              onPress={() => openLineupTimePicker(DRAFT_INDEX, "endTime")}
+                              style={({ pressed }) => ({
+                                backgroundColor: colors.surface,
+                                borderRadius: radius.md,
+                                paddingVertical: spacing.sm,
+                                paddingHorizontal: spacing.md,
+                                borderWidth: 0.5,
+                                borderColor: "rgba(255,255,255,0.08)",
+                                opacity: pressed ? 0.9 : 1,
+                              })}
+                            >
+                              <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.endTime ? colors.text : colors.textDim }}>
+                                {draftLineup.endTime ? formatTime24ToDisplay(draftLineup.endTime) : "End time"}
+                              </Text>
+                            </Pressable>
+                          </View>
                         </View>
+                        {(draftLineup.endDayOffset ?? 0) === 1 && (
+                          <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginTop: 2 }}>
+                            Ends next day
+                          </Text>
+                        )}
                       </View>
-                      {(draftLineup.endDayOffset ?? 0) === 1 && (
-                        <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginTop: 2 }}>
-                          Ends next day
-                        </Text>
-                      )}
                       <AppInput
                         label="Note"
                         value={draftLineup.note ?? ""}
@@ -1550,7 +1355,7 @@ export default function EditEventScreen() {
                               label="Name *"
                               value={draftLineup.name}
                               onChangeText={(v) => updateDraftEntry("name", v)}
-                              placeholder="Lineup item name"
+                              placeholder="DJ / Performer name"
                             />
                             <View style={{ flexDirection: "row", gap: spacing.sm }}>
                               <View style={{ flex: 1 }}>
@@ -1569,7 +1374,7 @@ export default function EditEventScreen() {
                                     opacity: pressed ? 0.9 : 1,
                                   })}
                                 >
-                                  <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.startTime ? colors.text : colors.textMuted }}>
+                                  <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.startTime ? colors.text : colors.textDim }}>
                                     {draftLineup.startTime ? formatTime24ToDisplay(draftLineup.startTime) : "Start time"}
                                   </Text>
                                 </Pressable>
@@ -1590,7 +1395,7 @@ export default function EditEventScreen() {
                                     opacity: pressed ? 0.9 : 1,
                                   })}
                                 >
-                                  <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.endTime ? colors.text : colors.textMuted }}>
+                                  <Text style={{ fontSize: typography.sizes.sm, color: draftLineup.endTime ? colors.text : colors.textDim }}>
                                     {draftLineup.endTime ? formatTime24ToDisplay(draftLineup.endTime) : "End time"}
                                   </Text>
                                 </Pressable>
@@ -1667,12 +1472,11 @@ export default function EditEventScreen() {
                     </Modal>
                   )}
                 </View>
-            </View>
-          </View>
-        </View>
+              </>
+        </EventFormSectionCard>
 
         {/* ── Bring ── */}
-        {sectionCard("Bring", (
+        <EventFormSectionCard title="Bring">
           <>
             <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
               Add items guests can bring
@@ -1772,14 +1576,14 @@ export default function EditEventScreen() {
               </View>
             )}
           </>
-        ))}
+        </EventFormSectionCard>
 
         {/* ── Delete ── */}
         <Pressable
           onPress={handleDelete}
           disabled={deleting || saving}
           style={({ pressed }) => ({
-            marginHorizontal: spacing.lg,
+            marginHorizontal: HERO_PADDING_H,
             paddingVertical: spacing.lg,
             alignItems: "center",
             opacity: pressed || deleting ? 0.6 : 1,
@@ -1798,16 +1602,7 @@ export default function EditEventScreen() {
       </ScrollView>
 
       {/* ── Sticky CTA ── */}
-      <View
-        style={{
-          paddingHorizontal: HERO_PADDING_H,
-          paddingTop: spacing.lg,
-          paddingBottom: ctaBottom,
-          backgroundColor: colors.background,
-          borderTopWidth: 0.5,
-          borderTopColor: colors.border,
-        }}
-      >
+      <EventFormFooter bottomInset={ctaBottom}>
         {saving ? (
           <View
             style={{
@@ -1859,7 +1654,7 @@ export default function EditEventScreen() {
             </Text>
           </Pressable>
         )}
-      </View>
+      </EventFormFooter>
 
       {/* ── Date/time picker modal ── */}
       <Modal

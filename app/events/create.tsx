@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
   View,
@@ -18,7 +18,6 @@ import {
 } from "react-native";
 import { router, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEvents, type LineupEntry } from "@/src/state/eventsStore";
 import { onboardingStore } from "@/src/state/onboardingStore";
@@ -45,6 +44,17 @@ import {
   isEndAfterStart,
 } from "@/src/utils/lineupTime";
 import type { EndDayOffset } from "@/src/lib/supabase";
+import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
+import {
+  EVENT_FORM_HERO_PADDING_H,
+  eventFormScrollPaddingBottom,
+  EventFormSectionCard,
+  EventFormHero,
+  EventFormEventTypeChips,
+  EventFormErrorBanner,
+  EventFormFooter,
+  EventFormEssentialsHeading,
+} from "@/src/components/event-form";
 
 function serializeLocationForDirty(loc: LocationSelection): string {
   return JSON.stringify({
@@ -64,18 +74,7 @@ function bringTitleKey(title: string): string {
   return title.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-const EVENT_TYPE_OPTIONS: { value: EventType; label: string; emoji: string }[] = [
-  { value: "party", label: "Party", emoji: "🎉" },
-  { value: "birthday", label: "Birthday", emoji: "🎂" },
-  { value: "wedding", label: "Wedding", emoji: "💍" },
-  { value: "graduation", label: "Graduation", emoji: "🎓" },
-  { value: "majlis", label: "Majlis", emoji: "☕" },
-  { value: "istiraha", label: "Istiraha", emoji: "🏕️" },
-  { value: "ramadan", label: "Ramadan", emoji: "🌙" },
-];
-
-const HERO_PADDING_H = spacing.xxl;
-const HERO_RADIUS = 24;
+const HERO_PADDING_H = EVENT_FORM_HERO_PADDING_H;
 
 export default function CreateEventScreen() {
   const { createEvent, addContribution } = useEvents();
@@ -133,7 +132,6 @@ export default function CreateEventScreen() {
   const [bringInput, setBringInput] = useState("");
 
   const AUDIENCE_OPTIONS = ["Men only", "Mixed", "Women only"];
-  const BRING_SUGGESTIONS = ["Drinks", "Chips", "Chocolate", "Coffee", "Water"];
 
   const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Traditional", "All black", "Techno", "Y2K", "Custom"];
   const DRESS_CODE_CUSTOM = "Custom";
@@ -441,29 +439,6 @@ export default function CreateEventScreen() {
     setCoverUrl(null);
   };
 
-  const sectionCard = (title: string, children: ReactNode) => (
-    <View
-      style={{
-        marginHorizontal: HERO_PADDING_H,
-        marginBottom: spacing.xl,
-        backgroundColor: colors.surface,
-        borderRadius: radius.lg,
-        overflow: "hidden",
-        borderWidth: 0.5,
-        borderColor: colors.border,
-      }}
-    >
-      <View style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
-        <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: colors.textMuted, letterSpacing: 0.8, textTransform: "uppercase" }}>
-          {title}
-        </Text>
-      </View>
-      <View style={{ padding: spacing.lg, gap: spacing.lg }}>
-        {children}
-      </View>
-    </View>
-  );
-
   const openLineupTimePicker = (index: number, field: "startTime" | "endTime") => {
     const entry = index === DRAFT_INDEX ? draftLineup : lineup[index];
     const current = field === "startTime" ? entry?.startTime : entry?.endTime;
@@ -532,161 +507,28 @@ export default function CreateEventScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 100 + ctaBottom, gap: spacing.lg }}
+        contentContainerStyle={{ paddingBottom: eventFormScrollPaddingBottom(ctaBottom), gap: spacing.lg }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Hero poster: square cover (same as event detail) ── */}
-        <View
-          style={{
-            width: heroWidth,
-            alignSelf: "center",
-            aspectRatio: 1,
-            borderRadius: HERO_RADIUS,
-            overflow: "hidden",
-            marginTop: spacing.lg,
-            marginBottom: spacing.lg,
+        <EventFormHero
+          heroWidth={heroWidth}
+          coverSource={coverSource as any}
+          title={title}
+          selectedDate={selectedDate}
+          onPressChangeCover={() => {
+            setSelectedCoverType(eventType);
+            setShowCoverModal(true);
           }}
-        >
-          <ImageBackground
-            source={coverSource as any}
-            resizeMode="cover"
-            style={{ width: "100%", height: "100%" }}
-          >
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.75)"]}
-              style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "28%" }}
-            />
-            <View style={{ position: "absolute", top: spacing.md, right: spacing.md }}>
-              <Pressable
-                onPress={() => { setSelectedCoverType(eventType); setShowCoverModal(true); }}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.xs,
-                  paddingVertical: spacing.sm,
-                  paddingHorizontal: spacing.md,
-                  borderRadius: radius.full,
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  opacity: pressed ? 0.85 : 1,
-                })}
-              >
-                <Text style={{ fontSize: 14 }}>📷</Text>
-                <Text style={{ fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, color: "#fff" }}>
-                  Change cover
-                </Text>
-              </Pressable>
-            </View>
-            <View
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                paddingHorizontal: spacing.lg,
-                paddingBottom: spacing.xl,
-                gap: spacing.xs,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: typography.sizes.xxl,
-                  fontWeight: typography.weights.bold,
-                  color: "#fff",
-                  lineHeight: 32,
-                }}
-                numberOfLines={2}
-              >
-                {title || "Your event title"}
-              </Text>
-              {selectedDate ? (
-                <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.85)", fontWeight: typography.weights.medium }}>
-                  {formatEventDate(selectedDate.toISOString())}
-                </Text>
-              ) : (
-                <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.55)" }}>
-                  Date & time not set
-                </Text>
-              )}
-            </View>
-          </ImageBackground>
-        </View>
+        />
 
-        {/* ── Event type chips: editorial pills, below poster ── */}
-        <View style={{ paddingHorizontal: HERO_PADDING_H, marginBottom: spacing.xl }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: spacing.sm, paddingRight: HERO_PADDING_H }}
-          >
-            {EVENT_TYPE_OPTIONS.map((option) => {
-              const selected = eventType === option.value;
-              const label = getEventTypeLabel(option.value).label;
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => handleEventTypeChange(option.value)}
-                  style={({ pressed }) => ({
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.xs,
-                    paddingVertical: spacing.sm,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.full,
-                    backgroundColor: selected ? colors.primaryLight20 : pressed ? colors.surfaceLighter : colors.surfaceLight,
-                    borderWidth: 1,
-                    borderColor: selected ? colors.primary : colors.border,
-                  })}
-                >
-                  <Text style={{ fontSize: 13 }}>{option.emoji}</Text>
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.xs,
-                      fontWeight: selected ? typography.weights.semibold : typography.weights.medium,
-                      color: selected ? colors.text : colors.textMuted,
-                    }}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+        <EventFormEventTypeChips eventType={eventType} onSelect={handleEventTypeChange} />
 
-        {/* ── Error (server/network) ── */}
-        {error && (
-          <View
-            style={{
-              marginHorizontal: HERO_PADDING_H,
-              marginBottom: spacing.lg,
-              backgroundColor: "rgba(255,71,87,0.12)",
-              borderRadius: radius.lg,
-              padding: spacing.lg,
-              borderWidth: 0.5,
-              borderColor: colors.error,
-            }}
-          >
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.error, textAlign: "center" }}>
-              {error}
-            </Text>
-          </View>
-        )}
+        {error ? <EventFormErrorBanner message={error} /> : null}
 
         {/* ── Essentials: Title, Date/Time, Location ── */}
         <View style={{ paddingHorizontal: HERO_PADDING_H, marginBottom: spacing.xl }}>
-          <Text
-            style={{
-              fontSize: typography.sizes.xs,
-              fontWeight: typography.weights.semibold,
-              color: colors.textMuted,
-              letterSpacing: 0.8,
-              textTransform: "uppercase",
-              marginBottom: spacing.lg,
-            }}
-          >
-            Essentials
-          </Text>
+          <EventFormEssentialsHeading />
           <View style={{ gap: spacing.xl }}>
             <AppInput
               label="Title *"
@@ -742,7 +584,7 @@ export default function CreateEventScreen() {
         </View>
 
         {/* ── Access: visibility, approval, capacity ── */}
-        {sectionCard("Access", (
+        <EventFormSectionCard title="Access">
           <>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
@@ -979,10 +821,10 @@ export default function CreateEventScreen() {
               </View>
             </View>
           </>
-        ))}
+        </EventFormSectionCard>
 
         {/* ── Privacy: location visibility + guest visibility toggles ── */}
-        {sectionCard("Privacy", (
+        <EventFormSectionCard title="Privacy">
           <>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
@@ -1117,10 +959,10 @@ export default function CreateEventScreen() {
               </Text>
             </View>
           </>
-        ))}
+        </EventFormSectionCard>
 
         {/* ── Extras: optional lineup ── */}
-        {sectionCard("Extras", (
+        <EventFormSectionCard title="Extras">
           <>
             <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
               Optional - add a lineup
@@ -1443,10 +1285,10 @@ export default function CreateEventScreen() {
                   )}
                 </View>
               </>
-            ))}
+        </EventFormSectionCard>
 
         {/* ── Bring ── */}
-        {sectionCard("Bring", (
+        <EventFormSectionCard title="Bring">
           <>
             <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginBottom: spacing.xs }}>
               Add items guests can bring
@@ -1550,20 +1392,11 @@ export default function CreateEventScreen() {
               </View>
             )}
           </>
-        ))}
+        </EventFormSectionCard>
       </ScrollView>
 
       {/* ── Sticky CTA: Create event → ── */}
-      <View
-        style={{
-          paddingHorizontal: HERO_PADDING_H,
-          paddingTop: spacing.lg,
-          paddingBottom: ctaBottom,
-          backgroundColor: colors.background,
-          borderTopWidth: 0.5,
-          borderTopColor: colors.border,
-        }}
-      >
+      <EventFormFooter bottomInset={ctaBottom}>
         {creating ? (
           <View
             style={{
@@ -1614,7 +1447,7 @@ export default function CreateEventScreen() {
             </Text>
           </Pressable>
         )}
-      </View>
+      </EventFormFooter>
 
       {/* ── Date/time picker modal ── */}
       <Modal
