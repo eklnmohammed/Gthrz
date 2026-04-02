@@ -29,13 +29,24 @@ export function JoinWithCodeModal({ visible, onClose, onJoined }: JoinWithCodeMo
     if (inviteCode.length !== 6) return;
     setJoiningWithCode(true);
     setInviteError("");
-    const event = await fetchEventByInviteCode(inviteCode);
-    setJoiningWithCode(false);
-    if (event) {
-      onClose();
-      onJoined?.(event.id, event.eventType);
-    } else {
-      setInviteError("Invalid code");
+    try {
+      const result = await fetchEventByInviteCode(inviteCode);
+      if (result.kind === "ok") {
+        onClose();
+        onJoined?.(result.event.id, result.event.eventType);
+        return;
+      }
+      if (result.kind === "invalid_code") {
+        setInviteError("Invalid code");
+        return;
+      }
+      if (result.kind === "network") {
+        setInviteError("Check your connection and try again.");
+        return;
+      }
+      setInviteError("Something went wrong. Please try again.");
+    } finally {
+      setJoiningWithCode(false);
     }
   };
 

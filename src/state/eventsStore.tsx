@@ -46,6 +46,38 @@ export interface Event {
   allowPlusOne?: boolean;
 }
 
+/** Result of resolving an invite code — distinguishes wrong code vs connectivity vs server errors. */
+export type FetchEventByInviteCodeResult =
+  | { kind: "ok"; event: Event }
+  | { kind: "invalid_code" }
+  | { kind: "network" }
+  | { kind: "server" };
+
+/** True when the failure is likely connectivity (not invalid code or HTTP/API semantics). */
+function isNetworkLikeFetchError(err: unknown): boolean {
+  if (err instanceof TypeError) return true;
+  const msg =
+    err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string"
+      ? (err as { message: string }).message
+      : String(err ?? "");
+  const m = msg.toLowerCase();
+  return (
+    m.includes("network request failed") ||
+    m.includes("failed to fetch") ||
+    m.includes("load failed") ||
+    m.includes("internet connection appears to be offline") ||
+    m.includes("networkerror") ||
+    m.includes("could not connect") ||
+    m.includes("connection refused") ||
+    m.includes("timed out") ||
+    m.includes("timeout")
+  );
+}
+
+function classifyInviteCodeFetchFailure(err: unknown): "network" | "server" {
+  return isNetworkLikeFetchError(err) ? "network" : "server";
+}
+
 export interface RsvpByStatus {
   going: { user_phone: string; plus_one?: boolean }[];
   pending: { user_phone: string; plus_one?: boolean }[];
@@ -121,7 +153,7 @@ interface EventsContextType {
   getRsvpsForEvent: (eventId: string) => Promise<RsvpByStatus>;
   approveRsvp: (eventId: string, userPhone: string) => Promise<void>;
   declineRsvp: (eventId: string, userPhone: string) => Promise<void>;
-  fetchEventByInviteCode: (code: string) => Promise<Event | null>;
+  fetchEventByInviteCode: (code: string) => Promise<FetchEventByInviteCodeResult>;
   getContributions: (eventId: string) => Promise<EventContribution[]>;
   addContribution: (eventId: string, title: string) => Promise<void>;
   removeContribution: (id: string) => Promise<void>;
@@ -727,18 +759,26 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchEventByInviteCode = useCallback(
-    async (code: string): Promise<Event | null> => {
+    async (code: string): Promise<FetchEventByInviteCodeResult> => {
+      const normalized = code.toUpperCase().trim();
       try {
         const { data, error: fetchError } = await supabase
           .from("events")
           .select("*")
-          .eq("invite_code", code.toUpperCase())
-          .single();
+          .eq("invite_code", normalized)
+          .maybeSingle();
 
-        if (fetchError || !data) return null;
-        return convertSupabaseEvent(data);
-      } catch {
-        return null;
+        if (fetchError) {
+          const kind = classifyInviteCodeFetchFailure(fetchError);
+          return { kind };
+        }
+        if (!data) {
+          return { kind: "invalid_code" };
+        }
+        return { kind: "ok", event: convertSupabaseEvent(data) };
+      } catch (e) {
+        const kind = classifyInviteCodeFetchFailure(e);
+        return { kind };
       }
     },
     []
