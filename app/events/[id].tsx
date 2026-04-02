@@ -1227,9 +1227,10 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          {/* Bring — own section; only when there are items and user may interact (host or Going) */}
-          {contributions.length > 0 &&
-          (isHostMode || rsvpsByStatus.going.some((r) => r.user_phone === userPhone)) ? (
+          {/* Bring — host always sees section (can add first item when empty); guests only when there are items to claim */}
+          {(isHostMode ||
+            (contributions.length > 0 &&
+              rsvpsByStatus.going.some((r) => r.user_phone === userPhone))) ? (
             <View style={lowerSubsectionWrap}>
               <Text style={lowerSectionLabel}>Bring</Text>
               {contributions.map((c, idx) => {
