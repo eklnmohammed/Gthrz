@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState<string | null>(null);
   const [publicEvents, setPublicEvents] = useState<Event[]>([]);
   const { events, loading, fetchEvents, fetchPublicEvents } = useEvents();
-  const { favoriteIds } = useFavorites();
+  const { favoriteIds, reloadFavorites } = useFavorites();
 
   const createdEvents = phone
     ? events
@@ -80,6 +80,7 @@ export default function ProfileScreen() {
     await clearPreferencesForPhone(currentPhone);
     await authSignOut();
     await onboardingStore.reset();
+    await reloadFavorites();
     await onboardingStore.setOnboarded(false);
     router.replace("/onboarding");
   };
