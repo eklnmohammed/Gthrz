@@ -1,4 +1,6 @@
+import type { ImageSourcePropType } from "react-native";
 import type { EventType } from "../lib/supabase";
+import { isValidCoverUrl } from "./coverUrl";
 import { COVER_SOURCES } from "./covers.generated";
 
 const VALID_EVENT_TYPES: EventType[] = [
@@ -50,13 +52,22 @@ function pickDefaultKeyForFamily(family: CoverAssetFamily): string {
   return COVER_SOURCES["party_2"] !== undefined ? "party_2" : "party_1";
 }
 
+/** Before an event type is chosen, avoid party/rave imagery — prefer calm “gathering” stock, then safe fallbacks. */
+function pickNeutralDefaultKey(): string {
+  const candidates = ["gathering_1", "gathering_2", "dad", "ghabga_1"];
+  for (const k of candidates) {
+    if (COVER_SOURCES[k] !== undefined) return k;
+  }
+  return pickDefaultKeyForFamily("party");
+}
+
 /**
  * Default cover key when no custom cover is set.
- * When `eventType` is null/unknown, uses generic party family preset (not tied to a selected category).
+ * When `eventType` is null/unknown, uses a neutral preset (not party/nightlife-specific).
  */
 export function getDefaultCoverKey(eventType?: EventType | null): string {
   if (eventType == null || !VALID_EVENT_TYPES.includes(eventType)) {
-    return pickDefaultKeyForFamily("party");
+    return pickNeutralDefaultKey();
   }
   return pickDefaultKeyForFamily(coverAssetFamily(eventType));
 }
@@ -72,7 +83,8 @@ function safeEventType(eventType?: EventType | null): EventType | null {
  */
 export function getCoverOptions(eventType?: EventType | null): { key: string; label: string }[] {
   const st = safeEventType(eventType);
-  const family = st == null ? "party" : coverAssetFamily(st);
+  // No type yet: show gathering-family covers in the picker (neutral), not party thumbnails.
+  const family = st == null ? "gathering" : coverAssetFamily(st);
   const prefix = `${family}_`;
   const keys = Object.keys(COVER_SOURCES)
     .filter((k) => k.startsWith(prefix))
@@ -99,4 +111,27 @@ export function getCoverSource(
     COVER_SOURCES[coverKey] !== undefined;
   const key = hasValidKey ? coverKey : getDefaultCoverKey(eventType);
   return COVER_SOURCES[key] ?? COVER_SOURCES[getDefaultCoverKey(eventType)];
+}
+
+/**
+ * Cover image for the Create/Edit event hero, or `null` for the branded abstract default
+ * (no event type yet, no custom URL, no explicitly chosen preset key).
+ */
+export function getEventFormHeroCoverSource(
+  coverUrl: string | null | undefined,
+  coverKey: string | null | undefined,
+  eventType: EventType | null | undefined
+): ImageSourcePropType | null {
+  if (isValidCoverUrl(coverUrl)) {
+    return { uri: coverUrl!.trim() };
+  }
+  const keyTrim = (coverKey ?? "").trim();
+  const st = safeEventType(eventType);
+  if (st != null) {
+    return getCoverSource(keyTrim || undefined, st);
+  }
+  if (keyTrim !== "" && COVER_SOURCES[keyTrim] !== undefined) {
+    return COVER_SOURCES[keyTrim];
+  }
+  return null;
 }

@@ -35,7 +35,7 @@ import { spacing } from "@/src/theme/spacing";
 import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
 import { formatEventDate } from "@/src/utils/formatEventDate";
-import { getCoverOptions, getCoverSource } from "@/src/utils/covers";
+import { getCoverOptions, getCoverSource, getEventFormHeroCoverSource } from "@/src/utils/covers";
 import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
 import { bringTitleKey } from "@/src/utils/bringTitleKey";
 import { getEntryFeePreviewLine } from "@/src/utils/entryFeePreview";
@@ -780,9 +780,7 @@ export default function EditEventScreen() {
 
   const ctaBottom = Math.max(spacing.lg, insets.bottom);
   const entryFeePreviewLine = getEntryFeePreviewLine(priceAmount, priceCurrency);
-  const coverSource = isValidCoverUrl(coverUrl)
-    ? { uri: coverUrl! }
-    : getCoverSource(coverKey || undefined, eventType);
+  const coverSource = getEventFormHeroCoverSource(coverUrl, coverKey, eventType);
 
   if (loading) {
     return (
@@ -817,7 +815,7 @@ export default function EditEventScreen() {
       >
         <EventFormHero
           heroWidth={heroWidth}
-          coverSource={coverSource as any}
+          coverSource={coverSource}
           title={title}
           selectedDate={selectedDate}
           onPressChangeCover={() => {

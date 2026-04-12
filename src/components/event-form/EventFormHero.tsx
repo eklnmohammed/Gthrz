@@ -1,4 +1,11 @@
-import { View, Text, Pressable, ImageBackground, type ImageSourcePropType } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  ImageBackground,
+  StyleSheet,
+  type ImageSourcePropType,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { formatEventDate } from "@/src/utils/formatEventDate";
 import { colors } from "@/src/theme/colors";
@@ -9,7 +16,8 @@ import { EVENT_FORM_HERO_RADIUS } from "./eventFormTokens";
 
 export type EventFormHeroProps = {
   heroWidth: number;
-  coverSource: ImageSourcePropType;
+  /** `null`: branded abstract gradient (no preset image). */
+  coverSource: ImageSourcePropType | null;
   title: string;
   selectedDate: Date | null;
   onPressChangeCover: () => void;
@@ -37,7 +45,33 @@ export function EventFormHero({
         marginBottom: spacing.lg,
       }}
     >
-      <ImageBackground source={coverSource as any} resizeMode="cover" style={{ width: "100%", height: "100%" }}>
+      <View style={{ width: "100%", height: "100%" }}>
+        {coverSource == null ? (
+          <>
+            <LinearGradient
+              colors={[...colors.heroGradient]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <LinearGradient
+              colors={["rgba(123, 104, 238, 0.38)", "rgba(123, 104, 238, 0.06)", "transparent"]}
+              start={{ x: 1, y: 0 }}
+              end={{ x: 0.15, y: 0.55 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <LinearGradient
+              colors={["transparent", "rgba(0,0,0,0.45)"]}
+              start={{ x: 0.5, y: 0.5 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </>
+        ) : (
+          <ImageBackground source={coverSource} resizeMode="cover" style={StyleSheet.absoluteFillObject}>
+            <View style={{ flex: 1 }} />
+          </ImageBackground>
+        )}
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.75)"]}
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "28%" }}
@@ -98,7 +132,7 @@ export function EventFormHero({
             <Text style={{ fontSize: typography.sizes.sm, color: "rgba(255,255,255,0.55)" }}>Date & time not set</Text>
           )}
         </View>
-      </ImageBackground>
+      </View>
     </View>
   );
 }

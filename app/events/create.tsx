@@ -30,7 +30,7 @@ import { spacing } from "@/src/theme/spacing";
 import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
 import { formatEventDate } from "@/src/utils/formatEventDate";
-import { getCoverOptions, getCoverSource, getDefaultCoverKey } from "@/src/utils/covers";
+import { getCoverOptions, getCoverSource, getDefaultCoverKey, getEventFormHeroCoverSource } from "@/src/utils/covers";
 import { LocationCardWithPicker, type LocationSelection } from "@/src/components/LocationCardWithPicker";
 import { isValidCoverUrl } from "@/src/utils/coverUrl";
 import { uploadEventCover } from "@/src/utils/uploadEventCover";
@@ -93,7 +93,7 @@ export default function CreateEventScreen() {
   const [hideGuestAvatars, setHideGuestAvatars] = useState(false);
   const [eventType, setEventType] = useState<EventType | null>(null);
   const [selectedCoverType, setSelectedCoverType] = useState<EventType | null>(null);
-  const [coverKey, setCoverKey] = useState<string>(() => getDefaultCoverKey(null));
+  const [coverKey, setCoverKey] = useState<string>("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [showCoverModal, setShowCoverModal] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -240,7 +240,7 @@ export default function CreateEventScreen() {
     approvalRequired: false,
     eventType: null as EventType | null,
     selectedCoverType: null as EventType | null,
-    coverKey: getDefaultCoverKey(null),
+    coverKey: "",
     coverUrl: null as string | null,
     locationVisibility: "now" as const,
     revealHoursBefore: null as number | null,
@@ -431,13 +431,15 @@ export default function CreateEventScreen() {
 
   const ctaBottom = Math.max(spacing.lg, insets.bottom);
   const entryFeePreviewLine = getEntryFeePreviewLine(priceAmount, priceCurrency);
-  const coverSource = isValidCoverUrl(coverUrl)
-    ? { uri: coverUrl! }
-    : getCoverSource(coverKey || undefined, eventType);
+  const coverSource = getEventFormHeroCoverSource(coverUrl, coverKey, eventType);
 
   const handleEventTypeChange = (type: EventType | null) => {
     setEventType(type);
-    setCoverKey(getDefaultCoverKey(type));
+    if (type == null) {
+      setCoverKey("");
+    } else {
+      setCoverKey(getDefaultCoverKey(type));
+    }
     setCoverUrl(null);
   };
 
@@ -515,7 +517,7 @@ export default function CreateEventScreen() {
       >
         <EventFormHero
           heroWidth={heroWidth}
-          coverSource={coverSource as any}
+          coverSource={coverSource}
           title={title}
           selectedDate={selectedDate}
           onPressChangeCover={() => {
