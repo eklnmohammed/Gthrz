@@ -60,6 +60,7 @@ export default function GoingScreen() {
       || (e.attendingStatus === "cant" && e.declinedByHost);
     return isGuest && rsvp;
   });
+  // Same idea as Hosting: list includes cancelled (still visible); count uses active-only for "upcoming".
   const goingPendingFiltered = (() => {
     if (sortBy === "cancelled") return goingPending.filter((e) => e.status === "cancelled");
     if (sortBy === "going") return goingPending.filter((e) => e.attendingStatus === "going");
@@ -81,9 +82,10 @@ export default function GoingScreen() {
     return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
   });
 
+  const upcomingActiveCount = sorted.filter((e) => e.status !== "cancelled").length;
   const countLabel =
     segmentVal === "upcoming"
-      ? `${sorted.length} upcoming event${sorted.length === 1 ? "" : "s"}`
+      ? `${upcomingActiveCount} upcoming event${upcomingActiveCount === 1 ? "" : "s"}`
       : `${sorted.length} event${sorted.length === 1 ? "" : "s"}`;
 
   const handleEventPress = (event: Event) => {
