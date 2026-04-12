@@ -559,6 +559,14 @@ export default function EventDetailScreen() {
   const eventId = params.id ?? "";
   const favorited = eventId ? isFavorited(eventId) : false;
 
+  /** One floating top bar: same horizontal inset as poster, safe-area top, fixed icon size. */
+  const TOP_ACTION_BTN_SIZE = 44;
+  const TOP_ACTION_INSET_H = spacing.xxl;
+  const TOP_ACTION_GAP_BELOW_SAFE = spacing.sm;
+  const topActionPaddingTop = insets.top + TOP_ACTION_GAP_BELOW_SAFE;
+  const eventDetailScrollTopPadding =
+    topActionPaddingTop + TOP_ACTION_BTN_SIZE + spacing.md;
+
   /** Lineup / Bring / +1 — shared section rhythm (labels, rows, dividers) */
   const lowerSectionLabel = {
     fontSize: typography.sizes.sm,
@@ -650,39 +658,70 @@ export default function EventDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Transparent header so hero bleeds behind it */}
       <Stack.Screen
         options={{
-          headerTransparent: true,
-          headerStyle: {
-            backgroundColor: "transparent",
-            paddingTop: (insets.top || 0) + spacing.xl + 10,
-          } as Record<string, unknown>,
-          headerShadowVisible: false,
-          headerLeft: () => (
-            <HeaderBackTextButton label="Back" onPress={() => router.back()} />
-          ),
-          headerRight: () => (
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Pressable
-                onPress={handleShare}
-                hitSlop={10}
-                style={({ pressed }) => ({
-                  backgroundColor: colors.surfaceLight,
-                  borderRadius: radius.full,
-                  paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.sm,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Ionicons name="share-outline" size={22} color="#fff" />
-              </Pressable>
-            </View>
-          ),
+          headerShown: false,
         }}
       />
+
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          elevation: 100,
+          paddingTop: topActionPaddingTop,
+          paddingHorizontal: TOP_ACTION_INSET_H,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={{ flexShrink: 0 }}>
+          <HeaderBackTextButton label="Back" onPress={() => router.back()} />
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flexShrink: 0 }}>
+          <Pressable
+            onPress={handleShare}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: TOP_ACTION_BTN_SIZE,
+              height: TOP_ACTION_BTN_SIZE,
+              borderRadius: radius.full,
+              backgroundColor: colors.surfaceLight,
+              justifyContent: "center",
+              alignItems: "center",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Ionicons name="share-outline" size={22} color="#fff" />
+          </Pressable>
+          {!isHostMode && eventId ? (
+            <Pressable
+              onPress={() => toggleFavorite(eventId)}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                width: TOP_ACTION_BTN_SIZE,
+                height: TOP_ACTION_BTN_SIZE,
+                borderRadius: radius.full,
+                backgroundColor: colors.surfaceLight,
+                justifyContent: "center",
+                alignItems: "center",
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Ionicons
+                name={favorited ? "heart" : "heart-outline"}
+                size={22}
+                color={favorited ? colors.coral : "#fff"}
+              />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
 
       {bringToast && (
         <View
@@ -738,7 +777,7 @@ export default function EventDetailScreen() {
         keyboardDismissMode="interactive"
       >
         {/* ── POSTER CARD (Open-style) ───────────────────────────────────── */}
-        <View style={{ paddingHorizontal: spacing.xxl, paddingTop: (insets.top || 0) + spacing.xl + 10 }}>
+        <View style={{ paddingHorizontal: TOP_ACTION_INSET_H, paddingTop: eventDetailScrollTopPadding }}>
           <View
             style={{
               position: "relative",
@@ -777,42 +816,6 @@ export default function EventDetailScreen() {
                 {posterScrim}
               </LinearGradient>
             )}
-
-            {!isHostMode && eventId ? (
-              <BlurView
-                intensity={80}
-                tint="dark"
-                style={{
-                  position: "absolute",
-                  top: spacing.md,
-                  right: spacing.md,
-                  borderRadius: radius.full,
-                  overflow: "hidden",
-                  backgroundColor: "rgba(0,0,0,0.22)",
-                  zIndex: 20,
-                  elevation: 20,
-                }}
-              >
-                <Pressable
-                  onPress={() => toggleFavorite(eventId)}
-                  hitSlop={10}
-                  style={({ pressed }) => ({
-                    width: 44,
-                    height: 44,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: pressed ? 0.85 : 1,
-                    backgroundColor: "transparent",
-                  })}
-                >
-                  <Ionicons
-                    name={favorited ? "heart" : "heart-outline"}
-                    size={22}
-                    color={favorited ? colors.coral : "rgba(255,255,255,0.9)"}
-                  />
-                </Pressable>
-              </BlurView>
-            ) : null}
           </View>
         </View>
 

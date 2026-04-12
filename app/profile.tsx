@@ -88,7 +88,7 @@ export default function ProfileScreen() {
   const handleResetRecommendations = async () => {
     const currentPhone = phone ?? (await onboardingStore.getPhone()) ?? "";
     await clearPreferences(currentPhone);
-    Alert.alert("Done", "Recommendations reset.");
+    Alert.alert("Done", "Event preferences reset.");
   };
 
   return (
@@ -350,7 +350,7 @@ export default function ProfileScreen() {
               })}
             >
               <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
-                Reset recommendations
+                Reset event preferences
               </Text>
               <Text style={{ fontSize: typography.sizes.lg, color: colors.textDim }}>›</Text>
             </Pressable>
