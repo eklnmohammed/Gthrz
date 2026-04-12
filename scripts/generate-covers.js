@@ -1,9 +1,9 @@
 /**
  * Scans assets/covers/ and generates src/utils/covers.generated.ts
  * so any new image (e.g. graduation_2.png, party_4.png) shows in the cover picker.
- * - Runs automatically before "npm start" (prestart).
- * - After adding images while dev is running: run "npm run generate-covers" or
- *   "node scripts/watch-covers.js" in another terminal to auto-regenerate on change.
+ * - Runs automatically before "npm start" (prestart). Plain "npx expo start" does NOT run prestart,
+ *   so use "npm run start:tunnel" / "npm run ios" etc., or run "npm run generate-covers" after add/remove.
+ * - While dev is running: "npm run watch-covers" or "npm run generate-covers" after add/remove.
  */
 const fs = require("fs");
 const path = require("path");
@@ -21,7 +21,9 @@ if (!fs.existsSync(COVERS_DIR)) {
   process.exit(0);
 }
 
-const files = fs.readdirSync(COVERS_DIR).filter((f) => IMAGE_EXT.test(f));
+const files = fs
+  .readdirSync(COVERS_DIR)
+  .filter((f) => IMAGE_EXT.test(f) && fs.existsSync(path.join(COVERS_DIR, f)));
 const entries = files
   .map((f) => {
     const key = path.basename(f, path.extname(f));

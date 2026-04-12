@@ -20,9 +20,13 @@ import { router, useLocalSearchParams, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { onboardingStore } from "@/src/state/onboardingStore";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useEvents, type LineupEntry } from "@/src/state/eventsStore";
-import { supabase } from "@/src/lib/supabase";
-import { EventType } from "@/src/lib/supabase";
+import {
+  useEvents,
+  type LineupEntry,
+  getAutoApprovalPendingCapacityBlockReason,
+  resolveCapacityLimitForAutoApproval,
+} from "@/src/state/eventsStore";
+import { supabase, EventType, normalizeEventType } from "@/src/lib/supabase";
 import { HeaderBackTextButton } from "@/src/components/HeaderBackTextButton";
 import { AppButton } from "@/src/components/AppButton";
 import { AppInput } from "@/src/components/AppInput";
@@ -107,7 +111,17 @@ const HERO_PADDING_H = EVENT_FORM_HERO_PADDING_H;
 
 export default function EditEventScreen() {
   const params = useLocalSearchParams<{ id: string }>();
-  const { updateEvent, deleteEvent, fetchEvents, getContributions, addContribution, removeContribution } = useEvents();
+  const {
+    updateEvent,
+    deleteEvent,
+    fetchEvents,
+    getContributions,
+    addContribution,
+    removeContribution,
+    getRsvpsForEvent,
+    approveRsvp,
+    finalizeManualToAutoApproval,
+  } = useEvents();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
 
@@ -133,8 +147,8 @@ export default function EditEventScreen() {
   const [approvalRequired, setApprovalRequired] = useState(false);
   const [hideGuestNames, setHideGuestNames] = useState(false);
   const [hideGuestAvatars, setHideGuestAvatars] = useState(false);
-  const [eventType, setEventType] = useState<EventType>("party");
-  const [selectedCoverType, setSelectedCoverType] = useState<EventType>("party");
+  const [eventType, setEventType] = useState<EventType | null>(null);
+  const [selectedCoverType, setSelectedCoverType] = useState<EventType | null>(null);
   const [coverKey, setCoverKey] = useState<string>("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [showCoverModal, setShowCoverModal] = useState(false);
@@ -265,6 +279,19 @@ export default function EditEventScreen() {
 
   const effectiveCapacity = capacityMode === "unlimited" ? "" : capacityValue;
 
+  /** Positive integer or null (unlimited / invalid). */
+  function parseFormCapacityLimitEdit(
+    mode: "unlimited" | "set",
+    effectiveCap: string,
+  ): number | null {
+    if (mode === "unlimited") return null;
+    const t = effectiveCap.trim();
+    if (t === "") return null;
+    const n = parseInt(t, 10);
+    if (Number.isNaN(n) || n <= 0) return null;
+    return n;
+  }
+
   type InitialSnapshot = {
     title: string;
     dateTime: number | null;
@@ -274,8 +301,8 @@ export default function EditEventScreen() {
     capacityValue: string;
     visibility: "private" | "public";
     approvalRequired: boolean;
-    eventType: EventType;
-    selectedCoverType: EventType;
+    eventType: EventType | null;
+    selectedCoverType: EventType | null;
     coverKey: string;
     coverUrl: string | null;
     lineup: string;
@@ -400,8 +427,9 @@ export default function EditEventScreen() {
           setApprovalRequired(data.approval_required ?? false);
           setHideGuestNames(data.hide_guest_names ?? false);
           setHideGuestAvatars(data.hide_guest_avatars ?? false);
-          setEventType(data.event_type || "party");
-          setSelectedCoverType(data.event_type || "party");
+          const loadedType = normalizeEventType(data.event_type);
+          setEventType(loadedType);
+          setSelectedCoverType(loadedType);
           setCoverKey(data.cover_key ?? "");
           setCoverUrl(isValidCoverUrl(data.cover_url) ? data.cover_url : null);
           setLocationVisibility(
@@ -444,8 +472,8 @@ export default function EditEventScreen() {
             capacityValue: capStr,
             visibility: data.visibility || "private",
             approvalRequired: data.approval_required ?? false,
-            eventType: data.event_type || "party",
-            selectedCoverType: data.event_type || "party",
+            eventType: normalizeEventType(data.event_type),
+            selectedCoverType: normalizeEventType(data.event_type),
             coverKey: data.cover_key ?? "",
             coverUrl: sanitizedCoverUrl,
             lineup: JSON.stringify(loadedLineup),
@@ -531,6 +559,62 @@ export default function EditEventScreen() {
     setLineupTimePicker(null);
   };
 
+  const handleSelectAutoApprove = async () => {
+    if (!approvalRequired) return;
+    if (!params.id) return;
+    try {
+      const formCap = parseFormCapacityLimitEdit(capacityMode, effectiveCapacity);
+      const rsvps = await getRsvpsForEvent(params.id);
+      const { data: evRow, error: capErr } = await supabase
+        .from("events")
+        .select("capacity")
+        .eq("id", params.id)
+        .single();
+      if (capErr) throw capErr;
+      const capRaw = evRow?.capacity != null ? Number(evRow.capacity) : NaN;
+      const dbCap = !Number.isNaN(capRaw) && capRaw > 0 ? capRaw : null;
+      const cap = resolveCapacityLimitForAutoApproval(formCap, dbCap);
+      const block = getAutoApprovalPendingCapacityBlockReason(cap, rsvps);
+      if (block) {
+        Alert.alert("Auto approval", block);
+        return;
+      }
+      if (rsvps.pending.length === 0) {
+        setApprovalRequired(false);
+        return;
+      }
+      Alert.alert(
+        "Switch to auto approval?",
+        `You have ${rsvps.pending.length} pending ${rsvps.pending.length === 1 ? "request" : "requests"}. They will be accepted as Going and the event will switch to auto approval.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Confirm",
+            onPress: () => {
+              void (async () => {
+                try {
+                  await finalizeManualToAutoApproval(params.id!, formCap);
+                  setApprovalRequired(false);
+                  if (initialValuesRef.current) {
+                    initialValuesRef.current = {
+                      ...initialValuesRef.current,
+                      approvalRequired: false,
+                    };
+                  }
+                  await fetchEvents();
+                } catch (e) {
+                  Alert.alert("Error", e instanceof Error ? e.message : "Something went wrong");
+                }
+              })();
+            },
+          },
+        ],
+      );
+    } catch (e) {
+      Alert.alert("Error", e instanceof Error ? e.message : "Something went wrong");
+    }
+  };
+
   const handleSave = async () => {
     if (!isValid || !selectedDate) {
       setShowValidationErrors(true);
@@ -541,6 +625,32 @@ export default function EditEventScreen() {
     setError(null);
     try {
       await onboardingStore.getPhone();
+
+      const initialManual = initialValuesRef.current?.approvalRequired === true;
+      const nowAuto = !approvalRequired;
+      if (initialManual && nowAuto) {
+        const formCap = parseFormCapacityLimitEdit(capacityMode, effectiveCapacity);
+        const { data: evRow, error: capErr } = await supabase
+          .from("events")
+          .select("capacity")
+          .eq("id", params.id)
+          .single();
+        if (capErr) throw capErr;
+        const capRaw = evRow?.capacity != null ? Number(evRow.capacity) : NaN;
+        const dbCap = !Number.isNaN(capRaw) && capRaw > 0 ? capRaw : null;
+        const cap = resolveCapacityLimitForAutoApproval(formCap, dbCap);
+        const rsvps = await getRsvpsForEvent(params.id);
+        const block = getAutoApprovalPendingCapacityBlockReason(cap, rsvps);
+        if (block) {
+          Alert.alert("Cannot save", block);
+          setSaving(false);
+          return;
+        }
+        for (const p of rsvps.pending) {
+          await approveRsvp(params.id, p.user_phone);
+        }
+      }
+
       await updateEvent(params.id, {
         title: title.trim(),
         dateTime: selectedDate.toISOString(),
@@ -552,7 +662,7 @@ export default function EditEventScreen() {
         capacity: effectiveCapacity.trim() || undefined,
         visibility,
         approvalRequired,
-        eventType,
+        eventType: eventType ?? undefined,
         coverKey: coverKey || undefined,
         coverUrl: isValidCoverUrl(coverUrl) ? coverUrl ?? undefined : undefined,
         lineup: lineup.length > 0
@@ -819,7 +929,11 @@ export default function EditEventScreen() {
               </Text>
               <View style={{ flexDirection: "row", gap: spacing.sm }}>
                 <Pressable
-                  onPress={() => setApprovalRequired(false)}
+                  onPress={() => {
+                    if (approvalRequired) {
+                      void handleSelectAutoApprove();
+                    }
+                  }}
                   style={{
                     flex: 1,
                     backgroundColor: !approvalRequired ? colors.primary : colors.surfaceLight,
@@ -2235,7 +2349,7 @@ export default function EditEventScreen() {
                       fontWeight: selectedCoverType === option.value ? typography.weights.semibold : typography.weights.medium,
                     }}
                   >
-                    {option.emoji} {option.label}
+                    {option.label}
                   </Text>
                 </Pressable>
               ))}
@@ -2272,7 +2386,11 @@ export default function EditEventScreen() {
               {getCoverOptions(selectedCoverType).map((opt) => (
                 <Pressable
                   key={opt.key}
-                  onPress={() => { setCoverKey(opt.key); setEventType(selectedCoverType); setCoverUrl(null); setShowCoverModal(false); }}
+                  onPress={() => {
+                    setCoverKey(opt.key);
+                    setCoverUrl(null);
+                    setShowCoverModal(false);
+                  }}
                   style={{
                     width: "47%",
                     alignItems: "center",

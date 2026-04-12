@@ -22,16 +22,6 @@ const CARD_WIDTH = 260;
 const CTA_HEIGHT = 56;
 const SECTION_GAP = spacing.xxl; // 24px
 
-const VIBE_CHIPS = [
-  { type: "party", emoji: "🎉", label: "Party" },
-  { type: "birthday", emoji: "🎂", label: "Birthday" },
-  { type: "wedding", emoji: "💍", label: "Wedding" },
-  { type: "graduation", emoji: "🎓", label: "Graduation" },
-  { type: "majlis", emoji: "☕", label: "Majlis" },
-  { type: "istiraha", emoji: "🏕️", label: "Istiraha" },
-  { type: "ramadan", emoji: "🌙", label: "Ramadan" },
-] as const;
-
 export default function Home() {
   const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState<string>("");
@@ -136,19 +126,7 @@ export default function Home() {
     router.push("/discover");
   };
 
-  const recommendedSeeAllType = (() => {
-    if (recommendedEvents.length === 0) return null;
-    const firstType = recommendedEvents[0]?.eventType;
-    if (!firstType) return null;
-    const isSingleType = recommendedEvents.every((event) => event.eventType === firstType);
-    return isSingleType ? firstType : null;
-  })();
-
   const goToRecommendedDiscover = () => {
-    if (recommendedSeeAllType) {
-      router.push({ pathname: "/discover", params: { type: recommendedSeeAllType } });
-      return;
-    }
     router.push("/discover");
   };
 
@@ -267,45 +245,7 @@ export default function Home() {
           </Text>
         </Pressable>
 
-        {/* 4. Browse by vibe (above Featured) */}
-        <View style={{ marginBottom: SECTION_GAP }}>
-          <HomeSectionHeader title="Browse by vibe" />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: spacing.sm }}
-          >
-            {VIBE_CHIPS.map((vibe) => (
-              <Pressable
-                key={vibe.type}
-                onPress={() => router.push({ pathname: "/discover", params: { type: vibe.type } })}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.xs,
-                  backgroundColor: colors.surfaceLight,
-                  borderRadius: radius.full,
-                  paddingHorizontal: spacing.lg,
-                  paddingVertical: spacing.sm,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Text style={{ fontSize: typography.sizes.md }}>{vibe.emoji}</Text>
-                <Text
-                  style={{
-                    fontSize: typography.sizes.sm,
-                    fontWeight: typography.weights.medium,
-                    color: colors.text,
-                  }}
-                >
-                  {vibe.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* 5. New users: Featured this week. Returning users: Up Next + (Recommended OR Featured) only */}
+        {/* 4. New users: Featured this week. Returning users: Up Next + (Recommended OR Featured) only */}
         {hasNoEvents ? (
           featuredEvents.length > 0 && (
             <View style={{ marginBottom: SECTION_GAP }}>

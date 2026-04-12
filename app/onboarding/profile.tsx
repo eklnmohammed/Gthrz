@@ -2,7 +2,6 @@ import { useState } from "react";
 import { View, Text, Pressable, Image, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { Screen } from "../../src/components/Screen";
@@ -87,12 +86,6 @@ export default function ProfileScreen() {
     router.replace("/");
   };
 
-  const softPurpleGlow = [
-    "rgba(123, 104, 238, 0.2)",
-    "rgba(123, 104, 238, 0.06)",
-    "transparent",
-  ] as const;
-
   return (
     <Screen topPadding={insets.top + spacing.xxxxl + spacing.md}>
       <KeyboardAvoidingView
@@ -108,27 +101,11 @@ export default function ProfileScreen() {
         }}
       >
       <View style={{ flex: 1, position: "relative", minHeight: 480 }}>
-        {/* Soft purple top glow - behind content, no touch */}
-        <LinearGradient
-          colors={softPurpleGlow}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 180,
-            zIndex: 0,
-          }}
-        />
         <View
           style={{
             flex: 1,
             paddingTop: spacing.sm,
             paddingBottom: spacing.xl,
-            zIndex: 1,
           }}
         >
           {/* Header */}

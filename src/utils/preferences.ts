@@ -26,7 +26,13 @@ const MAX_SIGNAL_AGE_WEEKS = 12; // prune signals older than this
 export const PREFERENCE_THRESHOLD = 3;
 
 const VALID_TYPES = new Set<EventType>([
-  "party", "birthday", "wedding", "graduation", "majlis", "istiraha", "ramadan",
+  "party",
+  "rave",
+  "gathering",
+  "birthday",
+  "dinner",
+  "wedding",
+  "graduation",
 ]);
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -108,6 +114,7 @@ export async function getPreferenceScores(
   const now = Date.now();
   const scores: Partial<Record<EventType, number>> = {};
   for (const signal of store.signals) {
+    if (!VALID_TYPES.has(signal.eventType)) continue;
     const weeksAgo = (now - signal.timestamp) / MS_PER_WEEK;
     const decayed = signal.weight * Math.pow(DECAY_FACTOR, weeksAgo);
     scores[signal.eventType] = (scores[signal.eventType] ?? 0) + decayed;

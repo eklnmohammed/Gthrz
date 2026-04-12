@@ -29,7 +29,6 @@ import { colors } from "@/src/theme/colors";
 import { spacing } from "@/src/theme/spacing";
 import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
-import { getEventTypeLabel } from "@/src/utils/eventTypeBadge";
 import { formatEventDate } from "@/src/utils/formatEventDate";
 import { getCoverOptions, getCoverSource, getDefaultCoverKey } from "@/src/utils/covers";
 import { LocationCardWithPicker, type LocationSelection } from "@/src/components/LocationCardWithPicker";
@@ -92,9 +91,9 @@ export default function CreateEventScreen() {
   const [allowPlusOne, setAllowPlusOne] = useState(false);
   const [hideGuestNames, setHideGuestNames] = useState(false);
   const [hideGuestAvatars, setHideGuestAvatars] = useState(false);
-  const [eventType, setEventType] = useState<EventType>("party");
-  const [selectedCoverType, setSelectedCoverType] = useState<EventType>("party");
-  const [coverKey, setCoverKey] = useState<string>(() => getDefaultCoverKey("party"));
+  const [eventType, setEventType] = useState<EventType | null>(null);
+  const [selectedCoverType, setSelectedCoverType] = useState<EventType | null>(null);
+  const [coverKey, setCoverKey] = useState<string>(() => getDefaultCoverKey(null));
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [showCoverModal, setShowCoverModal] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -239,9 +238,9 @@ export default function CreateEventScreen() {
     capacityValue: "",
     visibility: "private" as const,
     approvalRequired: false,
-    eventType: "party" as EventType,
-    selectedCoverType: "party" as EventType,
-    coverKey: getDefaultCoverKey("party"),
+    eventType: null as EventType | null,
+    selectedCoverType: null as EventType | null,
+    coverKey: getDefaultCoverKey(null),
     coverUrl: null as string | null,
     locationVisibility: "now" as const,
     revealHoursBefore: null as number | null,
@@ -352,7 +351,7 @@ export default function CreateEventScreen() {
         capacity: effectiveCapacity.trim() || undefined,
         visibility,
         approvalRequired,
-        eventType,
+        eventType: eventType ?? undefined,
         coverKey: coverKey || undefined,
         coverUrl: isValidCoverUrl(coverUrl) ? coverUrl ?? undefined : undefined,
         lineup: lineup.length > 0
@@ -430,14 +429,13 @@ export default function CreateEventScreen() {
     setShowDatePicker(true);
   };
 
-  const typeLabel = getEventTypeLabel(eventType);
   const ctaBottom = Math.max(spacing.lg, insets.bottom);
   const entryFeePreviewLine = getEntryFeePreviewLine(priceAmount, priceCurrency);
   const coverSource = isValidCoverUrl(coverUrl)
     ? { uri: coverUrl! }
     : getCoverSource(coverKey || undefined, eventType);
 
-  const handleEventTypeChange = (type: EventType) => {
+  const handleEventTypeChange = (type: EventType | null) => {
     setEventType(type);
     setCoverKey(getDefaultCoverKey(type));
     setCoverUrl(null);
@@ -2040,7 +2038,7 @@ export default function CreateEventScreen() {
                       fontWeight: selectedCoverType === option.value ? typography.weights.semibold : typography.weights.medium,
                     }}
                   >
-                    {option.emoji} {option.label}
+                    {option.label}
                   </Text>
                 </Pressable>
               ))}
@@ -2077,7 +2075,11 @@ export default function CreateEventScreen() {
               {getCoverOptions(selectedCoverType).map((opt) => (
                 <Pressable
                   key={opt.key}
-                  onPress={() => { setCoverKey(opt.key); setEventType(selectedCoverType); setCoverUrl(null); setShowCoverModal(false); }}
+                  onPress={() => {
+                    setCoverKey(opt.key);
+                    setCoverUrl(null);
+                    setShowCoverModal(false);
+                  }}
                   style={{
                     width: "47%",
                     alignItems: "center",

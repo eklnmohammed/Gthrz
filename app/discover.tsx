@@ -1,6 +1,6 @@
-import { View, Text, ScrollView, FlatList, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from "react-native";
-import { router, useFocusEffect, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useState, useRef, useMemo, useEffect } from "react";
+import { View, Text, FlatList, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from "react-native";
+import { router, useFocusEffect, Stack } from "expo-router";
+import { useCallback, useState, useMemo, useEffect } from "react";
 import { useEvents, Event } from "../src/state/eventsStore";
 import { Screen } from "../src/components/Screen";
 import { HeaderBackTextButton } from "../src/components/HeaderBackTextButton";
@@ -24,8 +24,6 @@ const GRID_GAP = 12;
 /** Main feed: first batch + each scroll load */
 const DISCOVER_INITIAL_COUNT = 12;
 const DISCOVER_PAGE_SIZE = 12;
-/** Category tab preview size; uses same inline "Show more" pagination as All. */
-const CATEGORY_PREVIEW_COUNT = 6;
 
 function compareDiscoverSoonest(a: Event, b: Event, goingCounts: Record<string, number>): number {
   const da = new Date(a.dateTime).getTime();
@@ -51,51 +49,19 @@ function compareDiscoverNewest(a: Event, b: Event, goingCounts: Record<string, n
   return cb - ca;
 }
 
-/** Tab order for Discover: All + event types (Open-style). */
-const DISCOVER_TABS: Array<{ value: EventType | "all"; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "party", label: "Party" },
-  { value: "birthday", label: "Birthday" },
-  { value: "wedding", label: "Wedding" },
-  { value: "graduation", label: "Graduation" },
-  { value: "majlis", label: "Majlis" },
-  { value: "istiraha", label: "Istiraha" },
-  { value: "ramadan", label: "Ramadan" },
-];
-
-const VALID_EVENT_TYPES = new Set<EventType | "all">([
-  "all",
-  "party",
-  "birthday",
-  "wedding",
-  "graduation",
-  "majlis",
-  "istiraha",
-  "ramadan",
-]);
-
 export default function DiscoverScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const gridCardWidth = (screenWidth - LIST_PADDING_H * 2 - GRID_GAP) / 2;
 
   const { fetchPublicEvents, getGoingCountsForEventIds, events: userEvents, fetchEvents } = useEvents();
-  const params = useLocalSearchParams<{ type?: string }>();
   const [publicEvents, setPublicEvents] = useState<Event[]>([]);
   const [goingCounts, setGoingCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [listVisibleCount, setListVisibleCount] = useState(DISCOVER_INITIAL_COUNT);
   const userEventsById = new Map((userEvents ?? []).map((e) => [e.id, e]));
 
-  const initialType =
-    params.type && VALID_EVENT_TYPES.has(params.type as EventType) && params.type !== "all"
-      ? (params.type as EventType)
-      : "all";
-
-  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<EventType | "all">(initialType);
   const [sortBy, setSortBy] = useState<SortOption>("soonest");
-  const appliedParamRef = useRef(params.type ?? null);
 
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
@@ -103,14 +69,6 @@ export default function DiscoverScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      // Apply type param if it changed since last focus (e.g. navigated from Home vibe chip)
-      if (params.type && params.type !== appliedParamRef.current) {
-        if (VALID_EVENT_TYPES.has(params.type as EventType) && params.type !== "all") {
-          setSelectedType(params.type as EventType);
-        }
-        appliedParamRef.current = params.type;
-      }
-
       let active = true;
       setLoading(true);
 
@@ -133,12 +91,12 @@ export default function DiscoverScreen() {
       return () => {
         active = false;
       };
-    }, [fetchPublicEvents, getGoingCountsForEventIds, params.type])
+    }, [fetchPublicEvents, getGoingCountsForEventIds])
   );
 
   useEffect(() => {
-    setListVisibleCount(selectedType === "all" ? DISCOVER_INITIAL_COUNT : CATEGORY_PREVIEW_COUNT);
-  }, [selectedType, searchQuery, sortBy]);
+    setListVisibleCount(DISCOVER_INITIAL_COUNT);
+  }, [searchQuery, sortBy]);
 
   const handleEventPress = (event: Event) => {
     if (event.eventType) recordEventView(event.eventType, userPhone);
@@ -148,7 +106,7 @@ export default function DiscoverScreen() {
     });
   };
 
-  /** Public, upcoming, active (not cancelled), not hosted by current user; search + type; sorted for Discover */
+  /** Public, upcoming, active (not cancelled), not hosted by current user; search; sorted for Discover */
   const discoverSortedEvents = useMemo(() => {
     const nowMs = Date.now();
     let filtered = publicEvents.filter((e) => e.visibility === "public");
@@ -165,15 +123,12 @@ export default function DiscoverScreen() {
         return title.includes(query) || location.includes(query);
       });
     }
-    if (selectedType !== "all") {
-      filtered = filtered.filter((event) => event.eventType === selectedType);
-    }
     const cmp =
       sortBy === "soonest"
         ? (a: Event, b: Event) => compareDiscoverSoonest(a, b, goingCounts)
         : (a: Event, b: Event) => compareDiscoverNewest(a, b, goingCounts);
     return [...filtered].sort(cmp);
-  }, [publicEvents, userPhone, searchQuery, selectedType, sortBy, goingCounts]);
+  }, [publicEvents, userPhone, searchQuery, sortBy, goingCounts]);
 
   const totalMatching = discoverSortedEvents.length;
 
@@ -323,44 +278,6 @@ export default function DiscoverScreen() {
                 <Text style={{ fontSize: 18, color: colors.textMuted }}>⇅</Text>
               </Pressable>
             </View>
-
-            <View style={{ marginTop: spacing.xs, marginBottom: spacing.md }}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: spacing.lg, paddingHorizontal: spacing.sm }}
-              >
-                {DISCOVER_TABS.map((tab) => {
-                  const isSelected = selectedType === tab.value;
-                  return (
-                    <Pressable
-                      key={tab.value}
-                      onPress={() => setSelectedType(tab.value)}
-                      style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.xs }}
-                    >
-                      <View
-                        style={{
-                          alignSelf: "flex-start",
-                          borderBottomWidth: 3,
-                          borderBottomColor: isSelected ? colors.text : "transparent",
-                          paddingBottom: 2,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: typography.sizes.sm,
-                            color: isSelected ? colors.text : colors.textMuted,
-                            fontWeight: isSelected ? typography.weights.semibold : typography.weights.medium,
-                          }}
-                        >
-                          {tab.label}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
           </>
         }
         ListFooterComponent={
@@ -406,9 +323,7 @@ export default function DiscoverScreen() {
               >
                 {searchQuery.trim()
                   ? "No events match your search."
-                  : selectedType !== "all"
-                    ? `No ${DISCOVER_TABS.find((o) => o.value === selectedType)?.label ?? selectedType} events available.`
-                    : "No public events available right now. Check back later!"}
+                  : "No public events available right now. Check back later!"}
               </Text>
             </Card>
           )

@@ -141,7 +141,7 @@ export function EventCard({
       </View>
 
       {/* Event type chip — top-left (optional) */}
-      {showTypeChip && !hideTypeChip && (
+      {showTypeChip && !hideTypeChip && typeLabel.label.length > 0 && (
         <View
           style={{
             position: "absolute",
@@ -160,7 +160,7 @@ export function EventCard({
               color: "rgba(255, 255, 255, 0.95)",
             }}
           >
-            {typeLabel.emoji} {typeLabel.label}
+            {typeLabel.label}
           </Text>
         </View>
       )}

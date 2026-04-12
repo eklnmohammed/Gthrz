@@ -1,21 +1,23 @@
 import { EventType } from "../lib/supabase";
 
-export function getEventTypeLabel(eventType?: EventType): { emoji: string; label: string } {
+/** Empty `label` when the host did not set a category (cards/details hide the chip). */
+export function getEventTypeLabel(eventType?: EventType | null): { label: string } {
+  if (eventType == null) return { label: "" };
   switch (eventType) {
+    case "rave":
+      return { label: "Rave" };
+    case "gathering":
+      return { label: "Gathering" };
     case "birthday":
-      return { emoji: "🎂", label: "Birthday" };
+      return { label: "Birthday" };
+    case "dinner":
+      return { label: "Dinner" };
     case "wedding":
-      return { emoji: "💍", label: "Wedding" };
+      return { label: "Wedding" };
     case "graduation":
-      return { emoji: "🎓", label: "Graduation" };
-    case "majlis":
-      return { emoji: "☕", label: "Majlis" };
-    case "istiraha":
-      return { emoji: "🏕️", label: "Istiraha" };
-    case "ramadan":
-      return { emoji: "🌙", label: "Ramadan" };
+      return { label: "Graduation" };
     case "party":
     default:
-      return { emoji: "🎉", label: "Party" };
+      return { label: "Party" };
   }
 }

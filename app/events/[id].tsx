@@ -24,9 +24,9 @@ import { AppButton } from "../../src/components/AppButton";
 import { Badge } from "../../src/components/Badge";
 import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { HeaderTextButton } from "../../src/components/HeaderTextButton";
-import { useEvents } from "../../src/state/eventsStore";
+import { useEvents, RsvpUserFacingError } from "../../src/state/eventsStore";
 import { useFavorites } from "../../src/state/favoritesStore";
-import { supabase, EventType } from "../../src/lib/supabase";
+import { supabase, EventType, normalizeEventType } from "../../src/lib/supabase";
 import { recordRsvp } from "../../src/utils/preferences";
 import { fetchProfile } from "../../src/lib/auth";
 import { onboardingStore, type UserProfile } from "../../src/state/onboardingStore";
@@ -61,6 +61,50 @@ function getDisplayName(profile: UserProfile | null | undefined, phone: string):
   return phone;
 }
 
+function hasResolvableGuestName(profile: UserProfile | null | undefined): boolean {
+  return !!(profile?.firstName?.trim() || profile?.lastName?.trim());
+}
+
+/** Bring list: only show an assignee when they are going and we have a real name (no phone fallbacks). */
+function getBringAssigneeDisplayName(
+  assignedPhone: string | null | undefined,
+  going: { user_phone: string }[],
+  profiles: Record<string, UserProfile | null>,
+): string | null {
+  if (!assignedPhone) return null;
+  if (!going.some((r) => r.user_phone === assignedPhone)) return null;
+  if (!Object.prototype.hasOwnProperty.call(profiles, assignedPhone)) return null;
+  const profile = profiles[assignedPhone];
+  if (!hasResolvableGuestName(profile)) return null;
+  return getDisplayName(profile!, assignedPhone);
+}
+
+/**
+ * When true, a guest should not see the primary "Claim" action (someone else holds it, or assignee pending resolution).
+ * Does not apply to host.
+ */
+function bringItemBlocksGuestClaim(
+  c: { assigned_user_phone: string | null; status: string },
+  viewerPhone: string,
+  going: { user_phone: string }[],
+  profiles: Record<string, UserProfile | null>,
+): boolean {
+  if (c.status !== "open" || !c.assigned_user_phone) return false;
+  const p = c.assigned_user_phone;
+  if (p === viewerPhone) return true;
+  if (!going.some((r) => r.user_phone === p)) return false;
+  if (!Object.prototype.hasOwnProperty.call(profiles, p)) return true;
+  return hasResolvableGuestName(profiles[p]);
+}
+
+function bringGuestLabelForPicker(phone: string, viewerPhone: string, profiles: Record<string, UserProfile | null>): string {
+  if (phone === viewerPhone) return "You";
+  if (Object.prototype.hasOwnProperty.call(profiles, phone) && hasResolvableGuestName(profiles[phone])) {
+    return getDisplayName(profiles[phone], phone);
+  }
+  return "Guest";
+}
+
 type RsvpStatus = "cant" | "maybe" | "going" | "pending" | null;
 
 /** Primary sticky-bar label. Declined-by-host must be evaluated before the public "Going" shortcut. */
@@ -90,7 +134,8 @@ export default function EventDetailScreen() {
 
   const { submitRsvp, setPlusOne, removeRsvp, getRsvp, getRsvpsForEvent, approveRsvp, declineRsvp,
     getContributions, addContribution, removeContribution,
-    assignContribution, toggleContributionStatus, cancelEvent, fetchEvents } = useEvents();
+    assignContribution, unassignContributionsForUser, clearContributionAssigneesNotGoing,
+    toggleContributionStatus, cancelEvent, fetchEvents } = useEvents();
   const { isFavorited, toggleFavorite } = useFavorites();
   const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>(null);
   const [userDeclinedByHost, setUserDeclinedByHost] = useState(false);
@@ -107,7 +152,7 @@ export default function EventDetailScreen() {
     capacity: params.capacity || "",
     hostPhone: "" as string | undefined,
     hostName: "" as string | undefined,
-    eventType: "party" as string | undefined,
+    eventType: undefined as EventType | undefined,
     inviteCode: "" as string | undefined,
     visibility: "private" as "public" | "private",
     coverKey: "" as string | undefined,
@@ -220,7 +265,7 @@ export default function EventDetailScreen() {
               capacity: data.capacity?.toString() || "",
               hostPhone: data.host_phone || undefined,
               hostName: data.host_name || undefined,
-              eventType: data.event_type || "party",
+              eventType: normalizeEventType(data.event_type) ?? undefined,
               inviteCode: data.invite_code || undefined,
               visibility: data.visibility || "private",
               coverKey: data.cover_key ?? undefined,
@@ -246,10 +291,10 @@ export default function EventDetailScreen() {
             });
           }
 
-          const [rsvps, fetchedContribs] = await Promise.all([
-            getRsvpsForEvent(params.id!),
-            getContributions(params.id!),
-          ]);
+          const rsvps = await getRsvpsForEvent(params.id!);
+          const goingPhones = rsvps.going.map((r) => r.user_phone);
+          await clearContributionAssigneesNotGoing(params.id!, goingPhones);
+          const fetchedContribs = await getContributions(params.id!);
 
           if (rsvpChangeGenerationRef.current === focusGeneration) {
             setGoingCount(count ?? 0);
@@ -277,7 +322,7 @@ export default function EventDetailScreen() {
       };
 
       fetchEventData();
-    }, [params.id, getRsvpsForEvent, getContributions, getRsvp])
+    }, [params.id, getRsvpsForEvent, getContributions, getRsvp, clearContributionAssigneesNotGoing])
   );
 
   // Load user phone and existing RSVP on mount / params.id change (fallback when focus effect hasn't run yet)
@@ -386,11 +431,14 @@ export default function EventDetailScreen() {
 
   const refetchContribs = useCallback(async () => {
     if (!params.id) return;
+    const rsvps = await getRsvpsForEvent(params.id);
+    const goingPhones = rsvps.going.map((r) => r.user_phone);
+    await clearContributionAssigneesNotGoing(params.id, goingPhones);
     const fetchedContribs = await getContributions(params.id!);
     setContributions(fetchedContribs.map((c) => ({
       id: c.id, title: c.title, assigned_user_phone: c.assigned_user_phone, status: c.status,
     })));
-  }, [params.id, getContributions]);
+  }, [params.id, getContributions, getRsvpsForEvent, clearContributionAssigneesNotGoing]);
 
   /** Same uniqueness + chip behavior as Create/Edit — persist immediately on event details. */
   const addHostBringItemIfNew = useCallback(
@@ -442,16 +490,18 @@ export default function EventDetailScreen() {
     rsvpChangeGenerationRef.current += 1;
     try {
       await removeRsvp(params.id, userPhone);
+      await unassignContributionsForUser(params.id, userPhone);
       setRsvpStatus(null);
       setShowRsvpOptions(true);
       setUserPlusOne(false);
       await refetchGoingCount();
       await fetchEvents();
+      await refetchContribs();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to clear RSVP";
       Alert.alert("RSVP", message);
     }
-  }, [params.id, userPhone, removeRsvp, refetchGoingCount, fetchEvents]);
+  }, [params.id, userPhone, removeRsvp, unassignContributionsForUser, refetchGoingCount, fetchEvents, refetchContribs]);
 
   // Persist RSVP when status changes (guest mode only). Tapping same state again = undo with confirmation.
   // Source of truth: DB (rsvps table). We refetch and sync store so all UI stays correct.
@@ -501,20 +551,6 @@ export default function EventDetailScreen() {
       const message = err instanceof Error ? err.message : "Failed to save RSVP";
       Alert.alert("RSVP", message);
     }
-  };
-
-  const handlePreviewAsGuest = () => {
-    router.push({
-      pathname: "/events/[id]",
-      params: {
-        id: params.id,
-        title: eventData.title,
-        dateTime: eventData.dateTime,
-        location: eventData.location,
-        details: eventData.details,
-        capacity: eventData.capacity,
-      },
-    });
   };
 
   const isCancelled = eventData.status === "cancelled";
@@ -982,7 +1018,7 @@ export default function EventDetailScreen() {
               marginBottom: 0,
             }}
           >
-            {typeLabel.emoji} {typeLabel.label} · {formatEventDate(eventDateTime)}
+            {typeLabel.label ? `${typeLabel.label} · ${formatEventDate(eventDateTime)}` : formatEventDate(eventDateTime)}
           </Text>
 
           {/* Guests: single divider above, label + avatars (same order as before) */}
@@ -1292,14 +1328,21 @@ export default function EventDetailScreen() {
               <Text style={lowerSectionLabel}>Bring</Text>
               {contributions.map((c, idx) => {
                 const isLastContrib = idx === contributions.length - 1;
-                const assigneeName = c.assigned_user_phone
-                  ? (goingProfiles[c.assigned_user_phone] ? getDisplayName(goingProfiles[c.assigned_user_phone] ?? null, c.assigned_user_phone) : c.assigned_user_phone)
-                  : null;
+                const assigneeName = getBringAssigneeDisplayName(
+                  c.assigned_user_phone,
+                  rsvpsByStatus.going,
+                  goingProfiles,
+                );
                 const statusText = c.status === "done"
                   ? "Done"
                   : assigneeName
                     ? `Assigned to ${assigneeName}`
                     : "No one yet";
+                const showGuestClaim =
+                  c.status === "open" &&
+                  !bringItemBlocksGuestClaim(c, userPhone, rsvpsByStatus.going, goingProfiles);
+                const showGuestClaimed =
+                  c.status === "open" && c.assigned_user_phone === userPhone;
 
                 const openContribSheet = () => {
                   setSelectedContribId(c.id);
@@ -1351,14 +1394,14 @@ export default function EventDetailScreen() {
 
                     {!isHostMode && (
                       <View style={{ alignItems: "flex-end", justifyContent: "center", minWidth: 84 }}>
-                        {!c.assigned_user_phone && c.status === "open" ? (
+                        {showGuestClaim ? (
                           <Pressable
                             onPress={openContribSheet}
                             style={({ pressed }) => [bringActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
                           >
                             <Text style={bringActionPillTextStyle}>Claim</Text>
                           </Pressable>
-                        ) : c.assigned_user_phone === userPhone && c.status === "open" ? (
+                        ) : showGuestClaimed ? (
                           <Pressable
                             onPress={openContribSheet}
                             style={({ pressed }) => [bringActionPillStyle, { opacity: pressed ? 0.8 : 1 }]}
@@ -2071,7 +2114,6 @@ export default function EventDetailScreen() {
                   </Pressable>
                 </View>
               )}
-              <AppButton title="Preview as guest" onPress={() => { setShowManageSheet(false); handlePreviewAsGuest(); }} variant="secondary" fullWidth />
               {!isCancelled && (
                 <AppButton title="Edit event" onPress={() => { setShowManageSheet(false); router.push(`/events/edit/${params.id}`); }} variant="secondary" fullWidth />
               )}
@@ -2428,12 +2470,12 @@ export default function EventDetailScreen() {
                 setGoingCount(rsvps.going.length);
                 closeSheet();
               } catch (err) {
-                const msg = err instanceof Error ? err.message : "";
                 closeSheet();
-                if (msg.includes("capacity")) {
-                  Alert.alert("Event is full", "This event is at capacity. You can't approve more guests.");
+                if (err instanceof RsvpUserFacingError) {
+                  Alert.alert("Can't approve", err.message);
                 } else {
-                  Alert.alert("Error", msg || "Failed to approve");
+                  const msg = err instanceof Error ? err.message : "Failed to approve";
+                  Alert.alert("Error", msg);
                 }
               }
             };
@@ -2467,9 +2509,11 @@ export default function EventDetailScreen() {
                   onPress: async () => {
                     try {
                       await removeRsvp(params.id!, phone);
+                      await unassignContributionsForUser(params.id!, phone);
                       const rsvps = await getRsvpsForEvent(params.id!);
                       setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
                       setGoingCount(rsvps.going.length);
+                      await refetchContribs();
                       closeSheet();
                     } catch (err) {
                       Alert.alert("Error", err instanceof Error ? err.message : "Failed to remove guest");
@@ -2598,9 +2642,13 @@ export default function EventDetailScreen() {
               }
               const isOpen = c.status === "open";
               const isAssignedToMe = c.assigned_user_phone === userPhone;
-              const assigneeName = c.assigned_user_phone
-                ? (goingProfiles[c.assigned_user_phone] ? getDisplayName(goingProfiles[c.assigned_user_phone] ?? null, c.assigned_user_phone) : c.assigned_user_phone)
-                : null;
+              const assigneeName = getBringAssigneeDisplayName(
+                c.assigned_user_phone,
+                rsvpsByStatus.going,
+                goingProfiles,
+              );
+              const modalShowGuestClaim =
+                isOpen && !bringItemBlocksGuestClaim(c, userPhone, rsvpsByStatus.going, goingProfiles);
               return (
                 <>
                   <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg }} />
@@ -2613,7 +2661,7 @@ export default function EventDetailScreen() {
                       <Pressable
                         onPress={() => {
                           const options = rsvpsByStatus.going.map((g) => ({
-                            text: g.user_phone === userPhone ? "You" : (goingProfiles[g.user_phone] ? getDisplayName(goingProfiles[g.user_phone] ?? null, g.user_phone) : g.user_phone),
+                            text: bringGuestLabelForPicker(g.user_phone, userPhone, goingProfiles),
                             onPress: () => assignContribution(c.id, g.user_phone).then(() => { refetchContribs(); setShowContribManageSheet(false); setSelectedContribId(null); }),
                           }));
                           Alert.alert("Assign to", c.title, [
@@ -2637,7 +2685,7 @@ export default function EventDetailScreen() {
                         </Text>
                       </Pressable>
                     )}
-                    {!isHostMode && isOpen && !c.assigned_user_phone && (
+                    {!isHostMode && modalShowGuestClaim && (
                       <Pressable
                         onPress={() =>
                           assignContribution(c.id, userPhone).then(() => {

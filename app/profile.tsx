@@ -7,7 +7,6 @@ import {
   Image,
   Alert,
   Pressable,
-  Switch,
   Dimensions,
 } from "react-native";
 import { router, useFocusEffect, Stack } from "expo-router";
@@ -18,7 +17,7 @@ import { HomeSectionHeader } from "../src/components/HomeSectionHeader";
 import { onboardingStore, UserProfile } from "../src/state/onboardingStore";
 import { useEvents, type Event } from "../src/state/eventsStore";
 import { useFavorites } from "../src/state/favoritesStore";
-import { isDevMode, setDevMode, signOut as authSignOut, syncCurrentProfileFromServer } from "../src/lib/auth";
+import { signOut as authSignOut, syncCurrentProfileFromServer } from "../src/lib/auth";
 import { colors } from "../src/theme/colors";
 import { spacing } from "../src/theme/spacing";
 import { radius } from "../src/theme/radius";
@@ -36,7 +35,6 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
   const [publicEvents, setPublicEvents] = useState<Event[]>([]);
-  const [devModeOn, setDevModeOn] = useState(false);
   const { events, loading, fetchEvents, fetchPublicEvents } = useEvents();
   const { favoriteIds } = useFavorites();
 
@@ -49,14 +47,12 @@ export default function ProfileScreen() {
   const savedEvents = [...eventsById.values()].filter((e) => favoriteIds.has(e.id));
 
   const loadProfile = useCallback(async () => {
-    const [p, ph, dev] = await Promise.all([
+    const [p, ph] = await Promise.all([
       onboardingStore.getProfile(),
       onboardingStore.getPhone(),
-      isDevMode(),
     ]);
     setProfile(p);
     setPhone(ph);
-    setDevModeOn(dev);
   }, []);
 
   useFocusEffect(
@@ -86,11 +82,6 @@ export default function ProfileScreen() {
     await onboardingStore.reset();
     await onboardingStore.setOnboarded(false);
     router.replace("/onboarding");
-  };
-
-  const handleToggleDevMode = async (value: boolean) => {
-    setDevModeOn(value);
-    await setDevMode(value);
   };
 
   const handleResetRecommendations = async () => {
@@ -362,60 +353,6 @@ export default function ProfileScreen() {
               </Text>
               <Text style={{ fontSize: typography.sizes.lg, color: colors.textDim }}>›</Text>
             </Pressable>
-          </View>
-
-          <Text
-            style={{
-              fontSize: typography.sizes.xs,
-              fontWeight: typography.weights.semibold,
-              color: colors.textDim,
-              letterSpacing: 1.2,
-              textTransform: "uppercase",
-              marginBottom: spacing.sm,
-            }}
-          >
-            Developer
-          </Text>
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              borderRadius: radius.lg,
-              borderWidth: 0.5,
-              borderColor: colors.border,
-              overflow: "hidden",
-              marginBottom: spacing.md,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingVertical: spacing.md,
-                paddingHorizontal: spacing.lg,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
-                  Skip OTP (dev mode)
-                </Text>
-                <Text
-                  style={{
-                    fontSize: typography.sizes.xs,
-                    color: colors.textDim,
-                    marginTop: 2,
-                  }}
-                >
-                  Log in with phone only, no SMS code
-                </Text>
-              </View>
-              <Switch
-                value={devModeOn}
-                onValueChange={handleToggleDevMode}
-                trackColor={{ false: colors.surfaceLighter, true: colors.primary }}
-                thumbColor="#fff"
-              />
-            </View>
           </View>
 
           <Text

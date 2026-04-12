@@ -5,7 +5,14 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import { supabase, Event as SupabaseEvent, EventType, EventContribution, LineupEntry } from "../lib/supabase";
+import {
+  supabase,
+  Event as SupabaseEvent,
+  EventType,
+  EventContribution,
+  LineupEntry,
+  normalizeEventType,
+} from "../lib/supabase";
 export type { LineupEntry };
 import { onboardingStore } from "../state/onboardingStore";
 import { generateInviteCode } from "../utils/inviteCode";
@@ -88,6 +95,52 @@ export interface RsvpByStatus {
   cant: { user_phone: string; plus_one?: boolean; declined_by_host?: boolean }[];
 }
 
+/**
+ * Expected RSVP outcome shown to the user (e.g. event full). Not treated as an app defect:
+ * {@link submitRsvp} does not console.error these, avoiding RN LogBox/redbox noise.
+ */
+export class RsvpUserFacingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RsvpUserFacingError";
+  }
+}
+
+function rsvpRowsSeatSum(rows: { plus_one?: boolean }[]): number {
+  return rows.reduce((sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0);
+}
+
+/** Stricter of DB vs unsaved form capacity when both are set (positive integers). */
+export function resolveCapacityLimitForAutoApproval(formCap: number | null, dbCap: number | null): number | null {
+  const db = typeof dbCap === "number" && !Number.isNaN(dbCap) && dbCap > 0 ? dbCap : null;
+  const fm = typeof formCap === "number" && !Number.isNaN(formCap) && formCap > 0 ? formCap : null;
+  if (fm != null && db != null) return Math.min(fm, db);
+  return fm ?? db ?? null;
+}
+
+/**
+ * If switching to auto approval would accept all pending as Going, returns null (OK).
+ * Otherwise returns a short message for Alert (capacity would be exceeded).
+ * `capacityLimit` null / non-positive means unlimited for this check.
+ */
+export function getAutoApprovalPendingCapacityBlockReason(
+  capacityLimit: number | null | undefined,
+  rsvps: RsvpByStatus,
+): string | null {
+  if (!rsvps.pending.length) return null;
+  const cap =
+    typeof capacityLimit === "number" && !Number.isNaN(capacityLimit) && capacityLimit > 0
+      ? capacityLimit
+      : null;
+  if (cap == null) return null;
+  const goingSeats = rsvpRowsSeatSum(rsvps.going);
+  const pendingSeats = rsvpRowsSeatSum(rsvps.pending);
+  if (goingSeats + pendingSeats > cap) {
+    return "There is not enough capacity to accept every pending request. Review or decline pending guests first, or raise the capacity, then try again.";
+  }
+  return null;
+}
+
 interface EventsContextType {
   events: Event[];
   loading: boolean;
@@ -161,12 +214,21 @@ interface EventsContextType {
   getRsvp: (eventId: string, userPhone: string) => Promise<"going" | "maybe" | "cant" | "pending" | null>;
   getRsvpsForEvent: (eventId: string) => Promise<RsvpByStatus>;
   approveRsvp: (eventId: string, userPhone: string) => Promise<void>;
+  /**
+   * Approves all pending RSVPs as Going, then sets approval_required false.
+   * Use when the host switches from manual to auto approval with pending requests.
+   * `formCapacityLimit` is the capacity from the edit form (null = unlimited); combined with DB capacity using the stricter limit.
+   */
+  finalizeManualToAutoApproval: (eventId: string, formCapacityLimit: number | null) => Promise<void>;
   declineRsvp: (eventId: string, userPhone: string) => Promise<void>;
   fetchEventByInviteCode: (code: string) => Promise<FetchEventByInviteCodeResult>;
   getContributions: (eventId: string) => Promise<EventContribution[]>;
   addContribution: (eventId: string, title: string) => Promise<void>;
   removeContribution: (id: string) => Promise<void>;
   assignContribution: (id: string, userPhone: string | null) => Promise<void>;
+  unassignContributionsForUser: (eventId: string, userPhone: string) => Promise<void>;
+  /** Clears assignments whose assignee is not in the current going list (e.g. left or removed). */
+  clearContributionAssigneesNotGoing: (eventId: string, goingPhones: readonly string[]) => Promise<void>;
   toggleContributionStatus: (id: string, status: "open" | "done") => Promise<void>;
 }
 
@@ -174,6 +236,7 @@ const EventsContext = createContext<EventsContextType | undefined>(undefined);
 
 // Convert Supabase event to app event format (cover_key -> coverKey, event_type -> eventType)
 function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
+  const normalizedType = normalizeEventType(dbEvent.event_type);
   const coverKey = dbEvent.cover_key != null ? String(dbEvent.cover_key) : undefined;
   const locVis = dbEvent.location_visibility;
   const locationName = dbEvent.location_name || undefined;
@@ -190,7 +253,7 @@ function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
     approvalRequired: dbEvent.approval_required ?? false,
     hostPhone: dbEvent.host_phone || undefined,
     hostName: dbEvent.host_name || undefined,
-    eventType: dbEvent.event_type || "party",
+    ...(normalizedType != null ? { eventType: normalizedType } : {}),
     inviteCode: dbEvent.invite_code || undefined,
     coverKey,
     coverUrl: isValidCoverUrl(dbEvent.cover_url) ? (dbEvent.cover_url ?? undefined) : undefined,
@@ -325,9 +388,8 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           : null;
 
         const visibility = event.visibility || "private";
-        const isPrivate = visibility === "private";
-        const eventType = event.eventType || "party";
-        const coverKey = event.coverKey ?? getDefaultCoverKey(eventType);
+        const resolvedType = event.eventType ?? null;
+        const coverKey = event.coverKey ?? getDefaultCoverKey(resolvedType);
 
         // Retry up to 3 times if invite_code collision
         const maxRetries = 3;
@@ -353,7 +415,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
               approval_required: event.approvalRequired ?? false,
               host_phone: phone,
               host_name: hostName,
-              event_type: eventType,
+              event_type: resolvedType,
               invite_code: inviteCode,
               cover_key: coverKey,
               cover_url: isValidCoverUrl(event.coverUrl) ? event.coverUrl : null,
@@ -459,7 +521,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           capacity: event.capacity ? parseInt(event.capacity, 10) : null,
           visibility,
           approval_required: event.approvalRequired ?? false,
-          event_type: event.eventType || "party",
+          event_type: event.eventType ?? null,
           cover_key: event.coverKey ?? null,
           cover_url: isValidCoverUrl(event.coverUrl) ? event.coverUrl : null,
           lineup: event.lineup && event.lineup.length > 0 ? event.lineup : null,
@@ -639,8 +701,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         const effectiveStatus: "going" | "maybe" | "cant" | "pending" =
           status === "going" && approvalRequired ? "pending" : status;
 
-        // Capacity: only "going" counts; "pending" does not
-        if (effectiveStatus === "going") {
+        // Capacity applies only to confirmed Going (auto approval). Manual-approval Going
+        // requests are stored as pending and do not consume a going slot here.
+        if (status === "going" && !approvalRequired) {
           const capacity = eventRow?.capacity;
           if (capacity != null && capacity > 0) {
             const { data: existingRsvp } = await supabase
@@ -662,7 +725,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
                 (sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0
               );
               if (goingCount >= capacity) {
-                throw new Error(
+                throw new RsvpUserFacingError(
                   isPublic
                     ? "This event is full."
                     : "This event is full. You can RSVP as Maybe to stay updated."
@@ -687,7 +750,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           .upsert(upsertPayload, { onConflict: "event_id,user_phone" });
         if (upsertError) throw upsertError;
       } catch (err) {
-        console.error("Error submitting RSVP:", err);
+        if (!(err instanceof RsvpUserFacingError)) {
+          console.error("Error submitting RSVP:", err);
+        }
         throw err;
       }
     },
@@ -749,7 +814,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         (sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0
       );
       if (totalGoing >= capacity) {
-        throw new Error("Event is at capacity. Cannot approve more guests.");
+        throw new RsvpUserFacingError(
+          "The event is at capacity. You can't approve this guest right now.",
+        );
       }
     }
     const { error } = await supabase
@@ -759,6 +826,38 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       .eq("user_phone", userPhone);
     if (error) throw error;
   }, []);
+
+  const finalizeManualToAutoApproval = useCallback(
+    async (eventId: string, formCapacityLimit: number | null) => {
+      const { data: ev, error: evErr } = await supabase
+        .from("events")
+        .select("capacity")
+        .eq("id", eventId)
+        .single();
+      if (evErr) throw evErr;
+      const rsvps = await getRsvpsForEvent(eventId);
+      const capNum = ev?.capacity != null ? Number(ev.capacity) : NaN;
+      const dbCap = !Number.isNaN(capNum) && capNum > 0 ? capNum : null;
+      const cap = resolveCapacityLimitForAutoApproval(formCapacityLimit, dbCap);
+      const block = getAutoApprovalPendingCapacityBlockReason(cap, rsvps);
+      if (block) throw new Error(block);
+      for (const p of rsvps.pending) {
+        await approveRsvp(eventId, p.user_phone);
+      }
+      const { data: updated, error: upErr } = await supabase
+        .from("events")
+        .update({ approval_required: false })
+        .eq("id", eventId)
+        .select("*")
+        .single();
+      if (upErr) throw upErr;
+      if (updated) {
+        const updatedEvent = convertSupabaseEvent(updated);
+        setEvents((prev) => prev.map((e) => (e.id === eventId ? updatedEvent : e)));
+      }
+    },
+    [getRsvpsForEvent, approveRsvp],
+  );
 
   const declineRsvp = useCallback(async (eventId: string, userPhone: string) => {
     const { error } = await supabase
@@ -837,6 +936,33 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
+  const unassignContributionsForUser = useCallback(async (eventId: string, userPhone: string) => {
+    const { error } = await supabase
+      .from("event_contributions")
+      .update({ assigned_user_phone: null })
+      .eq("event_id", eventId)
+      .eq("assigned_user_phone", userPhone);
+    if (error) throw error;
+  }, []);
+
+  const clearContributionAssigneesNotGoing = useCallback(async (eventId: string, goingPhones: readonly string[]) => {
+    const { data, error } = await supabase
+      .from("event_contributions")
+      .select("id, assigned_user_phone")
+      .eq("event_id", eventId);
+    if (error) throw error;
+    const valid = new Set(goingPhones);
+    const staleIds = (data || [])
+      .filter((r) => r.assigned_user_phone && !valid.has(r.assigned_user_phone))
+      .map((r) => r.id);
+    if (staleIds.length === 0) return;
+    const { error: uerr } = await supabase
+      .from("event_contributions")
+      .update({ assigned_user_phone: null })
+      .in("id", staleIds);
+    if (uerr) throw uerr;
+  }, []);
+
   const toggleContributionStatus = useCallback(async (id: string, status: "open" | "done") => {
     const { error } = await supabase.from("event_contributions").update({ status }).eq("id", id);
     if (error) throw error;
@@ -861,12 +987,15 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         getRsvp,
         getRsvpsForEvent,
         approveRsvp,
+        finalizeManualToAutoApproval,
         declineRsvp,
         fetchEventByInviteCode,
         getContributions,
         addContribution,
         removeContribution,
         assignContribution,
+        unassignContributionsForUser,
+        clearContributionAssigneesNotGoing,
         toggleContributionStatus,
       }}
     >

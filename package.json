@@ -8,11 +8,11 @@
     "generate:icon": "node scripts/generate-icon.js",
     "prestart": "node scripts/generate-covers.js",
     "start": "expo start",
-    "start:simulator": "REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo start",
-    "start:tunnel": "expo start --tunnel",
-    "start:lan": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start:simulator": "node scripts/generate-covers.js && REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo start",
+    "start:tunnel": "node scripts/generate-covers.js && expo start --tunnel",
+    "start:lan": "node scripts/generate-covers.js && expo start",
+    "android": "node scripts/generate-covers.js && expo start --android",
+    "ios": "node scripts/generate-covers.js && expo start --ios",
     "web": "expo start --web"
   },
   "dependencies": {

@@ -43,7 +43,44 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-export type EventType = 'party' | 'birthday' | 'wedding' | 'graduation' | 'majlis' | 'istiraha' | 'ramadan';
+export type EventType =
+  | "party"
+  | "rave"
+  | "gathering"
+  | "birthday"
+  | "dinner"
+  | "wedding"
+  | "graduation";
+
+const EVENT_TYPES: EventType[] = [
+  "party",
+  "rave",
+  "gathering",
+  "birthday",
+  "dinner",
+  "wedding",
+  "graduation",
+];
+
+export function isEventType(value: string | null | undefined): value is EventType {
+  return value != null && (EVENT_TYPES as string[]).includes(value);
+}
+
+/**
+ * Map DB `event_type` to app `EventType`, or null when unset / empty.
+ * Legacy strings map into the current seven-type set (e.g. engagement → wedding).
+ */
+export function normalizeEventType(raw: string | null | undefined): EventType | null {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (s === "") return null;
+  if (isEventType(s)) return s;
+  if (s === "majlis" || s === "istiraha") return "gathering";
+  if (s === "ramadan") return "rave";
+  if (s === "celebration") return "party";
+  if (s === "engagement") return "wedding";
+  return "party";
+}
 
 export type EndDayOffset = 0 | 1;
 
@@ -66,7 +103,8 @@ export interface Event {
   approval_required?: boolean;
   host_phone: string | null;
   host_name: string | null;
-  event_type: EventType;
+  /** Raw DB value; null = host chose no category. Legacy strings — use `normalizeEventType`. */
+  event_type: string | null;
   invite_code: string | null;
   cover_key: string | null;
   cover_url: string | null;

@@ -51,8 +51,6 @@ export default function PhoneLoginScreen() {
   const [showDevSheet, setShowDevSheet] = useState(false);
   const keyboardInset = useKeyboardInset();
 
-  const showDevLink = __DEV__ || process.env.EXPO_PUBLIC_DEV_MENU === "true";
-
   // Validate: at least 10 digits for US/Canada, else at least 8
   const digitsOnly = phoneNumber.replace(/\D/g, "");
   const minLength = selectedCountry.code === "+1" ? 10 : 8;
@@ -61,6 +59,11 @@ export default function PhoneLoginScreen() {
   useEffect(() => {
     isDevMode().then(setDevModeOn);
   }, []);
+
+  /** __DEV__ only: long-press icon or title (~2s) opens sheet; no visible dev UI in production. */
+  const openDevSettingsSheet = () => {
+    if (__DEV__) setShowDevSheet(true);
+  };
 
   /** Dev flow: set dev identity, save phone, sync from server, navigate. */
   const continueInDevMode = async (fullPhone: string) => {
@@ -151,9 +154,7 @@ export default function PhoneLoginScreen() {
         {/* Centered hero: gradient icon + title + subtitle */}
         <View style={{ alignItems: "center", marginBottom: spacing.xxxxl }}>
           <Pressable
-            onLongPress={() => {
-              if (!showDevLink) setShowDevSheet(true);
-            }}
+            onLongPress={openDevSettingsSheet}
             delayLongPress={2000}
             style={{ marginBottom: spacing.xxl }}
           >
@@ -172,30 +173,19 @@ export default function PhoneLoginScreen() {
               <Text style={{ fontSize: 40 }}>🥳</Text>
             </LinearGradient>
           </Pressable>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, marginBottom: spacing.sm }}>
+          <Pressable onLongPress={openDevSettingsSheet} delayLongPress={2000}>
             <Text
               style={{
                 fontSize: typography.sizes.xxl,
                 fontWeight: typography.weights.bold,
                 color: colors.text,
                 textAlign: "center",
+                marginBottom: spacing.sm,
               }}
             >
               Ready to host?
             </Text>
-            {devModeOn && (
-              <Text
-                style={{
-                  fontSize: typography.sizes.xs,
-                  color: colors.textDim,
-                  fontWeight: typography.weights.medium,
-                  letterSpacing: 0.5,
-                }}
-              >
-                DEV
-              </Text>
-            )}
-          </View>
+          </Pressable>
           <Text
             style={{
               fontSize: typography.sizes.md,
@@ -204,7 +194,7 @@ export default function PhoneLoginScreen() {
               lineHeight: 22,
             }}
           >
-            Your number stays private. Event invites only.
+            Your phone number stays private.
           </Text>
         </View>
 
@@ -282,31 +272,7 @@ export default function PhoneLoginScreen() {
               }}
             />
           </View>
-          <Text
-            style={{
-              fontSize: typography.sizes.xs,
-              color: colors.textDim,
-              textAlign: "center",
-            }}
-          >
-            Message & data rates may apply.
-          </Text>
         </View>
-
-        {/* Consent - centered */}
-        <Text
-          style={{
-            fontSize: typography.sizes.xs,
-            color: colors.textMuted,
-            lineHeight: 18,
-            textAlign: "center",
-            marginBottom: spacing.xxl,
-            paddingHorizontal: spacing.lg,
-          }}
-        >
-          By tapping Send code, you consent to receive text messages from us or
-          event hosts. Text HELP for help, STOP to cancel.
-        </Text>
 
         {/* Error message */}
         {error && (
@@ -325,7 +291,7 @@ export default function PhoneLoginScreen() {
         {/* Send code button */}
         <View style={{ width: "100%", maxWidth: 400 }}>
           <AppButton
-            title={loading ? "Sending..." : "Send code"}
+            title={loading ? "Please wait…" : "Continue"}
             onPress={handleSendCode}
             variant="coral"
             size="lg"
@@ -334,114 +300,99 @@ export default function PhoneLoginScreen() {
           />
         </View>
 
-        {/* Dev options link (dev builds only; production: long-press logo 2s) */}
-        {showDevLink && (
-          <Pressable
-            onPress={() => setShowDevSheet(true)}
-            style={{ marginTop: spacing.lg }}
-          >
-            <Text
-              style={{
-                fontSize: typography.sizes.xs,
-                color: colors.textDim,
-              }}
-            >
-              Dev options
-            </Text>
-          </Pressable>
-        )}
       </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Developer options bottom sheet */}
-      <Modal
-        visible={showDevSheet}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowDevSheet(false)}
-      >
-        <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: colors.overlay,
-            justifyContent: "flex-end",
-          }}
-          onPress={() => setShowDevSheet(false)}
+      {__DEV__ ? (
+        <Modal
+          visible={showDevSheet}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowDevSheet(false)}
         >
           <Pressable
             style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              paddingBottom: spacing.xxxxl,
-              paddingHorizontal: spacing.lg,
+              flex: 1,
+              backgroundColor: colors.overlay,
+              justifyContent: "flex-end",
             }}
-            onPress={(e) => e.stopPropagation()}
+            onPress={() => setShowDevSheet(false)}
           >
-            <View
+            <Pressable
               style={{
-                paddingVertical: spacing.lg,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-                marginBottom: spacing.lg,
+                backgroundColor: colors.surface,
+                borderTopLeftRadius: radius.xl,
+                borderTopRightRadius: radius.xl,
+                paddingBottom: spacing.xxxxl,
+                paddingHorizontal: spacing.lg,
               }}
+              onPress={(e) => e.stopPropagation()}
             >
-              <Text
+              <View
                 style={{
-                  fontSize: typography.sizes.lg,
-                  fontWeight: typography.weights.semibold,
-                  color: colors.text,
+                  paddingVertical: spacing.lg,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                  marginBottom: spacing.lg,
                 }}
               >
-                Developer options
-              </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: spacing.sm,
-              }}
-            >
-              <Text
+                <Text
+                  style={{
+                    fontSize: typography.sizes.lg,
+                    fontWeight: typography.weights.semibold,
+                    color: colors.text,
+                  }}
+                >
+                  Developer options
+                </Text>
+              </View>
+              <View
                 style={{
-                  fontSize: typography.sizes.md,
-                  color: colors.text,
-                  fontWeight: typography.weights.medium,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: spacing.sm,
                 }}
               >
-                Skip OTP
-              </Text>
-              <Switch
-                value={devModeOn}
-                onValueChange={async (v) => {
-                  await setDevMode(v);
-                  setDevModeOn(v);
+                <Text
+                  style={{
+                    fontSize: typography.sizes.md,
+                    color: colors.text,
+                    fontWeight: typography.weights.medium,
+                  }}
+                >
+                  Skip OTP
+                </Text>
+                <Switch
+                  value={devModeOn}
+                  onValueChange={async (v) => {
+                    await setDevMode(v);
+                    setDevModeOn(v);
+                  }}
+                  trackColor={{ false: colors.border, true: colors.coral }}
+                  thumbColor={colors.surface}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: typography.sizes.xs,
+                  color: colors.textMuted,
+                  marginBottom: spacing.xl,
                 }}
-                trackColor={{ false: colors.border, true: colors.coral }}
-                thumbColor={colors.surface}
+              >
+                Bypass SMS OTP on this device.
+              </Text>
+              <AppButton
+                title="Done"
+                onPress={() => setShowDevSheet(false)}
+                variant="secondary"
+                size="md"
+                fullWidth
               />
-            </View>
-            <Text
-              style={{
-                fontSize: typography.sizes.xs,
-                color: colors.textMuted,
-                marginBottom: spacing.xl,
-              }}
-            >
-              Bypass SMS OTP on this device.
-            </Text>
-            <AppButton
-              title="Done"
-              onPress={() => setShowDevSheet(false)}
-              variant="secondary"
-              size="md"
-              fullWidth
-            />
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      ) : null}
 
       {/* Country picker modal */}
       <Modal
