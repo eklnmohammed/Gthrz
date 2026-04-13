@@ -55,18 +55,31 @@ export default function Home() {
   const now = Date.now();
   const userEventsById = new Map(upNextEvents.map((e) => [e.id, e]));
 
-  const upNextFiltered = upNextEvents.filter(
-    (e) =>
+  const upNextFiltered = upNextEvents.filter((e) => {
+    const startMs = new Date(e.dateTime).getTime();
+    if (Number.isNaN(startMs) || startMs < now) return false;
+    return (
       e.status !== "cancelled" &&
       (e.hostPhone === userPhone ||
         e.attendingStatus === "going" ||
         e.attendingStatus === "pending" ||
         (e.attendingStatus === "cant" && e.declinedByHost))
-  );
+    );
+  });
+
+  const upNextIds = new Set(upNextFiltered.map((e) => e.id));
 
   const recommendedEvents = (() => {
     if (topPreferencedTypes.length === 0) return [];
-    const futurePublic = publicEvents.filter((e) => new Date(e.dateTime).getTime() >= now);
+    const futurePublic = publicEvents.filter((e) => {
+      const t = new Date(e.dateTime).getTime();
+      return (
+        !Number.isNaN(t) &&
+        t >= now &&
+        e.status !== "cancelled" &&
+        !upNextIds.has(e.id)
+      );
+    });
     const pickFromType = (type: EventType, count: number): Event[] =>
       futurePublic
         .filter((e) => e.eventType === type)
@@ -89,7 +102,10 @@ export default function Home() {
   })();
 
   const featuredEvents = publicEvents
-    .filter((e) => new Date(e.dateTime).getTime() >= now)
+    .filter((e) => {
+      const t = new Date(e.dateTime).getTime();
+      return !Number.isNaN(t) && t >= now && e.status !== "cancelled" && !upNextIds.has(e.id);
+    })
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     .slice(0, 3);
 
@@ -118,7 +134,8 @@ export default function Home() {
     });
   };
 
-  const hasNoEvents = upNextEvents.length === 0;
+  /** True when user has no upcoming relevant events (same basis as Up Next), not raw store count. */
+  const hasNoEvents = upNextFiltered.length === 0;
   const showRecommended = recommendedEvents.length > 0;
 
   const goToFeaturedDiscover = () => {

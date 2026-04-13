@@ -293,6 +293,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Drop previous user's merged list immediately so UI cannot briefly show wrong events after sign-in / switch.
+      setEvents([]);
+
       // 1) Events user created (host)
       const { data: createdData, error: createdErr } = await supabase
         .from("events")

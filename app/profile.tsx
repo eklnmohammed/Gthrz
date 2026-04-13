@@ -31,6 +31,16 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TILE_SIZE = Math.min(220, Math.floor(SCREEN_WIDTH * 0.58));
 const SECTION_GAP = spacing.xxl;
 
+/** Compare stored phones regardless of + prefix / formatting (must match host_phone vs PHONE_KEY). */
+function samePhoneIdentity(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (a == null || b == null) return false;
+  const digits = (s: string) => s.replace(/\D/g, "");
+  const da = digits(a);
+  const db = digits(b);
+  if (da.length === 0 || db.length === 0) return false;
+  return da === db;
+}
+
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
@@ -38,11 +48,17 @@ export default function ProfileScreen() {
   const { events, loading, fetchEvents, fetchPublicEvents } = useEvents();
   const { favoriteIds, reloadFavorites } = useFavorites();
 
-  const createdEvents = phone
-    ? events
-        .filter((e) => e.hostPhone === phone)
-        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-    : [];
+  const createdEvents =
+    phone != null && String(phone).trim() !== ""
+      ? events
+          .filter(
+            (e) =>
+              e.hostPhone != null &&
+              String(e.hostPhone).trim() !== "" &&
+              samePhoneIdentity(e.hostPhone, phone)
+          )
+          .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+      : [];
   const eventsById = new Map<string, Event>([...publicEvents, ...events].map((e) => [e.id, e]));
   const savedEvents = [...eventsById.values()].filter((e) => favoriteIds.has(e.id));
 
@@ -226,7 +242,7 @@ export default function ProfileScreen() {
                   onPress={() => handleEventPress(event)}
                   statusPill={phone ? getEventStatusPill(event, phone) : undefined}
                   cancelled={event.status === "cancelled"}
-                  isHost={event.hostPhone === phone}
+                  isHost={phone != null ? samePhoneIdentity(event.hostPhone, phone) : false}
                   width={TILE_SIZE}
                   posterHeight={TILE_SIZE}
                   hideTypeChip
