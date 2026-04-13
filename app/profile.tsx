@@ -378,6 +378,23 @@ export default function ProfileScreen() {
             }}
           >
             <Pressable
+              onPress={() => router.push("/profile/about")}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingVertical: spacing.lg,
+                paddingHorizontal: spacing.lg,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text style={{ fontSize: typography.sizes.md, color: colors.text }}>
+                About
+              </Text>
+              <Text style={{ fontSize: typography.sizes.lg, color: colors.textDim }}>›</Text>
+            </Pressable>
+            <View style={{ height: 0.5, backgroundColor: colors.border, marginHorizontal: spacing.lg }} />
+            <Pressable
               onPress={handleSignOut}
               style={({ pressed }) => ({
                 flexDirection: "row",

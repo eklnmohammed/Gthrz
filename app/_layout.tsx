@@ -73,12 +73,6 @@ export default function RootLayout() {
             contentStyle: {
               backgroundColor: colors.background,
             },
-            // Avoid double capsule on iOS; give back button room so "Back" doesn't truncate
-            headerLeftContainerStyle: {
-              backgroundColor: "transparent",
-              minWidth: 88,
-            },
-            headerRightContainerStyle: { backgroundColor: "transparent" },
           }}
         >
           {/* Main screens */}
@@ -94,6 +88,10 @@ export default function RootLayout() {
           <Stack.Screen
             name="profile/saved"
             options={{ title: "Saved", headerBackTitle: "Profile" }}
+          />
+          <Stack.Screen
+            name="profile/about"
+            options={{ title: "About", headerBackTitle: "Profile" }}
           />
           <Stack.Screen
             name="events/index"
@@ -139,7 +137,6 @@ export default function RootLayout() {
               headerTitle: "",
               headerBackVisible: false,
               headerLeft: () => <BackToStartButton />,
-              headerLeftContainerStyle: { backgroundColor: "transparent" },
             }}
           />
           <Stack.Screen
@@ -150,7 +147,6 @@ export default function RootLayout() {
               headerTitle: "",
               headerBackVisible: false,
               headerLeft: () => <BackToStartButton />,
-              headerLeftContainerStyle: { backgroundColor: "transparent" },
             }}
           />
           <Stack.Screen
@@ -161,7 +157,6 @@ export default function RootLayout() {
               headerTitle: "",
               headerBackVisible: false,
               headerLeft: () => <BackToStartButton />,
-              headerLeftContainerStyle: { backgroundColor: "transparent" },
             }}
           />
           <Stack.Screen
@@ -172,7 +167,6 @@ export default function RootLayout() {
               headerTitle: "",
               headerBackVisible: false,
               headerLeft: () => <BackToStartButton />,
-              headerLeftContainerStyle: { backgroundColor: "transparent" },
             }}
           />
         </Stack>

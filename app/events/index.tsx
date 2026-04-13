@@ -107,7 +107,6 @@ export default function EventsScreen() {
           headerRight: () => (
             <HeaderTextButton label="Create" onPress={() => router.push("/events/create")} />
           ),
-          headerRightContainerStyle: { paddingRight: spacing.md },
         }}
       />
       <ScrollView
