@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
-import { Stack, router, useSegments, useRootNavigationState } from "expo-router";
+import { Stack, Redirect, useSegments, useRootNavigationState } from "expo-router";
 import { EventsProvider } from "../src/state/eventsStore";
 import { FavoritesProvider } from "../src/state/favoritesStore";
 import { onboardingStore } from "../src/state/onboardingStore";
@@ -28,21 +28,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     checkOnboarding();
   }, [segments]);
 
-  useEffect(() => {
-    if (isLoading || !navigationState?.key) return;
-
-    const inOnboarding = segments[0] === "onboarding";
-
-    if (!isOnboarded && !inOnboarding) {
-      // Not onboarded and not in onboarding flow - redirect to onboarding
-      router.replace("/onboarding");
-    } else if (isOnboarded && inOnboarding) {
-      // Already onboarded but in onboarding flow - redirect to home
-      router.replace("/");
-    }
-  }, [isLoading, isOnboarded, segments, navigationState?.key]);
-
-  if (isLoading) {
+  if (isLoading || !navigationState?.key) {
     return (
       <View
         style={{
@@ -55,6 +41,14 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
+  }
+
+  const inOnboarding = segments[0] === "onboarding";
+  if (!isOnboarded && !inOnboarding) {
+    return <Redirect href="/onboarding" />;
+  }
+  if (isOnboarded && inOnboarding) {
+    return <Redirect href="/" />;
   }
 
   return <>{children}</>;
