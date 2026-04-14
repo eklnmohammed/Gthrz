@@ -78,6 +78,18 @@ function getBringAssigneeDisplayName(
   return getDisplayName(profile!, assignedPhone);
 }
 
+/** Display label when a row has an assignee; avoids "No one yet" when the phone is set but the name is not resolvable yet. */
+function getBringAssigneeRowLabel(
+  assignedPhone: string | null | undefined,
+  going: { user_phone: string }[],
+  profiles: Record<string, UserProfile | null>,
+): string | null {
+  if (!assignedPhone) return null;
+  const resolved = getBringAssigneeDisplayName(assignedPhone, going, profiles);
+  if (resolved) return resolved;
+  return "Guest";
+}
+
 /**
  * When true, a guest should not see the primary "Claim" action (someone else holds it, or assignee pending resolution).
  * Does not apply to host.
@@ -1358,7 +1370,7 @@ export default function EventDetailScreen() {
               <Text style={lowerSectionLabel}>Bring</Text>
               {contributions.map((c, idx) => {
                 const isLastContrib = idx === contributions.length - 1;
-                const assigneeName = getBringAssigneeDisplayName(
+                const assigneeName = getBringAssigneeRowLabel(
                   c.assigned_user_phone,
                   rsvpsByStatus.going,
                   goingProfiles,
@@ -2672,7 +2684,7 @@ export default function EventDetailScreen() {
               }
               const isOpen = c.status === "open";
               const isAssignedToMe = c.assigned_user_phone === userPhone;
-              const assigneeName = getBringAssigneeDisplayName(
+              const assigneeName = getBringAssigneeRowLabel(
                 c.assigned_user_phone,
                 rsvpsByStatus.going,
                 goingProfiles,

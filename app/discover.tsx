@@ -91,7 +91,7 @@ export default function DiscoverScreen() {
       return () => {
         active = false;
       };
-    }, [fetchPublicEvents, getGoingCountsForEventIds])
+    }, [fetchPublicEvents, fetchEvents, getGoingCountsForEventIds])
   );
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function DiscoverScreen() {
       filtered = filtered.filter((e) => e.hostPhone !== userPhone);
     }
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.trim().toLowerCase();
       filtered = filtered.filter((event) => {
         const title = event.title.toLowerCase();
         const location = (event.location || "").toLowerCase();

@@ -391,7 +391,10 @@ export default function EditEventScreen() {
 
   useEffect(() => {
     const fetchEvent = async () => {
-      if (!params.id) return;
+      if (!params.id) {
+        setLoading(false);
+        return;
+      }
       try {
         const phone = await onboardingStore.getPhone();
         if (!phone) {
