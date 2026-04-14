@@ -97,6 +97,7 @@ export default function ProfileScreen() {
     await authSignOut();
     await onboardingStore.reset();
     await reloadFavorites();
+    await fetchEvents();
     await onboardingStore.setOnboarded(false);
     router.replace("/onboarding");
   };
@@ -258,7 +259,7 @@ export default function ProfileScreen() {
             title="Events you created"
             action={
               createdEvents.length > 3
-                ? { label: "See all", onPress: () => router.push("/events") }
+                ? { label: "See all", onPress: () => router.push("/events/hosting") }
                 : undefined
             }
           />

@@ -20,6 +20,16 @@ import { typography } from "../../src/theme/typography";
 import { formatEventDateForCards } from "../../src/utils/formatEventDate";
 import { getEventStatusPill } from "../../src/utils/eventStatusPill";
 
+/** Compare stored phones regardless of + prefix / formatting. */
+function samePhoneIdentity(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (a == null || b == null) return false;
+  const digits = (s: string) => s.replace(/\D/g, "");
+  const da = digits(a);
+  const db = digits(b);
+  if (da.length === 0 || db.length === 0) return false;
+  return da === db;
+}
+
 export default function SavedScreen() {
   const { favoriteIds } = useFavorites();
   const { events, fetchEvents, fetchPublicEvents } = useEvents();
@@ -195,7 +205,7 @@ export default function SavedScreen() {
                 onPress={() => handleEventPress(event)}
                 statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                 cancelled={event.status === "cancelled"}
-                isHost={event.hostPhone === userPhone}
+                isHost={samePhoneIdentity(event.hostPhone, userPhone)}
                 width="100%"
               />
             </View>
