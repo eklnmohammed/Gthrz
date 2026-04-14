@@ -23,7 +23,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { AppButton } from "../../src/components/AppButton";
 import { Badge } from "../../src/components/Badge";
 import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
-import { HeaderTextButton } from "../../src/components/HeaderTextButton";
 import { useEvents, RsvpUserFacingError } from "../../src/state/eventsStore";
 import { useFavorites } from "../../src/state/favoritesStore";
 import { supabase, EventType, normalizeEventType } from "../../src/lib/supabase";
@@ -507,6 +506,20 @@ export default function EventDetailScreen() {
   // Source of truth: DB (rsvps table). We refetch and sync store so all UI stays correct.
   const handleRsvpChange = async (status: RsvpStatus) => {
     if (!status || !params.id) return;
+
+    // Block RSVP if user is not properly onboarded (missing phone)
+    if (!userPhone || userPhone === "guest") {
+      Alert.alert("Complete your profile", "Please complete onboarding to RSVP to events.");
+      return;
+    }
+
+    // Block RSVP on past events
+    const eventMs = new Date(eventData.dateTime).getTime();
+    if (!Number.isNaN(eventMs) && eventMs < Date.now()) {
+      Alert.alert("Event has passed", "You can't RSVP to past events.");
+      return;
+    }
+
     const isSameState =
       rsvpStatus === status || (status === "going" && rsvpStatus === "pending");
     if (isSameState) {
@@ -531,6 +544,11 @@ export default function EventDetailScreen() {
       }
       return;
     }
+
+    // If changing away from "going", unassign any contribution items claimed by this user
+    const wasGoing = rsvpStatus === "going";
+    const willBeGoing = status === "going";
+
     rsvpChangeGenerationRef.current += 1;
     try {
       await submitRsvp(params.id, userPhone, status);
@@ -541,6 +559,13 @@ export default function EventDetailScreen() {
       if (savedStatus !== "going") setUserPlusOne(false);
       await refetchGoingCount();
       await fetchEvents();
+
+      // Unassign contributions when leaving "going" status
+      if (wasGoing && !willBeGoing && savedStatus !== "going") {
+        await unassignContributionsForUser(params.id, userPhone);
+        await refetchContribs();
+      }
+
       if (status === "going" && savedStatus === "pending") {
         Alert.alert("Waiting for approval", "You need to wait for the host to approve you.");
       }
@@ -554,6 +579,8 @@ export default function EventDetailScreen() {
   };
 
   const isCancelled = eventData.status === "cancelled";
+  const eventMs = new Date(eventData.dateTime).getTime();
+  const isPastEvent = !Number.isNaN(eventMs) && eventMs < Date.now();
   const typeLabel = getEventTypeLabel(eventData.eventType as any);
   const hasCover = isValidCoverUrl(eventData.coverUrl) || (eventData.coverKey != null && eventData.coverKey.trim() !== "");
   const eventId = params.id ?? "";
@@ -729,7 +756,7 @@ export default function EventDetailScreen() {
             position: "absolute",
             left: spacing.xxl,
             right: spacing.xxl,
-            bottom: isHostMode || isCancelled ? insets.bottom + spacing.xl : RSVP_BAR_HEIGHT + insets.bottom + spacing.md,
+            bottom: isHostMode || isCancelled || isPastEvent ? insets.bottom + spacing.xl : RSVP_BAR_HEIGHT + insets.bottom + spacing.md,
             zIndex: 80,
           }}
           pointerEvents="box-none"
@@ -768,7 +795,7 @@ export default function EventDetailScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingBottom:
-            (isHostMode || isCancelled
+            (isHostMode || isCancelled || isPastEvent
               ? insets.bottom + spacing.xxl
               : RSVP_BAR_HEIGHT + insets.bottom + spacing.lg) + keyboardInset,
         }}
@@ -1627,7 +1654,7 @@ export default function EventDetailScreen() {
       </ScrollView>
 
       {/* Sticky RSVP bar - guest only; public = Going only, private = Going / Maybe / Not going */}
-      {!isHostMode && !isCancelled && (
+      {!isHostMode && !isCancelled && !isPastEvent && (
         <View
           style={{
             position: "absolute",

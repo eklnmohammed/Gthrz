@@ -323,11 +323,13 @@ export default function CreateEventScreen() {
   };
 
   const hasLineupTimeError = false;
+  const hasPaidAmountError = priceMode === "paid" && (priceAmount.trim() === "" || Number.isNaN(parseFloat(priceAmount)) || parseFloat(priceAmount) <= 0);
 
   const isValid =
     title.trim().length > 0 &&
     selectedDate !== null &&
-    !hasLineupTimeError;
+    !hasLineupTimeError &&
+    !hasPaidAmountError;
 
   const handleCreate = async () => {
     if (creating) return;
@@ -1444,7 +1446,7 @@ export default function CreateEventScreen() {
               <View style={{ gap: spacing.sm }}>
                 <View style={{ gap: spacing.xs }}>
                   <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                    Amount
+                    Amount *
                   </Text>
                   <TextInput
                     value={priceAmount}
@@ -1460,9 +1462,14 @@ export default function CreateEventScreen() {
                       fontSize: typography.sizes.md,
                       color: colors.text,
                       borderWidth: 0.5,
-                      borderColor: colors.border,
+                      borderColor: showValidationErrors && hasPaidAmountError ? colors.error : colors.border,
                     }}
                   />
+                  {showValidationErrors && hasPaidAmountError && (
+                    <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
+                      Enter a valid amount greater than 0
+                    </Text>
+                  )}
                 </View>
                 <View style={{ gap: spacing.xs }}>
                   <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>

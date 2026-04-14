@@ -35,7 +35,7 @@ import { spacing } from "@/src/theme/spacing";
 import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
 import { formatEventDate } from "@/src/utils/formatEventDate";
-import { getCoverOptions, getCoverSource, getEventFormHeroCoverSource } from "@/src/utils/covers";
+import { getCoverOptions, getCoverSource, getEventFormHeroCoverSource, getDefaultCoverKey } from "@/src/utils/covers";
 import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
 import { bringTitleKey } from "@/src/utils/bringTitleKey";
 import { getEntryFeePreviewLine } from "@/src/utils/entryFeePreview";
@@ -501,11 +501,23 @@ export default function EditEventScreen() {
   }, [params.id]);
 
   const hasLineupTimeError = false;
+  const hasPaidAmountError = priceMode === "paid" && (priceAmount.trim() === "" || Number.isNaN(parseFloat(priceAmount)) || parseFloat(priceAmount) <= 0);
 
   const isValid =
     title.trim().length > 0 &&
     selectedDate !== null &&
-    !hasLineupTimeError;
+    !hasLineupTimeError &&
+    !hasPaidAmountError;
+
+  const handleEventTypeChange = (type: EventType | null) => {
+    setEventType(type);
+    if (type == null) {
+      setCoverKey("");
+    } else {
+      setCoverKey(getDefaultCoverKey(type));
+    }
+    setCoverUrl(null);
+  };
 
   const openLineupTimePicker = (index: number, field: "startTime" | "endTime") => {
     const entry = index === DRAFT_INDEX ? draftLineup : lineup[index];
@@ -824,7 +836,7 @@ export default function EditEventScreen() {
           }}
         />
 
-        <EventFormEventTypeChips eventType={eventType} onSelect={setEventType} />
+        <EventFormEventTypeChips eventType={eventType} onSelect={handleEventTypeChange} />
 
         {error ? <EventFormErrorBanner message={error} /> : null}
 
@@ -1744,7 +1756,7 @@ export default function EditEventScreen() {
               <View style={{ gap: spacing.sm }}>
                 <View style={{ gap: spacing.xs }}>
                   <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                    Amount
+                    Amount *
                   </Text>
                   <TextInput
                     value={priceAmount}
@@ -1760,9 +1772,14 @@ export default function EditEventScreen() {
                       fontSize: typography.sizes.md,
                       color: colors.text,
                       borderWidth: 0.5,
-                      borderColor: colors.border,
+                      borderColor: showValidationErrors && hasPaidAmountError ? colors.error : colors.border,
                     }}
                   />
+                  {showValidationErrors && hasPaidAmountError && (
+                    <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
+                      Enter a valid amount greater than 0
+                    </Text>
+                  )}
                 </View>
                 <View style={{ gap: spacing.xs }}>
                   <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
