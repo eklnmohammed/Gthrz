@@ -238,6 +238,9 @@ export default function EventDetailScreen() {
   })();
   const showLocationText = eventData.location && (isHostMode || isLocationRevealed);
 
+  /** Only "going" guests can claim/unclaim Bring items; pending guests see the list read-only. */
+  const bringGuestCanInteract = !isHostMode && rsvpStatus === "going";
+
   const revealTimeLabel = (hours: number) => {
     if (hours >= 24 && hours % 24 === 0) {
       const d = hours / 24;
@@ -1362,10 +1365,11 @@ export default function EventDetailScreen() {
             </View>
           ) : null}
 
-          {/* Bring — host always sees section (can add first item when empty); guests only when there are items to claim */}
+          {/* Bring — host always sees section (can add first item when empty); going/pending guests when there are items (pending: view-only) */}
           {(isHostMode ||
             (contributions.length > 0 &&
-              rsvpsByStatus.going.some((r) => r.user_phone === userPhone))) ? (
+              (rsvpsByStatus.going.some((r) => r.user_phone === userPhone) ||
+                rsvpsByStatus.pending.some((r) => r.user_phone === userPhone)))) ? (
             <View style={lowerSubsectionWrap}>
               <Text style={lowerSectionLabel}>Bring</Text>
               {contributions.map((c, idx) => {
@@ -1381,10 +1385,11 @@ export default function EventDetailScreen() {
                     ? `Assigned to ${assigneeName}`
                     : "No one yet";
                 const showGuestClaim =
+                  bringGuestCanInteract &&
                   c.status === "open" &&
                   !bringItemBlocksGuestClaim(c, userPhone, rsvpsByStatus.going, goingProfiles);
                 const showGuestClaimed =
-                  c.status === "open" && c.assigned_user_phone === userPhone;
+                  bringGuestCanInteract && c.status === "open" && c.assigned_user_phone === userPhone;
 
                 const openContribSheet = () => {
                   setSelectedContribId(c.id);
@@ -1474,7 +1479,7 @@ export default function EventDetailScreen() {
                   isLastContrib && !isHostMode ? { borderBottomWidth: 0 } : null,
                 ];
 
-                if (!isHostMode) {
+                if (!isHostMode && bringGuestCanInteract) {
                   return (
                     <Pressable
                       key={c.id}
@@ -2690,7 +2695,9 @@ export default function EventDetailScreen() {
                 goingProfiles,
               );
               const modalShowGuestClaim =
-                isOpen && !bringItemBlocksGuestClaim(c, userPhone, rsvpsByStatus.going, goingProfiles);
+                bringGuestCanInteract &&
+                isOpen &&
+                !bringItemBlocksGuestClaim(c, userPhone, rsvpsByStatus.going, goingProfiles);
               return (
                 <>
                   <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg }} />
@@ -2742,7 +2749,7 @@ export default function EventDetailScreen() {
                         <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>Claim</Text>
                       </Pressable>
                     )}
-                    {!isHostMode && isAssignedToMe && (
+                    {!isHostMode && bringGuestCanInteract && isAssignedToMe && (
                       <Pressable
                         onPress={() =>
                           assignContribution(c.id, null).then(() => {
