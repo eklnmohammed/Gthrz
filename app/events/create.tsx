@@ -328,6 +328,7 @@ export default function CreateEventScreen() {
   const isValid =
     title.trim().length > 0 &&
     selectedDate !== null &&
+    selectedDate > new Date() &&
     !hasLineupTimeError &&
     !hasPaidAmountError;
 

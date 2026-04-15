@@ -509,6 +509,7 @@ export default function EditEventScreen() {
   const isValid =
     title.trim().length > 0 &&
     selectedDate !== null &&
+    selectedDate > new Date() &&
     !hasLineupTimeError &&
     !hasPaidAmountError;
 
