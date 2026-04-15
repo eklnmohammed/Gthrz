@@ -505,6 +505,7 @@ export default function EditEventScreen() {
 
   const hasLineupTimeError = false;
   const hasPaidAmountError = priceMode === "paid" && (priceAmount.trim() === "" || Number.isNaN(parseFloat(priceAmount)) || parseFloat(priceAmount) <= 0);
+  const hasPastDateError = selectedDate !== null && selectedDate <= new Date();
 
   const isValid =
     title.trim().length > 0 &&
@@ -870,7 +871,7 @@ export default function EditEventScreen() {
                 minHeight: 48,
                 justifyContent: "center",
                 borderWidth: 0.5,
-                borderColor: showValidationErrors && !selectedDate ? colors.error : colors.border,
+                borderColor: showValidationErrors && (!selectedDate || hasPastDateError) ? colors.error : colors.border,
                 opacity: pressed ? 0.9 : 1,
               })}
             >
@@ -881,6 +882,11 @@ export default function EditEventScreen() {
             {showValidationErrors && !selectedDate && (
               <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
                 Date & time is required
+              </Text>
+            )}
+            {showValidationErrors && hasPastDateError && (
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
+                Event date must be in the future.
               </Text>
             )}
           </View>
@@ -1878,7 +1884,7 @@ export default function EditEventScreen() {
         ) : (
           <Pressable
             onPress={handleSave}
-            disabled={!isValid || saving || deleting}
+            disabled={saving || deleting}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             style={({ pressed }) => ({
               flexDirection: "row",
