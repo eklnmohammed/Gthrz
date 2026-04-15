@@ -17,6 +17,7 @@ import { radius } from "../src/theme/radius";
 import { typography } from "../src/theme/typography";
 import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
+import { compareEventsDefaultChronological } from "../src/utils/eventListOrdering";
 
 const CARD_WIDTH = 260;
 const CTA_HEIGHT = 56;
@@ -68,6 +69,7 @@ export default function Home() {
   });
 
   const upNextIds = new Set(upNextFiltered.map((e) => e.id));
+  const upNextSorted = [...upNextFiltered].sort((a, b) => compareEventsDefaultChronological(a, b, now));
 
   const recommendedEvents = (() => {
     if (topPreferencedTypes.length === 0) return [];
@@ -317,7 +319,7 @@ export default function Home() {
                 decelerationRate="fast"
                 contentContainerStyle={{ gap: spacing.lg, paddingRight: spacing.xxl }}
               >
-                {upNextFiltered.slice(0, 3).map((event) => (
+                {upNextSorted.slice(0, 3).map((event) => (
                   <EventCard
                     key={event.id}
                     eventId={event.id}

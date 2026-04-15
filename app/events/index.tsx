@@ -281,7 +281,7 @@ export default function EventsScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: spacing.md }}
                 >
-                  {[...upcomingHosting].slice(0, 3).reverse().map((event) => (
+                  {[...upcomingHosting].slice(0, 3).map((event) => (
                     <EventCard
                       key={event.id}
                       eventId={event.id}
@@ -387,7 +387,7 @@ export default function EventsScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: spacing.md }}
                 >
-                  {[...upcomingGoingOrPending].slice(0, 3).reverse().map((event) => (
+                  {[...upcomingGoingOrPending].slice(0, 3).map((event) => (
                     <EventCard
                       key={event.id}
                       eventId={event.id}

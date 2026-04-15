@@ -19,6 +19,7 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 import { formatEventDateForCards } from "../../src/utils/formatEventDate";
 import { getEventStatusPill } from "../../src/utils/eventStatusPill";
+import { compareEventsDefaultChronological } from "../../src/utils/eventListOrdering";
 
 /** Compare stored phones regardless of + prefix / formatting. */
 function samePhoneIdentity(a: string | null | undefined, b: string | null | undefined): boolean {
@@ -72,7 +73,7 @@ export default function SavedScreen() {
 
   const sorted = [...bySearch].sort((a, b) => {
     if (sortBy === "soonest") {
-      return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+      return compareEventsDefaultChronological(a, b, Date.now());
     }
     const tA =
       a.createdAt && a.createdAt !== ""

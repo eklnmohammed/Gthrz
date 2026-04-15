@@ -25,6 +25,7 @@ import { typography } from "../src/theme/typography";
 import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
 import { clearPreferencesForPhone, clearPreferences } from "../src/utils/preferences";
+import { compareEventsDefaultChronological } from "../src/utils/eventListOrdering";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // Square tile: ~2 visible with a peek of the next
@@ -48,6 +49,7 @@ export default function ProfileScreen() {
   const { events, loading, fetchEvents, fetchPublicEvents } = useEvents();
   const { favoriteIds, reloadFavorites } = useFavorites();
 
+  const nowMs = Date.now();
   const createdEvents =
     phone != null && String(phone).trim() !== ""
       ? events
@@ -57,10 +59,12 @@ export default function ProfileScreen() {
               String(e.hostPhone).trim() !== "" &&
               samePhoneIdentity(e.hostPhone, phone)
           )
-          .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+          .sort((a, b) => compareEventsDefaultChronological(a, b, nowMs))
       : [];
   const eventsById = new Map<string, Event>([...publicEvents, ...events].map((e) => [e.id, e]));
-  const savedEvents = [...eventsById.values()].filter((e) => favoriteIds.has(e.id));
+  const savedEvents = [...eventsById.values()]
+    .filter((e) => favoriteIds.has(e.id))
+    .sort((a, b) => compareEventsDefaultChronological(a, b, nowMs));
 
   const loadProfile = useCallback(async () => {
     const [p, ph] = await Promise.all([

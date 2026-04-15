@@ -18,6 +18,7 @@ import { onboardingStore } from "../state/onboardingStore";
 import { generateInviteCode } from "../utils/inviteCode";
 import { getDefaultCoverKey } from "../utils/covers";
 import { isValidCoverUrl } from "../utils/coverUrl";
+import { compareEventsDefaultChronological } from "../utils/eventListOrdering";
 
 export interface Event {
   id: string;
@@ -340,8 +341,8 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         attendingStatus: attendingMap.get(e.id),
         declinedByHost: declinedMap.get(e.id) ?? false,
       }));
-      const merged = [...created, ...attendingWithStatus].sort(
-        (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+      const merged = [...created, ...attendingWithStatus].sort((a, b) =>
+        compareEventsDefaultChronological(a, b, Date.now())
       );
       setEvents(merged);
     } catch (err) {
