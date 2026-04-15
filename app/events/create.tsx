@@ -46,6 +46,7 @@ import type { EndDayOffset } from "@/src/lib/supabase";
 import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
 import { bringTitleKey } from "@/src/utils/bringTitleKey";
 import { getEntryFeePreviewLine } from "@/src/utils/entryFeePreview";
+import { isValidPositiveWholeCapacityString } from "@/src/utils/capacityInput";
 import {
   EVENT_FORM_HERO_PADDING_H,
   eventFormScrollPaddingBottom,
@@ -325,13 +326,16 @@ export default function CreateEventScreen() {
   const hasLineupTimeError = false;
   const hasPaidAmountError = priceMode === "paid" && (priceAmount.trim() === "" || Number.isNaN(parseFloat(priceAmount)) || parseFloat(priceAmount) <= 0);
   const hasPastDateError = selectedDate !== null && selectedDate <= new Date();
+  const hasCapacityError =
+    capacityMode === "set" && !isValidPositiveWholeCapacityString(capacityValue);
 
   const isValid =
     title.trim().length > 0 &&
     selectedDate !== null &&
     selectedDate > new Date() &&
     !hasLineupTimeError &&
-    !hasPaidAmountError;
+    !hasPaidAmountError &&
+    !hasCapacityError;
 
   const handleCreate = async () => {
     if (creating) return;
@@ -758,6 +762,11 @@ export default function CreateEventScreen() {
               {capacityMode === "set" && capacityValue !== "" && (
                 <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
                   Max {capacityValue} guests
+                </Text>
+              )}
+              {showValidationErrors && hasCapacityError && (
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.error, marginTop: 2 }}>
+                  Capacity must be a positive whole number.
                 </Text>
               )}
             </View>
@@ -1706,8 +1715,7 @@ export default function CreateEventScreen() {
               </Pressable>
               {(() => {
                 const v = capacitySheetTemp.trim();
-                const num = parseInt(v, 10);
-                const capacityApplyValid = v !== "" && !Number.isNaN(num) && num >= 1;
+                const capacityApplyValid = isValidPositiveWholeCapacityString(capacitySheetTemp);
                 return (
                   <Pressable
                     onPress={() => {

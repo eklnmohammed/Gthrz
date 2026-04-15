@@ -39,6 +39,7 @@ import { getCoverOptions, getCoverSource, getEventFormHeroCoverSource, getDefaul
 import { BRING_SUGGESTIONS, EVENT_TYPE_OPTIONS } from "@/src/constants/eventFormOptions";
 import { bringTitleKey } from "@/src/utils/bringTitleKey";
 import { getEntryFeePreviewLine } from "@/src/utils/entryFeePreview";
+import { isValidPositiveWholeCapacityString } from "@/src/utils/capacityInput";
 import {
   EVENT_FORM_HERO_PADDING_H,
   eventFormScrollPaddingBottom,
@@ -279,7 +280,7 @@ export default function EditEventScreen() {
 
   const effectiveCapacity = capacityMode === "unlimited" ? "" : capacityValue;
 
-  /** Positive integer or null (unlimited / invalid). */
+  /** Positive integer or null (unlimited). Set mode with empty/invalid string yields null — callers must gate on form validation first. */
   function parseFormCapacityLimitEdit(
     mode: "unlimited" | "set",
     effectiveCap: string,
@@ -287,9 +288,8 @@ export default function EditEventScreen() {
     if (mode === "unlimited") return null;
     const t = effectiveCap.trim();
     if (t === "") return null;
-    const n = parseInt(t, 10);
-    if (Number.isNaN(n) || n <= 0) return null;
-    return n;
+    if (!isValidPositiveWholeCapacityString(t)) return null;
+    return parseInt(t, 10);
   }
 
   type InitialSnapshot = {
@@ -506,13 +506,16 @@ export default function EditEventScreen() {
   const hasLineupTimeError = false;
   const hasPaidAmountError = priceMode === "paid" && (priceAmount.trim() === "" || Number.isNaN(parseFloat(priceAmount)) || parseFloat(priceAmount) <= 0);
   const hasPastDateError = selectedDate !== null && selectedDate <= new Date();
+  const hasCapacityError =
+    capacityMode === "set" && !isValidPositiveWholeCapacityString(capacityValue);
 
   const isValid =
     title.trim().length > 0 &&
     selectedDate !== null &&
     selectedDate > new Date() &&
     !hasLineupTimeError &&
-    !hasPaidAmountError;
+    !hasPaidAmountError &&
+    !hasCapacityError;
 
   const handleEventTypeChange = (type: EventType | null) => {
     setEventType(type);
@@ -1075,6 +1078,11 @@ export default function EditEventScreen() {
               {capacityMode === "set" && capacityValue !== "" && (
                 <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
                   Max {capacityValue} guests
+                </Text>
+              )}
+              {showValidationErrors && hasCapacityError && (
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.error, marginTop: 2 }}>
+                  Capacity must be a positive whole number.
                 </Text>
               )}
             </View>
@@ -2036,8 +2044,7 @@ export default function EditEventScreen() {
               </Pressable>
               {(() => {
                 const v = capacitySheetTemp.trim();
-                const num = parseInt(v, 10);
-                const capacityApplyValid = v !== "" && !Number.isNaN(num) && num >= 1;
+                const capacityApplyValid = isValidPositiveWholeCapacityString(capacitySheetTemp);
                 return (
                   <Pressable
                     onPress={() => {
