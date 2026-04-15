@@ -49,6 +49,16 @@ import {
   EventFormErrorBanner,
   EventFormFooter,
   EventFormEssentialsHeading,
+  EventFormTogglePair,
+  EventFormAudienceChips,
+  EventFormCapacityControl,
+  EventFormDressCodeControl,
+  EventFormLocationVisibilityControl,
+  EventFormPriceSection,
+  EventFormCapacitySheetModal,
+  EventFormRevealAddressSheetModal,
+  EventFormDressCodeSheetModal,
+  EVENT_FORM_DRESS_CODE_CUSTOM,
 } from "@/src/components/event-form";
 import { LocationCardWithPicker, type LocationSelection } from "@/src/components/LocationCardWithPicker";
 import { isValidCoverUrl } from "@/src/utils/coverUrl";
@@ -182,11 +192,7 @@ export default function EditEventScreen() {
   const [priceAmount, setPriceAmount] = useState("");
   const [priceCurrency, setPriceCurrency] = useState("SAR");
 
-  const AUDIENCE_OPTIONS = ["Men only", "Mixed", "Women only"];
-
-  const DRESS_CODE_PRESETS = ["Casual", "Smart casual", "Formal", "Traditional", "All black", "Techno", "Y2K", "Custom"];
-  const DRESS_CODE_CUSTOM = "Custom";
-  const dressCodeValue = dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom.trim() : dressCode;
+  const dressCodeValue = dressCode === EVENT_FORM_DRESS_CODE_CUSTOM ? dressCodeCustom.trim() : dressCode;
 
   const DRAFT_INDEX = -1;
 
@@ -448,7 +454,7 @@ export default function EditEventScreen() {
           if (presets.includes(existingDressCode)) {
             setDressCode(existingDressCode);
           } else if (existingDressCode) {
-            setDressCode(DRESS_CODE_CUSTOM);
+            setDressCode(EVENT_FORM_DRESS_CODE_CUSTOM);
             setDressCodeCustom(existingDressCode);
           }
           setAudience(data.audience ?? "");
@@ -859,443 +865,159 @@ export default function EditEventScreen() {
               placeholder="e.g., Eid gathering, Istiraha night..."
               error={showValidationErrors && !title.trim() ? "Title is required" : undefined}
             />
-
-          <View style={{ gap: spacing.sm }}>
-            <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-              Date & Time *
-            </Text>
-            <Pressable
-              onPress={openDatePicker}
-              style={({ pressed }) => ({
-                backgroundColor: colors.surfaceLight,
-                borderRadius: radius.md,
-                paddingVertical: spacing.md,
-                paddingHorizontal: spacing.lg,
-                minHeight: 48,
-                justifyContent: "center",
-                borderWidth: 0.5,
-                borderColor: showValidationErrors && (!selectedDate || hasPastDateError) ? colors.error : colors.border,
-                opacity: pressed ? 0.9 : 1,
-              })}
-            >
-              <Text style={{ fontSize: typography.sizes.md, color: selectedDate ? colors.text : colors.textDim }}>
-                {selectedDate ? formatEventDate(selectedDate.toISOString()) : "Tap to choose date and time"}
+            <View style={{ gap: spacing.sm }}>
+              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
+                Date & Time *
               </Text>
-            </Pressable>
-            {showValidationErrors && !selectedDate && (
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
-                Date & time is required
-              </Text>
-            )}
-            {showValidationErrors && hasPastDateError && (
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
-                Event date must be in the future.
-              </Text>
-            )}
-          </View>
-
-          <View style={{ gap: spacing.sm }}>
-            <LocationCardWithPicker
-              value={locationData}
-              onChange={setLocationData}
-              userPhone={userPhone}
+              <Pressable
+                onPress={openDatePicker}
+                style={({ pressed }) => ({
+                  backgroundColor: colors.surfaceLight,
+                  borderRadius: radius.md,
+                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.lg,
+                  minHeight: 48,
+                  justifyContent: "center",
+                  borderWidth: 0.5,
+                  borderColor: showValidationErrors && (!selectedDate || hasPastDateError) ? colors.error : colors.border,
+                  opacity: pressed ? 0.9 : 1,
+                })}
+              >
+                <Text style={{ fontSize: typography.sizes.md, color: selectedDate ? colors.text : colors.textDim }}>
+                  {selectedDate ? formatEventDate(selectedDate.toISOString()) : "Tap to choose date and time"}
+                </Text>
+              </Pressable>
+              {showValidationErrors && !selectedDate && (
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
+                  Date & time is required
+                </Text>
+              )}
+              {showValidationErrors && hasPastDateError && (
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
+                  Event date must be in the future.
+                </Text>
+              )}
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              <LocationCardWithPicker
+                value={locationData}
+                onChange={setLocationData}
+                userPhone={userPhone}
+              />
+            </View>
+            <AppInput
+              label="About"
+              value={details}
+              onChangeText={setDetails}
+              placeholder="What's this event about?"
+              multiline
+              numberOfLines={4}
             />
-          </View>
-          <AppInput
-            label="About"
-            value={details}
-            onChangeText={setDetails}
-            placeholder="What's this event about?"
-            multiline
-            numberOfLines={4}
-          />
           </View>
         </View>
 
         {/* ── Access: visibility, approval, capacity ── */}
         <EventFormSectionCard title="Access">
           <>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Who can join
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                {(["private", "public"] as const).map((v) => (
-                  <Pressable
-                    key={v}
-                    onPress={() => setVisibility(v)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: visibility === v ? colors.primary : colors.surfaceLight,
-                      borderRadius: radius.md,
-                      paddingVertical: spacing.md,
-                      alignItems: "center",
-                      borderWidth: 0.5,
-                      borderColor: visibility === v ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: visibility === v ? colors.text : colors.textMuted }}>
-                      {v === "private" ? "Private" : "Public"}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                {visibility === "private"
+            <EventFormTogglePair
+              label="Who can join"
+              options={[
+                { value: "private", label: "Private" },
+                { value: "public", label: "Public" },
+              ]}
+              value={visibility}
+              onChange={setVisibility}
+              helperText={(v) =>
+                v === "private"
                   ? "Only people with the code can find this event."
-                  : "Visible in Discover. Share the code for quick access."}
-              </Text>
-            </View>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Guest approval
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => {
-                    if (approvalRequired) {
-                      void handleSelectAutoApprove();
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    backgroundColor: !approvalRequired ? colors.primary : colors.surfaceLight,
-                    borderRadius: radius.md,
-                    paddingVertical: spacing.md,
-                    alignItems: "center",
-                    borderWidth: 0.5,
-                    borderColor: !approvalRequired ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !approvalRequired ? colors.text : colors.textMuted }}>
-                    Auto approve
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setApprovalRequired(true)}
-                  style={{
-                    flex: 1,
-                    backgroundColor: approvalRequired ? colors.primary : colors.surfaceLight,
-                    borderRadius: radius.md,
-                    paddingVertical: spacing.md,
-                    alignItems: "center",
-                    borderWidth: 0.5,
-                    borderColor: approvalRequired ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: approvalRequired ? colors.text : colors.textMuted }}>
-                    Manual approval
-                  </Text>
-                </Pressable>
-              </View>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                {approvalRequired ? "You approve each request" : "Anyone can join instantly"}
-              </Text>
-            </View>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Allow extra
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => setAllowPlusOne(false)}
-                  style={{
-                    flex: 1,
-                    backgroundColor: !allowPlusOne ? colors.primary : colors.surfaceLight,
-                    borderRadius: radius.md,
-                    paddingVertical: spacing.md,
-                    alignItems: "center",
-                    borderWidth: 0.5,
-                    borderColor: !allowPlusOne ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !allowPlusOne ? colors.text : colors.textMuted }}>
-                    No
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setAllowPlusOne(true)}
-                  style={{
-                    flex: 1,
-                    backgroundColor: allowPlusOne ? colors.primary : colors.surfaceLight,
-                    borderRadius: radius.md,
-                    paddingVertical: spacing.md,
-                    alignItems: "center",
-                    borderWidth: 0.5,
-                    borderColor: allowPlusOne ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: allowPlusOne ? colors.text : colors.textMuted }}>
-                    Yes
-                  </Text>
-                </Pressable>
-              </View>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                Guests can bring one additional person
-              </Text>
-            </View>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Capacity
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => setCapacityMode("unlimited")}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: capacityMode === "unlimited" ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: capacityMode === "unlimited" ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: capacityMode === "unlimited" ? colors.text : colors.textMuted }}>
-                    Unlimited
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setCapacitySheetTemp(capacityValue || "50");
-                    setShowCapacitySheet(true);
-                  }}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: capacityMode === "set" ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: capacityMode === "set" ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: capacityMode === "set" ? colors.text : colors.textMuted }}>
-                    {capacityMode === "set" && capacityValue !== "" ? `${capacityValue} guests` : "Set limit"}
-                  </Text>
-                </Pressable>
-              </View>
-              {capacityMode === "set" && capacityValue !== "" && (
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                  Max {capacityValue} guests
-                </Text>
-              )}
-              {showValidationErrors && hasCapacityError && (
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.error, marginTop: 2 }}>
-                  Capacity must be a positive whole number.
-                </Text>
-              )}
-            </View>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Dress code
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => { setDressCode(""); setDressCodeCustom(""); }}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: dressCode === "" ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: dressCode === "" ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode === "" ? colors.text : colors.textMuted }}>
-                    None
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setDressCodeSheetTemp(dressCode || "");
-                    setDressCodeSheetCustom(dressCode === DRESS_CODE_CUSTOM ? dressCodeCustom : "");
-                    setShowDressCodeSheet(true);
-                  }}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: dressCode !== "" ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: dressCode !== "" ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: dressCode !== "" ? colors.text : colors.textMuted }} numberOfLines={1}>
-                    {dressCodeValue !== "" ? dressCodeValue : "Set dress code"}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Guest type
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                {AUDIENCE_OPTIONS.map((opt) => {
-                  const selected = audience === opt;
-                  return (
-                    <Pressable
-                      key={opt}
-                      onPress={() => setAudience(selected ? "" : opt)}
-                      style={{
-                        flex: 1,
-                        paddingVertical: spacing.md,
-                        borderRadius: radius.md,
-                        backgroundColor: selected ? colors.primary : colors.surfaceLight,
-                        borderWidth: 0.5,
-                        borderColor: selected ? colors.primary : colors.border,
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
-                        {opt}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+                  : "Visible in Discover. Share the code for quick access."
+              }
+            />
+            <EventFormTogglePair
+              label="Guest approval"
+              options={[
+                { value: "auto", label: "Auto approve" },
+                { value: "manual", label: "Manual approval" },
+              ]}
+              value={approvalRequired ? "manual" : "auto"}
+              onChange={(v) => {
+                if (v === "auto" && approvalRequired) {
+                  void handleSelectAutoApprove();
+                } else if (v === "manual") {
+                  setApprovalRequired(true);
+                }
+              }}
+              helperText={(v) =>
+                v === "manual" ? "You approve each request" : "Anyone can join instantly"
+              }
+            />
+            <EventFormTogglePair
+              label="Allow extra"
+              options={[
+                { value: "no", label: "No" },
+                { value: "yes", label: "Yes" },
+              ]}
+              value={allowPlusOne ? "yes" : "no"}
+              onChange={(v) => setAllowPlusOne(v === "yes")}
+              helperText="Guests can bring one additional person"
+            />
+            <EventFormCapacityControl
+              mode={capacityMode}
+              value={capacityValue}
+              onSelectUnlimited={() => setCapacityMode("unlimited")}
+              onOpenSheet={() => {
+                setCapacitySheetTemp(capacityValue || "50");
+                setShowCapacitySheet(true);
+              }}
+              showValidationError={showValidationErrors && hasCapacityError}
+            />
+            <EventFormDressCodeControl
+              dressCode={dressCode}
+              dressCodeValue={dressCodeValue}
+              onClear={() => { setDressCode(""); setDressCodeCustom(""); }}
+              onOpenSheet={() => {
+                setDressCodeSheetTemp(dressCode || "");
+                setDressCodeSheetCustom(dressCode === EVENT_FORM_DRESS_CODE_CUSTOM ? dressCodeCustom : "");
+                setShowDressCodeSheet(true);
+              }}
+            />
+            <EventFormAudienceChips value={audience} onChange={setAudience} />
           </>
         </EventFormSectionCard>
 
         {/* ── Privacy: location visibility + guest visibility toggles ── */}
         <EventFormSectionCard title="Privacy">
           <>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                When do guests see the address?
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => { setLocationVisibility("now"); setRevealHoursBefore(null); }}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: locationVisibility === "now" ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: locationVisibility === "now" ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: locationVisibility === "now" ? colors.text : colors.textMuted }}>
-                    Visible now
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setRevealSheetTemp(revealHoursBefore ?? 24);
-                    setRevealSheetCustom(revealHoursBefore != null && revealHoursBefore > 0 && ![1, 2, 5, 24].includes(revealHoursBefore) ? String(revealHoursBefore) : "");
-                    setShowRevealSheet(true);
-                  }}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: locationVisibility === "reveal" ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: locationVisibility === "reveal" ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: locationVisibility === "reveal" ? colors.text : colors.textMuted }} numberOfLines={1}>
-                    {locationVisibility === "reveal" && revealHoursBefore != null && revealHoursBefore > 0
-                      ? `${revealHoursBefore}h before`
-                      : "Reveal later"}
-                  </Text>
-                </Pressable>
-              </View>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                {locationVisibility === "reveal" ? "Address is hidden until the reveal time" : "Address is visible to all guests"}
-              </Text>
-            </View>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Guest names
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => setHideGuestNames(false)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: !hideGuestNames ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: !hideGuestNames ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestNames ? colors.text : colors.textMuted }}>
-                    Show names
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setHideGuestNames(true)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: hideGuestNames ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: hideGuestNames ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestNames ? colors.text : colors.textMuted }}>
-                    Hide names
-                  </Text>
-                </Pressable>
-              </View>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                Guests can see attendee names
-              </Text>
-            </View>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Guest photos
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => setHideGuestAvatars(false)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: !hideGuestAvatars ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: !hideGuestAvatars ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: !hideGuestAvatars ? colors.text : colors.textMuted }}>
-                    Show photos
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setHideGuestAvatars(true)}
-                  style={{
-                    flex: 1,
-                    paddingVertical: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: hideGuestAvatars ? colors.primary : colors.surfaceLight,
-                    borderWidth: 0.5,
-                    borderColor: hideGuestAvatars ? colors.primary : colors.border,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: hideGuestAvatars ? colors.text : colors.textMuted }}>
-                    Hide photos
-                  </Text>
-                </Pressable>
-              </View>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                Guests can see attendee profile photos
-              </Text>
-            </View>
+            <EventFormLocationVisibilityControl
+              visibility={locationVisibility}
+              revealHoursBefore={revealHoursBefore}
+              onSelectNow={() => { setLocationVisibility("now"); setRevealHoursBefore(null); }}
+              onOpenSheet={() => {
+                setRevealSheetTemp(revealHoursBefore ?? 24);
+                setRevealSheetCustom(revealHoursBefore != null && revealHoursBefore > 0 && ![1, 2, 5, 24].includes(revealHoursBefore) ? String(revealHoursBefore) : "");
+                setShowRevealSheet(true);
+              }}
+            />
+            <EventFormTogglePair
+              label="Guest names"
+              options={[
+                { value: "show", label: "Show names" },
+                { value: "hide", label: "Hide names" },
+              ]}
+              value={hideGuestNames ? "hide" : "show"}
+              onChange={(v) => setHideGuestNames(v === "hide")}
+              helperText="Guests can see attendee names"
+            />
+            <EventFormTogglePair
+              label="Guest photos"
+              options={[
+                { value: "show", label: "Show photos" },
+                { value: "hide", label: "Hide photos" },
+              ]}
+              value={hideGuestAvatars ? "hide" : "show"}
+              onChange={(v) => setHideGuestAvatars(v === "hide")}
+              helperText="Guests can see attendee profile photos"
+            />
           </>
         </EventFormSectionCard>
 
@@ -1730,119 +1452,17 @@ export default function EditEventScreen() {
 
         {/* ── Price ── */}
         <EventFormSectionCard title="Price">
-          <>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                Entry fee
-              </Text>
-              <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                <Pressable
-                  onPress={() => { setPriceMode("free"); setPriceAmount(""); }}
-                  style={{
-                    flex: 1,
-                    backgroundColor: priceMode === "free" ? colors.primary : colors.surfaceLight,
-                    borderRadius: radius.md,
-                    paddingVertical: spacing.md,
-                    alignItems: "center",
-                    borderWidth: 0.5,
-                    borderColor: priceMode === "free" ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: priceMode === "free" ? colors.text : colors.textMuted }}>
-                    Free
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setPriceMode("paid")}
-                  style={{
-                    flex: 1,
-                    backgroundColor: priceMode === "paid" ? colors.primary : colors.surfaceLight,
-                    borderRadius: radius.md,
-                    paddingVertical: spacing.md,
-                    alignItems: "center",
-                    borderWidth: 0.5,
-                    borderColor: priceMode === "paid" ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: priceMode === "paid" ? colors.text : colors.textMuted }}>
-                    Paid
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-            {priceMode === "paid" && (
-              <View style={{ gap: spacing.sm }}>
-                <View style={{ gap: spacing.xs }}>
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                    Amount *
-                  </Text>
-                  <TextInput
-                    value={priceAmount}
-                    onChangeText={setPriceAmount}
-                    placeholder="0"
-                    placeholderTextColor={colors.textDim}
-                    keyboardType="decimal-pad"
-                    style={{
-                      backgroundColor: colors.surfaceLight,
-                      borderRadius: radius.md,
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                      fontSize: typography.sizes.md,
-                      color: colors.text,
-                      borderWidth: 0.5,
-                      borderColor: showValidationErrors && hasPaidAmountError ? colors.error : colors.border,
-                    }}
-                  />
-                  {showValidationErrors && hasPaidAmountError && (
-                    <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
-                      Enter a valid amount greater than 0
-                    </Text>
-                  )}
-                </View>
-                <View style={{ gap: spacing.xs }}>
-                  <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
-                    Currency
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: spacing.sm }}>
-                    {(["SAR", "$", "£"] as const).map((cur) => (
-                      <Pressable
-                        key={cur}
-                        onPress={() => setPriceCurrency(cur)}
-                        style={{
-                          flex: 1,
-                          backgroundColor: priceCurrency === cur ? colors.primary : colors.surfaceLight,
-                          borderRadius: radius.md,
-                          paddingVertical: spacing.md,
-                          alignItems: "center",
-                          borderWidth: 0.5,
-                          borderColor: priceCurrency === cur ? colors.primary : colors.border,
-                        }}
-                      >
-                        <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: priceCurrency === cur ? colors.text : colors.textMuted }}>
-                          {cur}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-                {entryFeePreviewLine ? (
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      fontWeight: typography.weights.semibold,
-                      color: colors.text,
-                      marginTop: spacing.xs,
-                    }}
-                  >
-                    {entryFeePreviewLine}
-                  </Text>
-                ) : null}
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim, marginTop: 2 }}>
-                  Display only — no payments are processed
-                </Text>
-              </View>
-            )}
-          </>
+          <EventFormPriceSection
+            priceMode={priceMode}
+            priceAmount={priceAmount}
+            priceCurrency={priceCurrency}
+            entryFeePreviewLine={entryFeePreviewLine}
+            showValidationError={showValidationErrors && hasPaidAmountError}
+            onSelectFree={() => { setPriceMode("free"); setPriceAmount(""); }}
+            onSelectPaid={() => setPriceMode("paid")}
+            onAmountChange={setPriceAmount}
+            onCurrencyChange={setPriceCurrency}
+          />
         </EventFormSectionCard>
 
         {/* ── Delete ── */}
@@ -1964,365 +1584,51 @@ export default function EditEventScreen() {
         </Pressable>
       </Modal>
 
-      {/* ── Capacity bottom sheet ── */}
-      <Modal
+      <EventFormCapacitySheetModal
         visible={showCapacitySheet}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCapacitySheet(false)}
-      >
-        <Pressable
-          style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}
-          onPress={() => setShowCapacitySheet(false)}
-        >
-          <Pressable
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              padding: spacing.lg,
-              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
-              marginBottom: keyboardInset,
-              borderWidth: 0.5,
-              borderColor: "rgba(255,255,255,0.08)",
-            }}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.md }}>
-              Guest limit
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.lg }}>
-              {[10, 20, 50, 100].map((n) => {
-                const val = String(n);
-                const selected = capacitySheetTemp === val;
-                return (
-                  <Pressable
-                    key={n}
-                    onPress={() => setCapacitySheetTemp(val)}
-                    style={{
-                      paddingVertical: spacing.sm,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: selected ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: selected ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
-                      {n}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={{ marginBottom: spacing.lg }}>
-              <AppInput
-                label="Custom number"
-                value={capacitySheetTemp}
-                onChangeText={(t) => setCapacitySheetTemp(t.replace(/\D/g, "").slice(0, 5))}
-                placeholder="e.g. 75"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Pressable
-                onPress={() => setShowCapacitySheet(false)}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  paddingVertical: spacing.md,
-                  borderRadius: radius.md,
-                  backgroundColor: colors.surfaceLight,
-                  borderWidth: 0.5,
-                  borderColor: colors.border,
-                  alignItems: "center",
-                  opacity: pressed ? 0.9 : 1,
-                })}
-              >
-                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
-                  Cancel
-                </Text>
-              </Pressable>
-              {(() => {
-                const v = capacitySheetTemp.trim();
-                const capacityApplyValid = isValidPositiveWholeCapacityString(capacitySheetTemp);
-                return (
-                  <Pressable
-                    onPress={() => {
-                      if (capacityApplyValid) {
-                        setCapacityValue(v);
-                        setCapacityMode("set");
-                        setShowCapacitySheet(false);
-                      }
-                    }}
-                    disabled={!capacityApplyValid}
-                    style={({ pressed }) => ({
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: capacityApplyValid ? colors.primary : colors.surfaceLight,
-                      alignItems: "center",
-                      opacity: pressed && capacityApplyValid ? 0.9 : 1,
-                    })}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: capacityApplyValid ? colors.text : colors.textMuted }}>
-                      Apply
-                    </Text>
-                  </Pressable>
-                );
-              })()}
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setShowCapacitySheet(false)}
+        keyboardInset={keyboardInset}
+        bottomSafeInset={insets?.bottom ?? 0}
+        capacitySheetTemp={capacitySheetTemp}
+        onCapacitySheetTempChange={setCapacitySheetTemp}
+        onApply={(trimmed) => {
+          setCapacityValue(trimmed);
+          setCapacityMode("set");
+          setShowCapacitySheet(false);
+        }}
+      />
 
-      {/* ── Location reveal bottom sheet ── */}
-      <Modal
+      <EventFormRevealAddressSheetModal
         visible={showRevealSheet}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowRevealSheet(false)}
-      >
-        <Pressable
-          style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}
-          onPress={() => setShowRevealSheet(false)}
-        >
-          <Pressable
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              padding: spacing.lg,
-              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
-              marginBottom: keyboardInset,
-              borderWidth: 0.5,
-              borderColor: "rgba(255,255,255,0.08)",
-            }}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text, marginBottom: spacing.md }}>
-              When to reveal address
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.lg }}>
-              {([1, 2, 5, 24] as const).map((hours) => {
-                const selected = revealSheetCustom === "" && revealSheetTemp === hours;
-                return (
-                  <Pressable
-                    key={hours}
-                    onPress={() => { setRevealSheetTemp(hours); setRevealSheetCustom(""); }}
-                    style={{
-                      paddingVertical: spacing.sm,
-                      paddingHorizontal: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: selected ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: selected ? colors.primary : colors.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
-                      {hours} hours before
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={{ marginBottom: spacing.lg }}>
-              <AppInput
-                label="Custom hours"
-                value={revealSheetCustom}
-                onChangeText={(t) => {
-                  setRevealSheetCustom(t.replace(/\D/g, "").slice(0, 3));
-                  const n = parseInt(t.replace(/\D/g, ""), 10);
-                  if (!Number.isNaN(n) && n >= 1) setRevealSheetTemp(n);
-                }}
-                placeholder="e.g. 12"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Pressable
-                onPress={() => setShowRevealSheet(false)}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  paddingVertical: spacing.md,
-                  borderRadius: radius.md,
-                  backgroundColor: colors.surfaceLight,
-                  borderWidth: 0.5,
-                  borderColor: colors.border,
-                  alignItems: "center",
-                  opacity: pressed ? 0.9 : 1,
-                })}
-              >
-                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
-                  Cancel
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  const hours = revealSheetCustom.trim() ? parseInt(revealSheetCustom, 10) : revealSheetTemp;
-                  if (hours >= 1) {
-                    setRevealHoursBefore(hours);
-                    setLocationVisibility("reveal");
-                    setShowRevealSheet(false);
-                  }
-                }}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  paddingVertical: spacing.md,
-                  borderRadius: radius.md,
-                  backgroundColor: colors.primary,
-                  alignItems: "center",
-                  opacity: pressed ? 0.9 : 1,
-                })}
-              >
-                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>
-                  Apply
-                </Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setShowRevealSheet(false)}
+        keyboardInset={keyboardInset}
+        bottomSafeInset={insets?.bottom ?? 0}
+        revealSheetTemp={revealSheetTemp}
+        onRevealSheetTempChange={setRevealSheetTemp}
+        revealSheetCustom={revealSheetCustom}
+        onRevealSheetCustomChange={setRevealSheetCustom}
+        onApply={(hours) => {
+          setRevealHoursBefore(hours);
+          setLocationVisibility("reveal");
+          setShowRevealSheet(false);
+        }}
+      />
 
-      {/* ── Dress code bottom sheet ── */}
-      <Modal
+      <EventFormDressCodeSheetModal
         visible={showDressCodeSheet}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowDressCodeSheet(false)}
-      >
-        <Pressable
-          style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}
-          onPress={() => setShowDressCodeSheet(false)}
-        >
-          <Pressable
-            style={{
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.xl,
-              borderTopRightRadius: radius.xl,
-              paddingHorizontal: spacing.lg,
-              paddingTop: spacing.xl,
-              paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + (insets?.bottom ?? 0),
-              marginBottom: keyboardInset,
-              borderWidth: 0.5,
-              borderColor: "rgba(255,255,255,0.08)",
-              gap: spacing.xl,
-            }}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={{ alignItems: "center", gap: spacing.xs }}>
-              <Text style={{ fontSize: typography.sizes.md, fontWeight: typography.weights.semibold, color: colors.text }}>
-                Dress code
-              </Text>
-              <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
-                Choose a preset or enter a custom style
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, justifyContent: "center" }}>
-              {DRESS_CODE_PRESETS.filter((p) => p !== DRESS_CODE_CUSTOM).map((preset) => {
-                const selected = dressCodeSheetTemp === preset;
-                return (
-                  <Pressable
-                    key={preset}
-                    onPress={() => { setDressCodeSheetTemp(preset); setDressCodeSheetCustom(""); }}
-                    style={{
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                      borderRadius: radius.md,
-                      backgroundColor: selected ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: selected ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
-                      {preset}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              {(() => {
-                const selected = dressCodeSheetTemp === DRESS_CODE_CUSTOM;
-                return (
-                  <Pressable
-                    onPress={() => setDressCodeSheetTemp(DRESS_CODE_CUSTOM)}
-                    style={{
-                      paddingVertical: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                      borderRadius: radius.md,
-                      backgroundColor: selected ? colors.primary : colors.surfaceLight,
-                      borderWidth: 0.5,
-                      borderColor: selected ? colors.primary : colors.border,
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
-                      {DRESS_CODE_CUSTOM}
-                    </Text>
-                  </Pressable>
-                );
-              })()}
-            </View>
-            {dressCodeSheetTemp === DRESS_CODE_CUSTOM && (
-              <AppInput
-                placeholder="e.g. Thobe, Abaya, All black"
-                value={dressCodeSheetCustom}
-                onChangeText={setDressCodeSheetCustom}
-                maxLength={60}
-              />
-            )}
-            <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Pressable
-                onPress={() => setShowDressCodeSheet(false)}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  paddingVertical: spacing.md,
-                  borderRadius: radius.md,
-                  backgroundColor: colors.surfaceLight,
-                  borderWidth: 0.5,
-                  borderColor: colors.border,
-                  alignItems: "center",
-                  opacity: pressed ? 0.9 : 1,
-                })}
-              >
-                <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
-                  Cancel
-                </Text>
-              </Pressable>
-              {(() => {
-                const applyValid =
-                  dressCodeSheetTemp !== "" &&
-                  (dressCodeSheetTemp !== DRESS_CODE_CUSTOM || dressCodeSheetCustom.trim() !== "");
-                return (
-                  <Pressable
-                    onPress={() => {
-                      if (applyValid) {
-                        setDressCode(dressCodeSheetTemp);
-                        setDressCodeCustom(
-                          dressCodeSheetTemp === DRESS_CODE_CUSTOM ? dressCodeSheetCustom.trim() : ""
-                        );
-                        setShowDressCodeSheet(false);
-                      }
-                    }}
-                    disabled={!applyValid}
-                    style={({ pressed }) => ({
-                      flex: 1,
-                      paddingVertical: spacing.md,
-                      borderRadius: radius.md,
-                      backgroundColor: applyValid ? colors.primary : colors.surfaceLight,
-                      alignItems: "center",
-                      opacity: pressed && applyValid ? 0.9 : 1,
-                    })}
-                  >
-                    <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: applyValid ? colors.text : colors.textMuted }}>
-                      Apply
-                    </Text>
-                  </Pressable>
-                );
-              })()}
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setShowDressCodeSheet(false)}
+        keyboardInset={keyboardInset}
+        bottomSafeInset={insets?.bottom ?? 0}
+        dressCodeSheetTemp={dressCodeSheetTemp}
+        onDressCodeSheetTempChange={setDressCodeSheetTemp}
+        dressCodeSheetCustom={dressCodeSheetCustom}
+        onDressCodeSheetCustomChange={setDressCodeSheetCustom}
+        onApply={(preset, customTrimmed) => {
+          setDressCode(preset);
+          setDressCodeCustom(preset === EVENT_FORM_DRESS_CODE_CUSTOM ? customTrimmed : "");
+          setShowDressCodeSheet(false);
+        }}
+      />
 
       {/* ── Cover picker modal ── */}
       <Modal
