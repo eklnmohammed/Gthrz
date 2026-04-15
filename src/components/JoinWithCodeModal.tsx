@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, TextInput, Modal, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, Modal, Pressable, ActivityIndicator, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEvents } from "../state/eventsStore";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
@@ -36,8 +36,18 @@ export function JoinWithCodeModal({ visible, onClose, onJoined }: JoinWithCodeMo
     try {
       const result = await fetchEventByInviteCode(inviteCode);
       if (result.kind === "ok") {
+        const { event } = result;
+        if (event.status === "cancelled") {
+          Alert.alert("Can't join", "This event has been cancelled.");
+          return;
+        }
+        const eventMs = new Date(event.dateTime).getTime();
+        if (!Number.isNaN(eventMs) && eventMs < Date.now()) {
+          Alert.alert("Can't join", "This event has already passed.");
+          return;
+        }
         onClose();
-        onJoined?.(result.event.id, result.event.eventType);
+        onJoined?.(event.id, event.eventType);
         return;
       }
       if (result.kind === "invalid_code") {
