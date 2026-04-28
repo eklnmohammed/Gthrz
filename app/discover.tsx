@@ -17,6 +17,7 @@ import { recordEventView, recordJoinWithCode } from "../src/utils/preferences";
 import { onboardingStore } from "../src/state/onboardingStore";
 import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
+import { areSamePhone } from "../src/utils/phone";
 
 const LIST_PADDING_H = 16;
 const GRID_GAP = 12;
@@ -113,7 +114,7 @@ export default function DiscoverScreen() {
     filtered = filtered.filter((e) => e.status !== "cancelled");
     filtered = filtered.filter((e) => new Date(e.dateTime).getTime() >= nowMs);
     if (userPhone.length > 0) {
-      filtered = filtered.filter((e) => e.hostPhone !== userPhone);
+      filtered = filtered.filter((e) => !areSamePhone(e.hostPhone, userPhone));
     }
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
@@ -342,7 +343,7 @@ export default function DiscoverScreen() {
                 onPress={() => handleEventPress(event)}
                 statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
                 cancelled={eventForCard.status === "cancelled"}
-                isHost={eventForCard.hostPhone === userPhone}
+                isHost={areSamePhone(eventForCard.hostPhone, userPhone)}
                 width={gridCardWidth}
                 posterHeight={215}
                 compact

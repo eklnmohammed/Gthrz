@@ -16,6 +16,7 @@ import { AppButton } from "../../src/components/AppButton";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { verifyOtp, sendOtp, syncCurrentProfileFromServer } from "../../src/lib/auth";
+import { areSamePhone } from "../../src/utils/phone";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -26,7 +27,7 @@ const RESEND_COOLDOWN = 30; // seconds
 
 export default function VerifyScreen() {
   const params = useLocalSearchParams<{ phone?: string }>();
-  const phone = params.phone ?? "";
+  const phone = (params.phone ?? "").trim();
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,7 +49,16 @@ export default function VerifyScreen() {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  useEffect(() => {
+    if (!phone) {
+      Alert.alert("Session expired", "Please enter your phone number again.", [
+        { text: "OK", onPress: () => router.replace("/onboarding/phone") },
+      ]);
+    }
+  }, [phone]);
+
   const handleVerify = async () => {
+    if (!phone) return;
     if (code.length < CODE_LENGTH) return;
     setLoading(true);
     setError(null);
@@ -66,7 +76,7 @@ export default function VerifyScreen() {
     await syncCurrentProfileFromServer();
 
     const p = await onboardingStore.getProfile();
-    if (p?.firstName || p?.avatarUri) {
+    if (areSamePhone(p?.phone, phone) && (p?.firstName || p?.avatarUri)) {
       await onboardingStore.setOnboarded(true);
       router.replace("/");
     } else {
@@ -84,6 +94,7 @@ export default function VerifyScreen() {
   };
 
   const handleResend = async () => {
+    if (!phone) return;
     if (resendTimer > 0) return;
     setResendTimer(RESEND_COOLDOWN);
     const result = await sendOtp(phone);

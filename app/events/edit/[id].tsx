@@ -64,6 +64,7 @@ import { LocationCardWithPicker, type LocationSelection } from "@/src/components
 import { isValidCoverUrl } from "@/src/utils/coverUrl";
 import { uploadEventCover } from "@/src/utils/uploadEventCover";
 import { useKeyboardInset } from "@/src/hooks/useKeyboardInset";
+import { areSamePhone } from "@/src/utils/phone";
 import {
   formatTime24ToDisplay,
   formatLineupTimeRange,
@@ -130,7 +131,6 @@ export default function EditEventScreen() {
     addContribution,
     removeContribution,
     getRsvpsForEvent,
-    approveRsvp,
     finalizeManualToAutoApproval,
   } = useEvents();
   const insets = useSafeAreaInsets();
@@ -415,7 +415,7 @@ export default function EditEventScreen() {
           .single();
         if (fetchError) throw fetchError;
         if (data) {
-          if (data.host_phone !== phone) {
+          if (!areSamePhone(data.host_phone, phone)) {
             setError("You can only edit events you created");
             setLoading(false);
             return;
@@ -654,8 +654,9 @@ export default function EditEventScreen() {
 
       const initialManual = initialValuesRef.current?.approvalRequired === true;
       const nowAuto = !approvalRequired;
-      if (initialManual && nowAuto) {
-        const formCap = parseFormCapacityLimitEdit(capacityMode, effectiveCapacity);
+      const needsFinalizeManualToAuto = initialManual && nowAuto;
+      const formCap = parseFormCapacityLimitEdit(capacityMode, effectiveCapacity);
+      if (needsFinalizeManualToAuto) {
         const { data: evRow, error: capErr } = await supabase
           .from("events")
           .select("capacity")
@@ -672,9 +673,6 @@ export default function EditEventScreen() {
           setSaving(false);
           return;
         }
-        for (const p of rsvps.pending) {
-          await approveRsvp(params.id, p.user_phone);
-        }
       }
 
       await updateEvent(params.id, {
@@ -687,7 +685,7 @@ export default function EditEventScreen() {
         details: details.trim() || undefined,
         capacity: effectiveCapacity.trim() || undefined,
         visibility,
-        approvalRequired,
+        approvalRequired: needsFinalizeManualToAuto ? true : approvalRequired,
         eventType: eventType ?? undefined,
         coverKey: coverKey || undefined,
         coverUrl: isValidCoverUrl(coverUrl) ? coverUrl ?? undefined : undefined,
@@ -719,6 +717,9 @@ export default function EditEventScreen() {
         addContribution,
         removeContribution,
       );
+      if (needsFinalizeManualToAuto) {
+        await finalizeManualToAutoApproval(params.id, formCap);
+      }
       setSaving(false);
       Alert.alert("Event Updated", "Your changes have been saved.", [
         {

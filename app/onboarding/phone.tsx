@@ -18,6 +18,7 @@ import { AppButton } from "../../src/components/AppButton";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { isDevMode, setDevMode, setDevPhone, sendOtp, syncCurrentProfileFromServer } from "../../src/lib/auth";
+import { areSamePhone } from "../../src/utils/phone";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -72,7 +73,7 @@ export default function PhoneLoginScreen() {
     await syncCurrentProfileFromServer();
 
     const p = await onboardingStore.getProfile();
-    if (p?.firstName || p?.avatarUri) {
+    if (areSamePhone(p?.phone, fullPhone) && (p?.firstName || p?.avatarUri)) {
       await onboardingStore.setOnboarded(true);
       setLoading(false);
       router.replace("/");
@@ -105,7 +106,7 @@ export default function PhoneLoginScreen() {
     setLoading(true);
     setError(null);
 
-    const fullPhone = `${selectedCountry.code}${phoneNumber}`;
+    const fullPhone = `${selectedCountry.code}${digitsOnly}`;
 
     const devMode = await isDevMode();
 

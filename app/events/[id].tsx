@@ -35,6 +35,7 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 import { getEventGradient } from "../../src/utils/eventGradient";
 import { getEventTypeLabel } from "../../src/utils/eventTypeBadge";
+import { areSamePhone } from "../../src/utils/phone";
 import { formatEventDate } from "../../src/utils/formatEventDate";
 import { getCoverSource } from "../../src/utils/covers";
 import { isValidCoverUrl } from "../../src/utils/coverUrl";
@@ -219,7 +220,7 @@ export default function EventDetailScreen() {
     eventData.hostPhone &&
     userPhone &&
     userPhone !== "guest" &&
-    eventData.hostPhone === userPhone;
+    areSamePhone(eventData.hostPhone, userPhone);
   const eventTitle = eventData.title;
   const eventDateTime = eventData.dateTime;
 

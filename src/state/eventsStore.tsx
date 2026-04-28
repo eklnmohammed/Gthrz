@@ -19,6 +19,7 @@ import { generateInviteCode } from "../utils/inviteCode";
 import { getDefaultCoverKey } from "../utils/covers";
 import { isValidCoverUrl } from "../utils/coverUrl";
 import { compareEventsDefaultChronological } from "../utils/eventListOrdering";
+import { areSamePhone, normalizePhoneForCompare } from "../utils/phone";
 
 export interface Event {
   id: string;
@@ -284,6 +285,36 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getCurrentPhoneOrThrow = useCallback(async (): Promise<string> => {
+    const phone = await onboardingStore.getPhone();
+    if (!phone) throw new Error("You must complete onboarding first");
+    return phone;
+  }, []);
+
+  const assertCurrentUserCanManageEventRsvp = useCallback(
+    async (eventId: string, targetUserPhone: string): Promise<{ isHost: boolean }> => {
+      const currentPhone = await getCurrentPhoneOrThrow();
+      const currentNorm = normalizePhoneForCompare(currentPhone);
+      const targetNorm = normalizePhoneForCompare(targetUserPhone);
+      if (!currentNorm || !targetNorm) {
+        throw new Error("Invalid user identity");
+      }
+      const { data: eventRow, error: eventErr } = await supabase
+        .from("events")
+        .select("host_phone")
+        .eq("id", eventId)
+        .single();
+      if (eventErr) throw eventErr;
+      const isHost = areSamePhone(eventRow?.host_phone, currentPhone);
+      const isSelf = currentNorm === targetNorm;
+      if (!isHost && !isSelf) {
+        throw new Error("You are not allowed to modify this RSVP.");
+      }
+      return { isHost };
+    },
+    [getCurrentPhoneOrThrow]
+  );
+
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -293,7 +324,6 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         setEvents([]);
         return;
       }
-
       // Drop previous user's merged list immediately so UI cannot briefly show wrong events after sign-in / switch.
       setEvents([]);
 
@@ -507,7 +537,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           .select("host_phone")
           .eq("id", id)
           .single();
-        if (!existing || existing.host_phone !== phone) {
+        if (!existing || !areSamePhone(existing.host_phone, phone)) {
           throw new Error("You can only edit events you created");
         }
 
@@ -575,7 +605,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         .select("host_phone")
         .eq("id", id)
         .single();
-      if (!existing || existing.host_phone !== phone) {
+      if (!existing || !areSamePhone(existing.host_phone, phone)) {
         throw new Error("You can only delete events you created");
       }
 
@@ -605,7 +635,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         .select("host_phone")
         .eq("id", id)
         .single();
-      if (!existing || existing.host_phone !== phone) {
+      if (!existing || !areSamePhone(existing.host_phone, phone)) {
         throw new Error("You can only cancel events you created");
       }
 
@@ -662,6 +692,33 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setPlusOne = useCallback(async (eventId: string, userPhone: string, plusOne: boolean) => {
+    const { isHost } = await assertCurrentUserCanManageEventRsvp(eventId, userPhone);
+    const { data: currentRsvp, error: rsvpErr } = await supabase
+      .from("rsvps")
+      .select("status")
+      .eq("event_id", eventId)
+      .eq("user_phone", userPhone)
+      .maybeSingle();
+    if (rsvpErr) throw rsvpErr;
+    if (!isHost && currentRsvp?.status !== "going") {
+      throw new Error("Only going guests can manage extra guests.");
+    }
+    const { data: eventInfo, error: eventInfoErr } = await supabase
+      .from("events")
+      .select("allow_plus_one, status, date_time, capacity")
+      .eq("id", eventId)
+      .single();
+    if (eventInfoErr) throw eventInfoErr;
+    if (!eventInfo || eventInfo.status === "cancelled") {
+      throw new Error("This event is no longer available.");
+    }
+    const eventMs = new Date(eventInfo.date_time).getTime();
+    if (!Number.isNaN(eventMs) && eventMs < Date.now()) {
+      throw new Error("This event has already passed.");
+    }
+    if (plusOne && !eventInfo.allow_plus_one) {
+      throw new Error("Extra guests are not allowed for this event.");
+    }
     if (plusOne) {
       const { data: eventRow } = await supabase
         .from("events")
@@ -694,11 +751,22 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const submitRsvp = useCallback(
     async (eventId: string, userPhone: string, status: "going" | "maybe" | "cant" | "pending") => {
       try {
+        const currentPhone = await getCurrentPhoneOrThrow();
+        if (!areSamePhone(currentPhone, userPhone)) {
+          throw new Error("You can only update your own RSVP.");
+        }
         const { data: eventRow } = await supabase
           .from("events")
-          .select("capacity, approval_required, visibility")
+          .select("capacity, approval_required, visibility, status, date_time")
           .eq("id", eventId)
           .single();
+        if (eventRow?.status === "cancelled") {
+          throw new RsvpUserFacingError("This event has been cancelled.");
+        }
+        const eventMs = new Date(eventRow?.date_time ?? "").getTime();
+        if (!Number.isNaN(eventMs) && eventMs < Date.now()) {
+          throw new RsvpUserFacingError("This event has already passed.");
+        }
 
         const approvalRequired = eventRow?.approval_required ?? false;
         const isPublic = eventRow?.visibility === "public";
@@ -802,6 +870,8 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const approveRsvp = useCallback(async (eventId: string, userPhone: string) => {
+    const { isHost } = await assertCurrentUserCanManageEventRsvp(eventId, userPhone);
+    if (!isHost) throw new Error("Only the host can approve guests.");
     const { data: eventRow } = await supabase
       .from("events")
       .select("capacity")
@@ -829,7 +899,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       .eq("event_id", eventId)
       .eq("user_phone", userPhone);
     if (error) throw error;
-  }, []);
+  }, [assertCurrentUserCanManageEventRsvp]);
 
   const finalizeManualToAutoApproval = useCallback(
     async (eventId: string, formCapacityLimit: number | null) => {
@@ -864,15 +934,18 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   );
 
   const declineRsvp = useCallback(async (eventId: string, userPhone: string) => {
+    const { isHost } = await assertCurrentUserCanManageEventRsvp(eventId, userPhone);
+    if (!isHost) throw new Error("Only the host can decline guests.");
     const { error } = await supabase
       .from("rsvps")
       .update({ status: "cant", declined_by_host: true })
       .eq("event_id", eventId)
       .eq("user_phone", userPhone);
     if (error) throw error;
-  }, []);
+  }, [assertCurrentUserCanManageEventRsvp]);
 
   const removeRsvp = useCallback(async (eventId: string, userPhone: string) => {
+    await assertCurrentUserCanManageEventRsvp(eventId, userPhone);
     const { data, error } = await supabase
       .from("rsvps")
       .delete()
@@ -883,7 +956,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     if (!data || data.length === 0) {
       throw new Error("RSVP could not be removed.");
     }
-  }, []);
+  }, [assertCurrentUserCanManageEventRsvp]);
 
   const fetchEventByInviteCode = useCallback(
     async (code: string): Promise<FetchEventByInviteCodeResult> => {

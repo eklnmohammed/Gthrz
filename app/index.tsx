@@ -18,6 +18,7 @@ import { typography } from "../src/theme/typography";
 import { formatEventDateForCards } from "../src/utils/formatEventDate";
 import { getEventStatusPill } from "../src/utils/eventStatusPill";
 import { compareEventsDefaultChronological } from "../src/utils/eventListOrdering";
+import { areSamePhone } from "../src/utils/phone";
 
 const CARD_WIDTH = 260;
 const CTA_HEIGHT = 56;
@@ -61,7 +62,7 @@ export default function Home() {
     if (Number.isNaN(startMs) || startMs < now) return false;
     return (
       e.status !== "cancelled" &&
-      (e.hostPhone === userPhone ||
+      (areSamePhone(e.hostPhone, userPhone) ||
         e.attendingStatus === "going" ||
         e.attendingStatus === "pending" ||
         (e.attendingStatus === "cant" && e.declinedByHost))
@@ -296,7 +297,7 @@ export default function Home() {
                       }}
                       statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
                       cancelled={eventForCard.status === "cancelled"}
-                      isHost={eventForCard.hostPhone === userPhone}
+                      isHost={areSamePhone(eventForCard.hostPhone, userPhone)}
                       width={CARD_WIDTH}
                     />
                   );
@@ -332,7 +333,7 @@ export default function Home() {
                     statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                     cancelled={event.status === "cancelled"}
                     width={CARD_WIDTH}
-                    isHost={event.hostPhone === userPhone}
+                    isHost={areSamePhone(event.hostPhone, userPhone)}
                   />
                 ))}
               </ScrollView>
@@ -369,7 +370,7 @@ export default function Home() {
                         }}
                         statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
                         cancelled={eventForCard.status === "cancelled"}
-                        isHost={eventForCard.hostPhone === userPhone}
+                        isHost={areSamePhone(eventForCard.hostPhone, userPhone)}
                         width={CARD_WIDTH}
                       />
                     );
@@ -407,7 +408,7 @@ export default function Home() {
                           }}
                           statusPill={userPhone ? getEventStatusPill(eventForCard, userPhone) : undefined}
                           cancelled={eventForCard.status === "cancelled"}
-                          isHost={eventForCard.hostPhone === userPhone}
+                          isHost={areSamePhone(eventForCard.hostPhone, userPhone)}
                           width={CARD_WIDTH}
                         />
                       );

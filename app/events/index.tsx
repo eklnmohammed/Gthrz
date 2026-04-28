@@ -17,6 +17,7 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 import { formatEventDateForCards } from "../../src/utils/formatEventDate";
 import { getEventStatusPill } from "../../src/utils/eventStatusPill";
+import { areSamePhone } from "../../src/utils/phone";
 
 type Segment = "upcoming" | "past";
 
@@ -52,19 +53,19 @@ export default function EventsScreen() {
 
   const hasAnyUpcomingHosting = validEvents.some((e) => {
     const isFuture = new Date(e.dateTime).getTime() >= nowMs;
-    return isFuture && e.hostPhone === userPhone;
+    return isFuture && areSamePhone(e.hostPhone, userPhone);
   });
 
   const upcomingHosting = validEvents
     .filter((e) => {
       const isFuture = new Date(e.dateTime).getTime() >= nowMs;
-      return isFuture && e.hostPhone === userPhone && e.status !== "cancelled";
+      return isFuture && areSamePhone(e.hostPhone, userPhone) && e.status !== "cancelled";
     })
     .sort(sortUpcoming);
 
   const hasAnyUpcomingGoingOrPending = validEvents.some((e) => {
     const isFuture = new Date(e.dateTime).getTime() >= nowMs;
-    const isGuest = e.hostPhone !== userPhone;
+    const isGuest = !areSamePhone(e.hostPhone, userPhone);
     const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
     return isFuture && isGuest && rsvp;
   });
@@ -72,7 +73,7 @@ export default function EventsScreen() {
   const upcomingGoingOrPending = validEvents
     .filter((e) => {
       const isFuture = new Date(e.dateTime).getTime() >= nowMs;
-      const isGuest = e.hostPhone !== userPhone;
+      const isGuest = !areSamePhone(e.hostPhone, userPhone);
       const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending";
       return isFuture && isGuest && rsvp && e.status !== "cancelled";
     })
@@ -438,7 +439,7 @@ export default function EventsScreen() {
                     onPress={() => handleEventPress(event)}
                     statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                     cancelled={event.status === "cancelled"}
-                    isHost={event.hostPhone === userPhone}
+                    isHost={areSamePhone(event.hostPhone, userPhone)}
                   />
                 </View>
               ))

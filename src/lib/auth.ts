@@ -262,7 +262,9 @@ export async function uploadAvatar(
       .from("avatars")
       .getPublicUrl(filePath);
 
-    const url = urlData.publicUrl;
+    // Cache-bust avatar URL so updated image appears immediately on current screen
+    // even when uploading to the same storage path (upsert true).
+    const url = `${urlData.publicUrl}?v=${Date.now()}`;
     if (__DEV__) console.log("[uploadAvatar] Resolved avatarUrl saved to profiles:", url);
     return { url };
   } catch (err) {

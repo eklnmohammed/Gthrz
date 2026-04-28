@@ -19,6 +19,7 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 import { formatEventDateForCards } from "../../src/utils/formatEventDate";
 import { getEventStatusPill } from "../../src/utils/eventStatusPill";
+import { areSamePhone } from "../../src/utils/phone";
 
 type Segment = "upcoming" | "past";
 
@@ -55,7 +56,7 @@ export default function GoingScreen() {
     return isPast ? ms < nowMs : ms >= nowMs;
   });
   const goingPending = bySegment.filter((e) => {
-    const isGuest = e.hostPhone !== userPhone;
+    const isGuest = !areSamePhone(e.hostPhone, userPhone);
     const rsvp = e.attendingStatus === "going" || e.attendingStatus === "pending"
       || (e.attendingStatus === "cant" && e.declinedByHost);
     return isGuest && rsvp;

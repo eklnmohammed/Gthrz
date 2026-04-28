@@ -1,4 +1,5 @@
 import { colors } from "../theme/colors";
+import { areSamePhone } from "./phone";
 
 export type EventStatusPill = { label: string; color: string; bg: string };
 
@@ -20,7 +21,7 @@ export function getEventStatusPill(
   userPhone: string
 ): EventStatusPill | undefined {
   if (!userPhone) return undefined;
-  if (event.hostPhone === userPhone) {
+  if (areSamePhone(event.hostPhone, userPhone)) {
     return { label: "Host", color: colors.primary, bg: colors.primaryLight20 };
   }
   const isPublic = event.visibility === "public";

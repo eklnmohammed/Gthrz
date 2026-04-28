@@ -19,6 +19,7 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 import { formatEventDateForCards } from "../../src/utils/formatEventDate";
 import { getEventStatusPill } from "../../src/utils/eventStatusPill";
+import { areSamePhone } from "../../src/utils/phone";
 
 type Segment = "upcoming" | "past";
 
@@ -53,7 +54,7 @@ export default function HostingScreen() {
     const ms = new Date(e.dateTime).getTime();
     return isPast ? ms < nowMs : ms >= nowMs;
   });
-  const hosting = bySegment.filter((e) => e.hostPhone === userPhone);
+  const hosting = bySegment.filter((e) => areSamePhone(e.hostPhone, userPhone));
   const hostingFiltered =
     sortBy === "cancelled" ? hosting.filter((e) => e.status === "cancelled") : hosting;
   const bySearch = searchQuery.trim()
