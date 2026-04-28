@@ -267,7 +267,37 @@ export default function Home() {
 
         {/* 4. New users: Featured this week. Returning users: Up Next + (Recommended OR Featured) only */}
         {hasNoEvents ? (
-          featuredEvents.length > 0 && (
+          featuredEvents.length === 0 ? (
+            <View
+              style={{
+                alignItems: "center",
+                paddingTop: spacing.xxxxl,
+                paddingHorizontal: spacing.xl,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: typography.sizes.lg,
+                  fontWeight: typography.weights.semibold,
+                  color: colors.text,
+                  textAlign: "center",
+                  marginBottom: spacing.sm,
+                }}
+              >
+                No upcoming events yet
+              </Text>
+              <Text
+                style={{
+                  fontSize: typography.sizes.md,
+                  color: colors.textMuted,
+                  textAlign: "center",
+                  lineHeight: 22,
+                }}
+              >
+                Create your first event or join one with a code.
+              </Text>
+            </View>
+          ) : (
             <View style={{ marginBottom: SECTION_GAP }}>
               <HomeSectionHeader
                 title="Featured this week"
