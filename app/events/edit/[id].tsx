@@ -167,6 +167,7 @@ export default function EditEventScreen() {
   const [userPhone, setUserPhone] = useState<string | null>(null);
   const [locationVisibility, setLocationVisibility] = useState<"now" | "reveal">("now");
   const [revealHoursBefore, setRevealHoursBefore] = useState<number | null>(null);
+  const [locationExactAudience, setLocationExactAudience] = useState<"all_viewers" | "going_only">("going_only");
   const [lineup, setLineup] = useState<LineupEntry[]>([]);
   const [draftLineup, setDraftLineup] = useState<LineupEntry | null>(null);
   const [draftEditingIndex, setDraftEditingIndex] = useState<number | null>(null);
@@ -334,6 +335,7 @@ export default function EditEventScreen() {
     lineup: string;
     locationVisibility: "now" | "reveal";
     revealHoursBefore: number | null;
+    locationExactAudience: "all_viewers" | "going_only";
     hideGuestNames: boolean;
     hideGuestAvatars: boolean;
     allowPlusOne: boolean;
@@ -363,6 +365,7 @@ export default function EditEventScreen() {
       JSON.stringify(lineup) !== initialValuesRef.current.lineup ||
       locationVisibility !== initialValuesRef.current.locationVisibility ||
       revealHoursBefore !== initialValuesRef.current.revealHoursBefore ||
+      locationExactAudience !== initialValuesRef.current.locationExactAudience ||
       hideGuestNames !== initialValuesRef.current.hideGuestNames ||
       hideGuestAvatars !== initialValuesRef.current.hideGuestAvatars ||
       allowPlusOne !== initialValuesRef.current.allowPlusOne ||
@@ -467,6 +470,9 @@ export default function EditEventScreen() {
           setRevealHoursBefore(
             typeof data.reveal_hours_before === "number" ? data.reveal_hours_before : null
           );
+          setLocationExactAudience(
+            data.location_exact_audience === "all_viewers" ? "all_viewers" : "going_only"
+          );
           const loadedLineup: LineupEntry[] = Array.isArray(data.lineup) ? data.lineup : [];
           setLineup(loadedLineup);
           const existingDressCode = data.dress_code ?? "";
@@ -512,6 +518,8 @@ export default function EditEventScreen() {
               typeof data.reveal_hours_before === "number"
                 ? data.reveal_hours_before
                 : null,
+            locationExactAudience:
+              data.location_exact_audience === "all_viewers" ? "all_viewers" : "going_only",
             hideGuestNames: data.hide_guest_names ?? false,
             hideGuestAvatars: data.hide_guest_avatars ?? false,
             allowPlusOne: data.allow_plus_one ?? false,
@@ -714,6 +722,7 @@ export default function EditEventScreen() {
         locationVisibility,
         revealHoursBefore:
           locationVisibility === "reveal" && revealHoursBefore != null && revealHoursBefore > 0 ? revealHoursBefore : undefined,
+        locationExactAudience,
         hideGuestNames,
         hideGuestAvatars,
         dressCode: dressCodeValue || undefined,
@@ -1011,6 +1020,16 @@ export default function EditEventScreen() {
                 setRevealSheetCustom(revealHoursBefore != null && revealHoursBefore > 0 && ![1, 2, 5, 24].includes(revealHoursBefore) ? String(revealHoursBefore) : "");
                 setShowRevealSheet(true);
               }}
+            />
+            <EventFormTogglePair
+              label="Who sees exact location"
+              options={[
+                { value: "all_viewers", label: "All viewers" },
+                { value: "going_only", label: "Going only" },
+              ]}
+              value={locationExactAudience}
+              onChange={setLocationExactAudience}
+              helperText={locationExactAudience === "going_only" ? "Only confirmed guests see the address" : "Anyone who views the event can see the address"}
             />
             <EventFormTogglePair
               label="Guest names"

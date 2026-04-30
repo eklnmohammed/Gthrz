@@ -56,6 +56,7 @@ export interface Event {
   priceMode?: "free" | "paid";
   priceAmount?: number | null;
   priceCurrency?: string;
+  locationExactAudience?: "all_viewers" | "going_only";
 }
 
 /** Result of resolving an invite code — distinguishes wrong code vs connectivity vs server errors. */
@@ -174,6 +175,7 @@ interface EventsContextType {
     priceMode?: "free" | "paid";
     priceAmount?: number | null;
     priceCurrency?: string;
+    locationExactAudience?: "all_viewers" | "going_only";
   }) => Promise<string | undefined>;
   updateEvent: (
     id: string,
@@ -203,6 +205,7 @@ interface EventsContextType {
       priceMode?: "free" | "paid";
       priceAmount?: number | null;
       priceCurrency?: string;
+      locationExactAudience?: "all_viewers" | "going_only";
     }
   ) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -277,6 +280,7 @@ function convertSupabaseEvent(dbEvent: SupabaseEvent): Event {
     priceMode: dbEvent.price_mode === "paid" ? "paid" : "free",
     priceAmount: dbEvent.price_amount ?? null,
     priceCurrency: dbEvent.price_currency ?? "SAR",
+    locationExactAudience: dbEvent.location_exact_audience === "all_viewers" ? "all_viewers" : "going_only",
   };
 }
 
@@ -410,6 +414,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       priceMode?: "free" | "paid";
       priceAmount?: number | null;
       priceCurrency?: string;
+      locationExactAudience?: "all_viewers" | "going_only";
     }) => {
       setError(null);
       try {
@@ -464,6 +469,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
               price_mode: event.priceMode ?? "free",
               price_amount: event.priceMode === "paid" ? (event.priceAmount ?? null) : null,
               price_currency: event.priceMode === "paid" ? (event.priceCurrency ?? "SAR") : null,
+              location_exact_audience: event.locationExactAudience ?? "going_only",
             })
             .select("*")
             .single();
@@ -525,6 +531,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         priceMode?: "free" | "paid";
         priceAmount?: number | null;
         priceCurrency?: string;
+        locationExactAudience?: "all_viewers" | "going_only";
       }
     ) => {
       setError(null);
@@ -569,6 +576,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           price_mode: event.priceMode ?? "free",
           price_amount: event.priceMode === "paid" ? (event.priceAmount ?? null) : null,
           price_currency: event.priceMode === "paid" ? (event.priceCurrency ?? "SAR") : null,
+          location_exact_audience: event.locationExactAudience ?? "going_only",
         };
         const { data, error: updateError } = await supabase
           .from("events")

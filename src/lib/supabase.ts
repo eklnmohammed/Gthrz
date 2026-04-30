@@ -139,6 +139,8 @@ export interface Event {
   price_amount?: number | null;
   /** Currency symbol or code: "SAR", "$", "£" */
   price_currency?: string | null;
+  /** Who can see exact location: "all_viewers" or "going_only" (default) */
+  location_exact_audience?: "all_viewers" | "going_only" | null;
 }
 
 export interface Rsvp {

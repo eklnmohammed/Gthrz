@@ -111,6 +111,7 @@ export default function CreateEventScreen() {
   const [userPhone, setUserPhone] = useState<string | null>(null);
   const [locationVisibility, setLocationVisibility] = useState<"now" | "reveal">("now");
   const [revealHoursBefore, setRevealHoursBefore] = useState<number | null>(null);
+  const [locationExactAudience, setLocationExactAudience] = useState<"all_viewers" | "going_only">("going_only");
   const [capacityMode, setCapacityMode] = useState<"unlimited" | "set">("unlimited");
   const [capacityValue, setCapacityValue] = useState("");
   const [showCapacitySheet, setShowCapacitySheet] = useState(false);
@@ -271,6 +272,7 @@ export default function CreateEventScreen() {
     coverUrl: null as string | null,
     locationVisibility: "now" as const,
     revealHoursBefore: null as number | null,
+    locationExactAudience: "going_only" as "all_viewers" | "going_only",
     allowPlusOne: false,
     hideGuestNames: false,
     hideGuestAvatars: false,
@@ -292,6 +294,7 @@ export default function CreateEventScreen() {
     approvalRequired !== initialValues.current.approvalRequired ||
     locationVisibility !== initialValues.current.locationVisibility ||
     revealHoursBefore !== initialValues.current.revealHoursBefore ||
+    locationExactAudience !== initialValues.current.locationExactAudience ||
     eventType !== initialValues.current.eventType ||
     selectedCoverType !== initialValues.current.selectedCoverType ||
     coverKey !== initialValues.current.coverKey ||
@@ -399,6 +402,7 @@ export default function CreateEventScreen() {
           : undefined,
         locationVisibility,
         revealHoursBefore: locationVisibility === "reveal" && revealHoursBefore != null && revealHoursBefore > 0 ? revealHoursBefore : undefined,
+        locationExactAudience,
         hideGuestNames,
         hideGuestAvatars,
         dressCode: dressCodeValue || undefined,
@@ -694,6 +698,16 @@ export default function CreateEventScreen() {
                 setRevealSheetCustom(revealHoursBefore != null && revealHoursBefore > 0 && ![1, 2, 5, 24].includes(revealHoursBefore) ? String(revealHoursBefore) : "");
                 setShowRevealSheet(true);
               }}
+            />
+            <EventFormTogglePair
+              label="Who sees exact location"
+              options={[
+                { value: "all_viewers", label: "All viewers" },
+                { value: "going_only", label: "Going only" },
+              ]}
+              value={locationExactAudience}
+              onChange={setLocationExactAudience}
+              helperText={locationExactAudience === "going_only" ? "Only confirmed guests see the address" : "Anyone who views the event can see the address"}
             />
             <EventFormTogglePair
               label="Guest names"

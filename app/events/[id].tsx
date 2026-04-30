@@ -172,6 +172,7 @@ export default function EventDetailScreen() {
     lineup: [] as { name: string; startTime?: string; endTime?: string; note?: string; endDayOffset?: 0 | 1 }[],
     locationVisibility: "now" as "now" | "reveal",
     revealHoursBefore: null as number | null,
+    locationExactAudience: "going_only" as "all_viewers" | "going_only",
     locationAddress: "" as string,
     locationLat: null as number | null,
     locationLng: null as number | null,
@@ -237,7 +238,10 @@ export default function EventDetailScreen() {
     const revealAt = eventMs - eventData.revealHoursBefore * 60 * 60 * 1000;
     return Date.now() >= revealAt;
   })();
-  const showLocationText = eventData.location && (isHostMode || isLocationRevealed);
+  const canGuestSeeExactLocation =
+    eventData.locationExactAudience === "all_viewers" || rsvpStatus === "going";
+  const showLocationText =
+    eventData.location && (isHostMode || (canGuestSeeExactLocation && isLocationRevealed));
 
   /** Only "going" guests can claim/unclaim Bring items; pending guests see the list read-only. */
   const bringGuestCanInteract = !isHostMode && rsvpStatus === "going";
@@ -289,6 +293,8 @@ export default function EventDetailScreen() {
               locationVisibility: data.location_visibility === "reveal" ? "reveal" : "now",
               revealHoursBefore:
                 typeof data.reveal_hours_before === "number" ? data.reveal_hours_before : null,
+              locationExactAudience:
+                data.location_exact_audience === "all_viewers" ? "all_viewers" : "going_only",
               locationAddress: data.location_address || "",
               locationLat: data.location_lat ?? null,
               locationLng: data.location_lng ?? null,
@@ -654,7 +660,7 @@ export default function EventDetailScreen() {
       lines.push(formatEventDate(dateTime));
     }
 
-    const locationVisible = isHostMode || isLocationRevealed;
+    const locationVisible = isHostMode || (canGuestSeeExactLocation && isLocationRevealed);
     if (locationVisible && eventData.location) {
       lines.push(`📍 ${eventData.location}`);
       const mapQuery =
@@ -662,8 +668,12 @@ export default function EventDetailScreen() {
           ? `${eventData.locationLat},${eventData.locationLng}`
           : encodeURIComponent(eventData.location);
       lines.push(`https://maps.google.com/?q=${mapQuery}`);
-    } else {
-      lines.push("📍 Location will be revealed later");
+    } else if (eventData.location) {
+      lines.push(
+        !canGuestSeeExactLocation
+          ? "📍 Location visible to going guests only"
+          : "📍 Location will be revealed later"
+      );
     }
 
     const inviteCode = eventData.inviteCode?.trim();
@@ -950,7 +960,9 @@ export default function EventDetailScreen() {
                     fontWeight: typography.weights.medium,
                   }}
                 >
-                  Location revealed {revealTimeLabel(eventData.revealHoursBefore ?? 0)}
+                  {!canGuestSeeExactLocation
+                    ? "Visible to going guests only"
+                    : `Location revealed ${revealTimeLabel(eventData.revealHoursBefore ?? 0)}`}
                 </Text>
               </View>
             )
