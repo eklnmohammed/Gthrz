@@ -469,12 +469,8 @@ export default function CreateEventScreen() {
 
   const handleEventTypeChange = (type: EventType | null) => {
     setEventType(type);
-    if (type == null) {
-      setCoverKey("");
-    } else {
-      setCoverKey(getDefaultCoverKey(type));
-    }
-    setCoverUrl(null);
+    // Keep current cover unchanged. Event type selection should not
+    // implicitly change preset or uploaded cover.
   };
 
   const openLineupTimePicker = (index: number, field: "startTime" | "endTime") => {
