@@ -169,7 +169,7 @@ export default function EventDetailScreen() {
     visibility: "private" as "public" | "private",
     coverKey: "" as string | undefined,
     coverUrl: "" as string | undefined,
-    lineup: [] as { name: string; startTime?: string; endTime?: string; note?: string }[],
+    lineup: [] as { name: string; startTime?: string; endTime?: string; note?: string; endDayOffset?: 0 | 1 }[],
     locationVisibility: "now" as "now" | "reveal",
     revealHoursBefore: null as number | null,
     locationAddress: "" as string,
@@ -1344,8 +1344,13 @@ export default function EventDetailScreen() {
             <View style={lowerSubsectionWrap}>
               <Text style={lowerSectionLabel}>Lineup</Text>
               {eventData.lineup.map((entry, i) => {
-                /* No "(next day)" / (+1) on details for now — plain "start → end" only */
-                const timeRange = formatLineupTimeRange(entry.startTime, entry.endTime, 0) || null;
+                const timeRange =
+                  formatLineupTimeRange(
+                    entry.startTime,
+                    entry.endTime,
+                    Math.min(1, entry.endDayOffset ?? 0) as 0 | 1
+                  ) || null;
+                const note = entry.note?.trim() || "";
                 const isLast = i === eventData.lineup.length - 1;
                 return (
                   <View
@@ -1359,6 +1364,7 @@ export default function EventDetailScreen() {
                       {timeRange ? (
                         <Text style={[lowerRowSecondary, { fontVariant: ["tabular-nums"] }]}>{timeRange}</Text>
                       ) : null}
+                      {note ? <Text style={lowerRowSecondary}>{note}</Text> : null}
                     </View>
                   </View>
                 );

@@ -203,12 +203,21 @@ export default function EditEventScreen() {
   };
 
   const openEditDraft = (index: number) => {
+    const source = lineup[index];
+    if (!source) return;
     setDraftError(null);
-    setDraftLineup({ ...lineup[index] });
+    setDraftLineup({
+      name: source.name ?? "",
+      startTime: source.startTime?.trim() || "",
+      endTime: source.endTime?.trim() || "",
+      endDayOffset: Math.min(1, source.endDayOffset ?? 0) as EndDayOffset,
+      note: source.note ?? "",
+    });
     setDraftEditingIndex(index);
   };
 
   const cancelDraft = () => {
+    setLineupTimePicker(null);
     setDraftLineup(null);
     setDraftEditingIndex(null);
     setDraftError(null);
@@ -226,6 +235,12 @@ export default function EditEventScreen() {
     if (!draftLineup) return null;
     if (!draftLineup.name?.trim() || !draftLineup.startTime?.trim() || !draftLineup.endTime?.trim())
       return "Name, start and end are required";
+    const startTime = draftLineup.startTime.trim();
+    const endTime = draftLineup.endTime.trim();
+    const crossesMidnight = Math.min(1, draftLineup.endDayOffset ?? 0) === 1;
+    if (!crossesMidnight && !isEndAfterStart(startTime, endTime)) {
+      return "End time must be after start time";
+    }
     return null;
   };
 
@@ -252,7 +267,12 @@ export default function EditEventScreen() {
     if (draftEditingIndex === null) {
       setLineup((prev) => [...prev, entry]);
     } else {
-      setLineup((prev) => prev.map((e, i) => (i === draftEditingIndex ? entry : e)));
+      setLineup((prev) => {
+        if (draftEditingIndex < 0 || draftEditingIndex >= prev.length) return prev;
+        const next = [...prev];
+        next[draftEditingIndex] = entry;
+        return next;
+      });
     }
     cancelDraft();
   };
@@ -540,25 +560,35 @@ export default function EditEventScreen() {
     setLineupTimePicker({ index, field });
   };
 
-  const handleLineupTimeChange = (_: unknown, date?: Date) => {
-    if (Platform.OS === "android") {
-      if (date != null && lineupTimePicker != null) {
-        const t = dateToTime24(date);
-        if (lineupTimePicker.index === DRAFT_INDEX) {
-          setDraftLineup((prev) => {
-            if (!prev) return null;
-            const next = { ...prev, [lineupTimePicker.field]: t };
-            if (lineupTimePicker.field === "startTime") {
-              next.endDayOffset = prev.endTime && !isEndAfterStart(t, prev.endTime) ? 1 : 0;
-            } else {
-              next.endDayOffset = prev.startTime && !isEndAfterStart(prev.startTime, t) ? 1 : 0;
-            }
-            return next;
-          });
+  const applyPickedLineupTime = (
+    index: number,
+    field: "startTime" | "endTime",
+    t: string
+  ) => {
+    if (index === DRAFT_INDEX) {
+      setDraftLineup((prev) => {
+        if (!prev) return null;
+        const next = { ...prev, [field]: t };
+        if (field === "startTime") {
+          next.endDayOffset = prev.endTime && !isEndAfterStart(t, prev.endTime) ? 1 : 0;
         } else {
-          updateLineupEntry(lineupTimePicker.index, lineupTimePicker.field, t);
+          next.endDayOffset = prev.startTime && !isEndAfterStart(prev.startTime, t) ? 1 : 0;
         }
-      }
+        return next;
+      });
+      return;
+    }
+    updateLineupEntry(index, field, t);
+  };
+
+  const handleLineupTimeChange = (_: unknown, date?: Date) => {
+    if (date != null && lineupTimePicker != null) {
+      const t = dateToTime24(date);
+      // Keep draft lineup times in sync immediately (especially on iOS spinner),
+      // so saving right after editing does not reuse stale times.
+      applyPickedLineupTime(lineupTimePicker.index, lineupTimePicker.field, t);
+    }
+    if (Platform.OS === "android") {
       setLineupTimePicker(null);
       return;
     }
@@ -568,20 +598,7 @@ export default function EditEventScreen() {
   const confirmLineupTime = () => {
     if (lineupTimePicker == null) return;
     const t = dateToTime24(lineupTimePickerValue);
-    if (lineupTimePicker.index === DRAFT_INDEX) {
-      setDraftLineup((prev) => {
-        if (!prev) return null;
-        const next = { ...prev, [lineupTimePicker.field]: t };
-        if (lineupTimePicker.field === "startTime") {
-          next.endDayOffset = prev.endTime && !isEndAfterStart(t, prev.endTime) ? 1 : 0;
-        } else {
-          next.endDayOffset = prev.startTime && !isEndAfterStart(prev.startTime, t) ? 1 : 0;
-        }
-        return next;
-      });
-    } else {
-      updateLineupEntry(lineupTimePicker.index, lineupTimePicker.field, t);
-    }
+    applyPickedLineupTime(lineupTimePicker.index, lineupTimePicker.field, t);
     setLineupTimePicker(null);
   };
 
@@ -724,10 +741,10 @@ export default function EditEventScreen() {
       Alert.alert("Event Updated", "Your changes have been saved.", [
         {
           text: "OK",
-          onPress: async () => {
+          onPress: () => {
             initialValuesRef.current = null;
-            await fetchEvents();
             router.back();
+            void fetchEvents();
           },
         },
       ]);
@@ -1274,6 +1291,60 @@ export default function EditEventScreen() {
                                 </Pressable>
                               </View>
                             </View>
+                            {Platform.OS === "ios" &&
+                              lineupTimePicker != null &&
+                              lineupTimePicker.index === DRAFT_INDEX && (
+                                <View
+                                  style={{
+                                    marginTop: spacing.xs,
+                                    backgroundColor: colors.surfaceLight,
+                                    borderRadius: radius.lg,
+                                    padding: spacing.sm,
+                                    borderWidth: 0.5,
+                                    borderColor: "rgba(255,255,255,0.08)",
+                                  }}
+                                >
+                                  <DateTimePicker
+                                    value={lineupTimePickerValue}
+                                    mode="time"
+                                    display="spinner"
+                                    onChange={handleLineupTimeChange}
+                                    textColor={colors.text}
+                                  />
+                                  <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+                                    <Pressable
+                                      onPress={() => setLineupTimePicker(null)}
+                                      style={({ pressed }) => ({
+                                        flex: 1,
+                                        paddingVertical: spacing.sm,
+                                        borderRadius: radius.md,
+                                        backgroundColor: colors.surface,
+                                        alignItems: "center",
+                                        opacity: pressed ? 0.9 : 1,
+                                      })}
+                                    >
+                                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.textMuted }}>
+                                        Cancel
+                                      </Text>
+                                    </Pressable>
+                                    <Pressable
+                                      onPress={confirmLineupTime}
+                                      style={({ pressed }) => ({
+                                        flex: 1,
+                                        paddingVertical: spacing.sm,
+                                        borderRadius: radius.md,
+                                        backgroundColor: colors.primary,
+                                        alignItems: "center",
+                                        opacity: pressed ? 0.9 : 1,
+                                      })}
+                                    >
+                                      <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: colors.text }}>
+                                        Done
+                                      </Text>
+                                    </Pressable>
+                                  </View>
+                                </View>
+                              )}
                             {(draftLineup.endDayOffset ?? 0) === 1 && (
                               <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted, marginTop: 2 }}>
                                 Ends next day
@@ -1770,7 +1841,9 @@ export default function EditEventScreen() {
           onChange={handleLineupTimeChange}
         />
       )}
-      {lineupTimePicker && Platform.OS === "ios" && (
+      {lineupTimePicker &&
+        Platform.OS === "ios" &&
+        !(draftEditingIndex !== null && lineupTimePicker.index === DRAFT_INDEX) && (
         <Modal visible transparent animationType="slide" onRequestClose={() => setLineupTimePicker(null)}>
           <Pressable
             style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" }}
