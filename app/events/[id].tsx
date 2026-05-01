@@ -222,6 +222,15 @@ export default function EventDetailScreen() {
     areSamePhone(eventData.hostPhone, userPhone);
   const eventTitle = eventData.title;
   const eventDateTime = eventData.dateTime;
+  const attendanceCount = goingCount + plusOneCount;
+  const capacityNumber = Number(eventData.capacity);
+  const hasCapacity =
+    Number.isFinite(capacityNumber) &&
+    Number.isInteger(capacityNumber) &&
+    capacityNumber > 0;
+  const attendanceChipLabel = hasCapacity
+    ? `${attendanceCount}/${capacityNumber}`
+    : `${attendanceCount}`;
 
   // Location reveal: if "reveal later", hide location until reveal time (revealHoursBefore event start)
   const isLocationRevealed = (() => {
@@ -940,12 +949,12 @@ export default function EventDetailScreen() {
           >
             <Ionicons name="people-outline" size={12} color={colors.textMuted} />
             <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-              {goingCount + plusOneCount}
+              {attendanceChipLabel}
             </Text>
           </View>
 
-          {/* Approval (host only, conditional) */}
-          {isHostMode && eventData.approvalRequired && (
+          {/* Approval (conditional, host + guest) */}
+          {eventData.approvalRequired && (
             <View
               style={{
                 flexDirection: "row",
