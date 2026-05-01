@@ -7,7 +7,6 @@ export const EVENT_FORM_DRESS_CODE_PRESETS = [
   "Formal",
   "Traditional",
   "All black",
-  "Techno",
-  "Y2K",
+  "Sportswear",
   EVENT_FORM_DRESS_CODE_CUSTOM,
 ] as const;

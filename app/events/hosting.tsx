@@ -217,6 +217,7 @@ export default function HostingScreen() {
                 statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                 cancelled={event.status === "cancelled"}
                 width="100%"
+                isHost={areSamePhone(event.hostPhone, userPhone)}
               />
             </View>
           ))}

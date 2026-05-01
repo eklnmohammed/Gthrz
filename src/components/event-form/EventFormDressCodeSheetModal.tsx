@@ -49,7 +49,15 @@ export function EventFormDressCodeSheetModal({
           Choose a preset or enter a custom style
         </Text>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, justifyContent: "center" }}>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: spacing.sm,
+          justifyContent: "space-between",
+          alignSelf: "stretch",
+        }}
+      >
         {EVENT_FORM_DRESS_CODE_PRESETS.filter((p) => p !== EVENT_FORM_DRESS_CODE_CUSTOM).map((preset) => {
           const selected = dressCodeSheetTemp === preset;
           return (
@@ -60,6 +68,8 @@ export function EventFormDressCodeSheetModal({
                 onDressCodeSheetCustomChange("");
               }}
               style={{
+                flexBasis: "48%",
+                minHeight: 44,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,
                 borderRadius: radius.md,
@@ -67,6 +77,7 @@ export function EventFormDressCodeSheetModal({
                 borderWidth: 0.5,
                 borderColor: selected ? colors.primary : colors.border,
                 alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>
@@ -81,6 +92,8 @@ export function EventFormDressCodeSheetModal({
             <Pressable
               onPress={() => onDressCodeSheetTempChange(EVENT_FORM_DRESS_CODE_CUSTOM)}
               style={{
+                flexBasis: "100%",
+                minHeight: 44,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,
                 borderRadius: radius.md,
@@ -88,6 +101,7 @@ export function EventFormDressCodeSheetModal({
                 borderWidth: 0.5,
                 borderColor: selected ? colors.primary : colors.border,
                 alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold, color: selected ? colors.text : colors.textMuted }}>

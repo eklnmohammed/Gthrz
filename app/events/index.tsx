@@ -401,6 +401,7 @@ export default function EventsScreen() {
                       statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                       cancelled={event.status === "cancelled"}
                       width={260}
+                      isHost={areSamePhone(event.hostPhone, userPhone)}
                     />
                   ))}
                 </ScrollView>
