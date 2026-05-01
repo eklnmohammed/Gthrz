@@ -196,8 +196,6 @@ export default function EventDetailScreen() {
     cant: { user_phone: string; plus_one?: boolean; declined_by_host?: boolean }[];
   }>({ going: [], pending: [], maybe: [], cant: [] });
   const plusOneCount = rsvpsByStatus.going.filter((r) => r.plus_one).length;
-  const plusOneCountLabel =
-    plusOneCount > 0 ? ` · ${plusOneCount} extra` : "";
   const [showManageSheet, setShowManageSheet] = useState(false);
   const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
   const [cancelReasonInput, setCancelReasonInput] = useState("");
@@ -884,90 +882,11 @@ export default function EventDetailScreen() {
             paddingBottom: spacing.md,
             flexDirection: "row",
             flexWrap: "wrap",
+            alignItems: "center",
             gap: spacing.sm,
           }}
         >
-          {eventData.location ? (
-            showLocationText ? (
-              <Pressable
-                onPress={async () => {
-                  const mapQuery = eventData.locationLat != null && eventData.locationLng != null
-                    ? `${eventData.locationLat},${eventData.locationLng}`
-                    : encodeURIComponent(eventData.location);
-                  const url = `https://maps.google.com/maps/search/?api=1&query=${mapQuery}`;
-                  try {
-                    const canOpen = await Linking.canOpenURL(url);
-                    if (canOpen) await Linking.openURL(url);
-                    else Alert.alert("Can't open Maps", "Unable to open the location in Maps.");
-                  } catch {
-                    Alert.alert("Can't open Maps", "Unable to open the location in Maps.");
-                  }
-                }}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: eventData.locationAddress ? "flex-start" : "center",
-                  gap: spacing.xs,
-                  backgroundColor: colors.surfaceLight,
-                  paddingVertical: eventData.locationAddress ? spacing.sm : spacing.xs,
-                  paddingHorizontal: spacing.md,
-                  borderRadius: eventData.locationAddress ? radius.lg : radius.full,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Ionicons name="location-outline" size={12} color={colors.primary} />
-                <View style={{ flexShrink: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: typography.sizes.sm,
-                      color: colors.primary,
-                      fontWeight: typography.weights.medium,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {eventData.location}
-                  </Text>
-                  {eventData.locationAddress ? (
-                    <Text
-                      style={{
-                        fontSize: typography.sizes.xs,
-                        color: colors.textMuted,
-                        marginTop: 1,
-                      }}
-                      numberOfLines={1}
-                    >
-                      {eventData.locationAddress}
-                    </Text>
-                  ) : null}
-                </View>
-              </Pressable>
-            ) : (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: spacing.xs,
-                  backgroundColor: colors.surfaceLight,
-                  paddingVertical: spacing.xs,
-                  paddingHorizontal: spacing.md,
-                  borderRadius: radius.full,
-                }}
-              >
-                <Ionicons name="location-outline" size={12} color={colors.textMuted} />
-                <Text
-                  style={{
-                    fontSize: typography.sizes.sm,
-                    color: colors.textMuted,
-                    fontWeight: typography.weights.medium,
-                  }}
-                >
-                  {!canGuestSeeExactLocation
-                    ? "Visible to going guests only"
-                    : `Location revealed ${revealTimeLabel(eventData.revealHoursBefore ?? 0)}`}
-                </Text>
-              </View>
-            )
-          ) : null}
-
+          {/* Host — always first, always row 1 */}
           <View
             style={{
               flexDirection: "row",
@@ -981,10 +900,11 @@ export default function EventDetailScreen() {
           >
             <Ionicons name="person-outline" size={12} color={colors.textMuted} />
             <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-              {isHostMode ? "You're hosting" : `Hosted by ${eventData.hostName || "Host"}`}
+              {isHostMode ? "Host: You" : `Host: ${eventData.hostName?.split(" ")[0] || "Host"}`}
             </Text>
           </View>
 
+          {/* Visibility — always row 1 */}
           <View
             style={{
               flexDirection: "row",
@@ -1006,6 +926,25 @@ export default function EventDetailScreen() {
             </Text>
           </View>
 
+          {/* Attendance — always row 1 */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+              backgroundColor: colors.surfaceLight,
+              paddingVertical: spacing.xs,
+              paddingHorizontal: spacing.md,
+              borderRadius: radius.full,
+            }}
+          >
+            <Ionicons name="people-outline" size={12} color={colors.textMuted} />
+            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
+              {goingCount + plusOneCount}
+            </Text>
+          </View>
+
+          {/* Approval (host only, conditional) */}
           {isHostMode && eventData.approvalRequired && (
             <View
               style={{
@@ -1020,31 +959,10 @@ export default function EventDetailScreen() {
             >
               <Ionicons name="person-add-outline" size={12} color={colors.textMuted} />
               <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-                Approval required
+                Approval
               </Text>
             </View>
           )}
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.xs,
-              backgroundColor: colors.surfaceLight,
-              paddingVertical: spacing.xs,
-              paddingHorizontal: spacing.md,
-              borderRadius: radius.full,
-            }}
-          >
-            <Ionicons name="people-outline" size={12} color={colors.textMuted} />
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-              {goingCount === 0
-                ? "Be the first to RSVP"
-                : eventData.capacity
-                  ? `${goingCount} going${plusOneCountLabel} · ${goingCount + plusOneCount}/${eventData.capacity}`
-                  : `${goingCount} going${plusOneCountLabel}`}
-            </Text>
-          </View>
         </View>
 
         {/* ── SHEET (title, date, who's coming, about, details accordion) ─── */}
@@ -1078,6 +996,68 @@ export default function EventDetailScreen() {
           >
             {typeLabel.label ? `${typeLabel.label} · ${formatEventDate(eventDateTime)}` : formatEventDate(eventDateTime)}
           </Text>
+
+          {/* Location line — under date, with privacy rules */}
+          {eventData.location ? (
+            showLocationText ? (
+              <Pressable
+                onPress={async () => {
+                  const mapQuery = eventData.locationLat != null && eventData.locationLng != null
+                    ? `${eventData.locationLat},${eventData.locationLng}`
+                    : encodeURIComponent(eventData.location);
+                  const url = `https://maps.google.com/maps/search/?api=1&query=${mapQuery}`;
+                  try {
+                    const canOpen = await Linking.canOpenURL(url);
+                    if (canOpen) await Linking.openURL(url);
+                    else Alert.alert("Can't open Maps", "Unable to open the location in Maps.");
+                  } catch {
+                    Alert.alert("Can't open Maps", "Unable to open the location in Maps.");
+                  }
+                }}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.xs,
+                  marginTop: spacing.sm,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Ionicons name="location-outline" size={14} color={colors.primary} />
+                <Text
+                  style={{
+                    fontSize: typography.sizes.sm,
+                    color: colors.primary,
+                    fontWeight: typography.weights.medium,
+                    flexShrink: 1,
+                  }}
+                  numberOfLines={2}
+                >
+                  {eventData.location}
+                </Text>
+              </Pressable>
+            ) : (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.xs,
+                  marginTop: spacing.sm,
+                }}
+              >
+                <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                <Text
+                  style={{
+                    fontSize: typography.sizes.sm,
+                    color: colors.textMuted,
+                  }}
+                >
+                  {!canGuestSeeExactLocation
+                    ? "Visible to going guests only"
+                    : `Location revealed ${revealTimeLabel(eventData.revealHoursBefore ?? 0)}`}
+                </Text>
+              </View>
+            )
+          ) : null}
 
           {/* Guests: single divider above, label + avatars (same order as before) */}
           <View style={{ marginBottom: spacing.lg }}>
