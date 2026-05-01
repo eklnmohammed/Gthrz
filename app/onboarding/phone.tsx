@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -6,19 +6,16 @@ import {
   Pressable,
   Modal,
   ScrollView,
-  Alert,
-  Switch,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
-import { isDevMode, setDevMode, setDevPhone, sendOtp, syncCurrentProfileFromServer } from "../../src/lib/auth";
-import { areSamePhone } from "../../src/utils/phone";
+import { sendOtp } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -40,16 +37,10 @@ const COUNTRIES: Country[] = [
 ];
 
 export default function PhoneLoginScreen() {
-  const params = useLocalSearchParams<{ mode?: string }>();
-  const isLogin = params.mode === "login";
-
   const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [devModeOn, setDevModeOn] = useState(false);
-  const [showDevSheet, setShowDevSheet] = useState(false);
   const keyboardInset = useKeyboardInset();
 
   // Validate: at least 10 digits for US/Canada, else at least 8
@@ -57,77 +48,18 @@ export default function PhoneLoginScreen() {
   const minLength = selectedCountry.code === "+1" ? 10 : 8;
   const isValid = digitsOnly.length >= minLength;
 
-  useEffect(() => {
-    isDevMode().then(setDevModeOn);
-  }, []);
-
-  /** __DEV__ only: long-press icon or title (~2s) opens sheet; no visible dev UI in production. */
-  const openDevSettingsSheet = () => {
-    if (__DEV__) setShowDevSheet(true);
-  };
-
-  /** Dev flow: set dev identity, save phone, sync from server, navigate. */
-  const continueInDevMode = async (fullPhone: string) => {
-    await setDevPhone(fullPhone);
-    await onboardingStore.savePhone(fullPhone);
-    await syncCurrentProfileFromServer();
-
-    const p = await onboardingStore.getProfile();
-    if (areSamePhone(p?.phone, fullPhone) && (p?.firstName || p?.avatarUri)) {
-      await onboardingStore.setOnboarded(true);
-      setLoading(false);
-      router.replace("/");
-      return;
-    }
-
-    const localProfile = await onboardingStore.getProfileForPhone(fullPhone);
-    if (localProfile) {
-      await onboardingStore.saveProfile({ ...localProfile, phone: fullPhone });
-      await onboardingStore.setOnboarded(true);
-      setLoading(false);
-      router.replace("/");
-      return;
-    }
-
-    setLoading(false);
-    if (isLogin) {
-      Alert.alert(
-        "No account found",
-        "Get started by creating your profile.",
-        [{ text: "Get started", onPress: () => router.push("/onboarding/profile") }]
-      );
-    } else {
-      router.push("/onboarding/profile");
-    }
-  };
-
   const handleSendCode = async () => {
     if (!isValid) return;
     setLoading(true);
-    setError(null);
 
     const fullPhone = `${selectedCountry.code}${digitsOnly}`;
 
-    const devMode = await isDevMode();
-
-    if (devMode) {
-      await continueInDevMode(fullPhone);
-      return;
-    }
-
-    // Real OTP mode: send code via Supabase Auth
-    const result = await sendOtp(fullPhone);
+    // Real OTP mode: attempt to send code, then navigate regardless.
+    // If OTP send fails the verify screen has a visible demo bypass.
+    await sendOtp(fullPhone);
+    await onboardingStore.savePhone(fullPhone);
     setLoading(false);
 
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    // Save phone for the verify screen
-    await onboardingStore.savePhone(fullPhone);
-
-    // Navigate to OTP verification
     router.push({
       pathname: "/onboarding/verify",
       params: { phone: fullPhone },
@@ -154,11 +86,7 @@ export default function PhoneLoginScreen() {
       >
         {/* Centered hero: gradient icon + title + subtitle */}
         <View style={{ alignItems: "center", marginBottom: spacing.xxxxl }}>
-          <Pressable
-            onLongPress={openDevSettingsSheet}
-            delayLongPress={2000}
-            style={{ marginBottom: spacing.xxl }}
-          >
+          <View style={{ marginBottom: spacing.xxl }}>
             <LinearGradient
               colors={[...colors.coralGradient]}
               start={{ x: 0, y: 0 }}
@@ -173,20 +101,18 @@ export default function PhoneLoginScreen() {
             >
               <Text style={{ fontSize: 40 }}>🥳</Text>
             </LinearGradient>
-          </Pressable>
-          <Pressable onLongPress={openDevSettingsSheet} delayLongPress={2000}>
-            <Text
-              style={{
-                fontSize: typography.sizes.xxl,
-                fontWeight: typography.weights.bold,
-                color: colors.text,
-                textAlign: "center",
-                marginBottom: spacing.sm,
-              }}
-            >
-              Ready to host?
-            </Text>
-          </Pressable>
+          </View>
+          <Text
+            style={{
+              fontSize: typography.sizes.xxl,
+              fontWeight: typography.weights.bold,
+              color: colors.text,
+              textAlign: "center",
+              marginBottom: spacing.sm,
+            }}
+          >
+            Ready to host?
+          </Text>
           <Text
             style={{
               fontSize: typography.sizes.md,
@@ -275,20 +201,6 @@ export default function PhoneLoginScreen() {
           </View>
         </View>
 
-        {/* Error message */}
-        {error && (
-          <Text
-            style={{
-              fontSize: typography.sizes.sm,
-              color: colors.error,
-              textAlign: "center",
-              marginBottom: spacing.md,
-            }}
-          >
-            {error}
-          </Text>
-        )}
-
         {/* Send code button */}
         <View style={{ width: "100%", maxWidth: 400 }}>
           <AppButton
@@ -303,97 +215,6 @@ export default function PhoneLoginScreen() {
 
       </ScrollView>
       </KeyboardAvoidingView>
-
-      {__DEV__ ? (
-        <Modal
-          visible={showDevSheet}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowDevSheet(false)}
-        >
-          <Pressable
-            style={{
-              flex: 1,
-              backgroundColor: colors.overlay,
-              justifyContent: "flex-end",
-            }}
-            onPress={() => setShowDevSheet(false)}
-          >
-            <Pressable
-              style={{
-                backgroundColor: colors.surface,
-                borderTopLeftRadius: radius.xl,
-                borderTopRightRadius: radius.xl,
-                paddingBottom: spacing.xxxxl,
-                paddingHorizontal: spacing.lg,
-              }}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <View
-                style={{
-                  paddingVertical: spacing.lg,
-                  borderBottomWidth: 1,
-                  borderBottomColor: colors.border,
-                  marginBottom: spacing.lg,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: typography.sizes.lg,
-                    fontWeight: typography.weights.semibold,
-                    color: colors.text,
-                  }}
-                >
-                  Developer options
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: spacing.sm,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: typography.sizes.md,
-                    color: colors.text,
-                    fontWeight: typography.weights.medium,
-                  }}
-                >
-                  Skip OTP
-                </Text>
-                <Switch
-                  value={devModeOn}
-                  onValueChange={async (v) => {
-                    await setDevMode(v);
-                    setDevModeOn(v);
-                  }}
-                  trackColor={{ false: colors.border, true: colors.coral }}
-                  thumbColor={colors.surface}
-                />
-              </View>
-              <Text
-                style={{
-                  fontSize: typography.sizes.xs,
-                  color: colors.textMuted,
-                  marginBottom: spacing.xl,
-                }}
-              >
-                Bypass SMS OTP on this device.
-              </Text>
-              <AppButton
-                title="Done"
-                onPress={() => setShowDevSheet(false)}
-                variant="secondary"
-                size="md"
-                fullWidth
-              />
-            </Pressable>
-          </Pressable>
-        </Modal>
-      ) : null}
 
       {/* Country picker modal */}
       <Modal

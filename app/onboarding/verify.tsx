@@ -15,7 +15,7 @@ import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
-import { verifyOtp, sendOtp, syncCurrentProfileFromServer } from "../../src/lib/auth";
+import { verifyOtp, sendOtp, setDevPhone, syncCurrentProfileFromServer } from "../../src/lib/auth";
 import { areSamePhone } from "../../src/utils/phone";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
@@ -103,6 +103,34 @@ export default function VerifyScreen() {
     } else {
       Alert.alert("Code sent", "A new code has been sent to your phone.");
     }
+  };
+
+  const handleDemoSkip = async () => {
+    if (!phone) return;
+    setLoading(true);
+    await setDevPhone(phone);
+    await onboardingStore.savePhone(phone);
+    await syncCurrentProfileFromServer();
+
+    const p = await onboardingStore.getProfile();
+    if (areSamePhone(p?.phone, phone) && (p?.firstName || p?.avatarUri)) {
+      await onboardingStore.setOnboarded(true);
+      setLoading(false);
+      router.replace("/");
+      return;
+    }
+
+    const localProfile = await onboardingStore.getProfileForPhone(phone);
+    if (localProfile) {
+      await onboardingStore.saveProfile({ ...localProfile, phone });
+      await onboardingStore.setOnboarded(true);
+      setLoading(false);
+      router.replace("/");
+      return;
+    }
+
+    setLoading(false);
+    router.replace("/onboarding/profile");
   };
 
   // Masked phone display
@@ -270,6 +298,31 @@ export default function VerifyScreen() {
             {resendTimer > 0
               ? `Resend code in ${resendTimer}s`
               : "Resend code"}
+          </Text>
+        </Pressable>
+
+        {/* Demo bypass — visible skip for prototype testing */}
+        <Pressable
+          onPress={handleDemoSkip}
+          disabled={loading}
+          style={({ pressed }) => ({
+            marginTop: spacing.xl,
+            paddingVertical: spacing.sm,
+            paddingHorizontal: spacing.lg,
+            borderRadius: radius.full,
+            borderWidth: 1,
+            borderColor: colors.border,
+            opacity: pressed || loading ? 0.6 : 1,
+          })}
+        >
+          <Text
+            style={{
+              fontSize: typography.sizes.sm,
+              color: colors.textMuted,
+              fontWeight: typography.weights.medium,
+            }}
+          >
+            Skip OTP — demo mode
           </Text>
         </Pressable>
       </ScrollView>
