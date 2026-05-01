@@ -2,6 +2,7 @@ import { useLayoutEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../src/components";
 import { AppButton } from "../../src/components/AppButton";
 import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
@@ -11,7 +12,7 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 
 interface ValueProp {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   gradient: readonly [string, string, ...string[]];
   title: string;
   description: string;
@@ -19,25 +20,25 @@ interface ValueProp {
 
 const VALUE_PROPS: ValueProp[] = [
   {
-    icon: "✨",
+    icon: "lock-closed-outline",
     gradient: colors.primaryGradient,
-    title: "Elegant event pages",
+    title: "Choose your privacy",
     description:
-      "Create stunning invites for every occasion — graduation nights, majlis gatherings, or birthday celebrations.",
+      "Control who can view your event and location.",
   },
   {
-    icon: "📋",
+    icon: "person-add-outline",
     gradient: colors.coralGradient,
-    title: "Smart guest control",
+    title: "Manage your guests",
     description:
-      "Set your guest list, approve attendees, and know exactly who's coming to your istiraha or wedding.",
+      "Approve requests and track who\u2019s coming.",
   },
   {
-    icon: "🎉",
-    gradient: ["#11998E", "#38EF7D"] as const,
-    title: "Effortless hosting",
+    icon: "calendar-outline",
+    gradient: ["#5B6EEE", "#9D7BEE"] as const,
+    title: "Keep it all together",
     description:
-      "Share your invite code, collect RSVPs, and focus on what matters — creating memorable moments.",
+      "Details, bring items, and updates in one place.",
   },
 ];
 
@@ -107,7 +108,7 @@ export default function ValuePropsScreen() {
                 marginBottom: spacing.xxl,
               }}
             >
-              <Text style={{ fontSize: 48 }}>{currentProp.icon}</Text>
+              <Ionicons name={currentProp.icon} size={44} color="#fff" />
             </LinearGradient>
 
             {/* Title */}

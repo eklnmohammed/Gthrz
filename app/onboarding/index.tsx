@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
               lineHeight: 24,
             }}
           >
-            From istiraha nights to engagement dinners.{"\n"}Host with style, invite with ease.
+            Private events.{"\n"}Full control over every guest.
           </Text>
         </View>
 

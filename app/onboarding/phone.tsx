@@ -15,6 +15,7 @@ import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
+import { Ionicons } from "@expo/vector-icons";
 import { sendOtp } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
@@ -99,7 +100,7 @@ export default function PhoneLoginScreen() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ fontSize: 40 }}>🥳</Text>
+              <Ionicons name="call-outline" size={36} color="#fff" />
             </LinearGradient>
           </View>
           <Text
@@ -111,7 +112,7 @@ export default function PhoneLoginScreen() {
               marginBottom: spacing.sm,
             }}
           >
-            Ready to host?
+            Enter your number
           </Text>
           <Text
             style={{
@@ -121,7 +122,7 @@ export default function PhoneLoginScreen() {
               lineHeight: 22,
             }}
           >
-            Your phone number stays private.
+            Used to continue to verification.
           </Text>
         </View>
 

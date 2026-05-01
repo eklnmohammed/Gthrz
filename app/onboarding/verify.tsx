@@ -15,6 +15,7 @@ import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
+import { Ionicons } from "@expo/vector-icons";
 import { verifyOtp, sendOtp, setDevPhone, syncCurrentProfileFromServer } from "../../src/lib/auth";
 import { areSamePhone } from "../../src/utils/phone";
 import { colors } from "../../src/theme/colors";
@@ -171,7 +172,7 @@ export default function VerifyScreen() {
             marginBottom: spacing.xxl,
           }}
         >
-          <Text style={{ fontSize: 40 }}>🔐</Text>
+          <Ionicons name="phone-portrait-outline" size={36} color="#fff" />
         </LinearGradient>
 
         <Text
@@ -183,7 +184,7 @@ export default function VerifyScreen() {
             marginBottom: spacing.sm,
           }}
         >
-          Check your messages
+          Verify your number
         </Text>
         <Text
           style={{
