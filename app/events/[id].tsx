@@ -803,7 +803,7 @@ export default function EventDetailScreen() {
         }}
       >
         <View style={{ flexShrink: 0 }}>
-          <HeaderBackTextButton label="Back" onPress={() => router.back()} />
+          <HeaderBackTextButton label="Back" onPress={() => router.back()} applyScreenEdgeInset={false} />
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, flexShrink: 0 }}>
           <Pressable

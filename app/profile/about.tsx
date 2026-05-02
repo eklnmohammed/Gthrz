@@ -1,5 +1,6 @@
 import { View, Text } from "react-native";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
+import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { Screen } from "../../src/components/Screen";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
@@ -13,6 +14,8 @@ export default function AboutScreen() {
         options={{
           headerTitle: "About",
           headerBackTitle: "Profile",
+          headerBackVisible: false,
+          headerLeft: () => <HeaderBackTextButton label="Back" onPress={() => router.back()} />,
         }}
       />
 

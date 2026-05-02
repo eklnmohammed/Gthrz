@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect, Stack } from "expo-router";
 import { Screen } from "../src/components/Screen";
+import { HeaderBackTextButton } from "../src/components/HeaderBackTextButton";
 import { HeaderTextButton } from "../src/components/HeaderTextButton";
 import { EventCard } from "../src/components/EventCard";
 import { HomeSectionHeader } from "../src/components/HomeSectionHeader";
@@ -117,8 +118,8 @@ export default function ProfileScreen() {
       <Stack.Screen
         options={{
           headerTitle: "Profile",
-          headerBackVisible: true,
-          headerLeft: undefined,
+          headerBackVisible: false,
+          headerLeft: () => <HeaderBackTextButton label="Back" onPress={() => router.back()} />,
           headerRight: () => (
             <HeaderTextButton
               label="Edit"

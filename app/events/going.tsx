@@ -10,6 +10,7 @@ import {
 import { router, useLocalSearchParams, Stack, useFocusEffect } from "expo-router";
 import { useEvents, type Event } from "../../src/state/eventsStore";
 import { onboardingStore } from "../../src/state/onboardingStore";
+import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { EventCard } from "../../src/components/EventCard";
 import { SortSheet, type SortOption } from "../../src/components/SortSheet";
 import { AppButton } from "../../src/components/AppButton";
@@ -105,7 +106,14 @@ export default function GoingScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Going / Pending", headerBackTitle: "Events" }} />
+      <Stack.Screen
+        options={{
+          title: "Going / Pending",
+          headerBackTitle: "Events",
+          headerBackVisible: false,
+          headerLeft: () => <HeaderBackTextButton label="Back" onPress={() => router.back()} />,
+        }}
+      />
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,

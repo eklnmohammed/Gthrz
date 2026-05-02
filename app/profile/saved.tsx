@@ -8,6 +8,7 @@ import {
   Pressable,
 } from "react-native";
 import { router, Stack, useFocusEffect } from "expo-router";
+import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { useEvents, type Event } from "../../src/state/eventsStore";
 import { useFavorites } from "../../src/state/favoritesStore";
 import { onboardingStore } from "../../src/state/onboardingStore";
@@ -95,7 +96,14 @@ export default function SavedScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Saved", headerBackTitle: "Profile" }} />
+      <Stack.Screen
+        options={{
+          title: "Saved",
+          headerBackTitle: "Profile",
+          headerBackVisible: false,
+          headerLeft: () => <HeaderBackTextButton label="Back" onPress={() => router.back()} />,
+        }}
+      />
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,

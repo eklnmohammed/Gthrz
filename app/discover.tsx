@@ -1,5 +1,6 @@
 import { View, Text, FlatList, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from "react-native";
 import { router, useFocusEffect, Stack } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useState, useMemo, useEffect } from "react";
 import { useEvents, Event } from "../src/state/eventsStore";
 import { Screen } from "../src/components/Screen";
@@ -25,6 +26,40 @@ const GRID_GAP = 12;
 /** Main feed: first batch + each scroll load */
 const DISCOVER_INITIAL_COUNT = 12;
 const DISCOVER_PAGE_SIZE = 12;
+
+function DiscoverHeaderJoinButton({ onPress }: { onPress: () => void }) {
+  const insets = useSafeAreaInsets();
+  const padRight = Math.max(insets.right, spacing.xxl);
+  return (
+    <View style={{ marginRight: padRight }}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 2,
+          backgroundColor: colors.surfaceLight,
+          borderRadius: radius.full,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.sm,
+          overflow: "hidden",
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Text
+          style={{
+            fontSize: typography.sizes.md,
+            fontWeight: typography.weights.medium,
+            color: colors.text,
+          }}
+          numberOfLines={1}
+        >
+          Join +
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
 
 function compareDiscoverSoonest(a: Event, b: Event, goingCounts: Record<string, number>): number {
   const da = new Date(a.dateTime).getTime();
@@ -152,33 +187,7 @@ export default function DiscoverScreen() {
           headerLeft: () => (
             <HeaderBackTextButton label="Back" onPress={() => router.back()} />
           ),
-          headerRight: () => (
-            <Pressable
-              onPress={() => setShowJoinModal(true)}
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 2,
-                backgroundColor: colors.surfaceLight,
-                borderRadius: radius.full,
-                paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.sm,
-                overflow: "hidden",
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Text
-                style={{
-                  fontSize: typography.sizes.md,
-                  fontWeight: typography.weights.medium,
-                  color: colors.text,
-                }}
-                numberOfLines={1}
-              >
-                Join +
-              </Text>
-            </Pressable>
-          ),
+          headerRight: () => <DiscoverHeaderJoinButton onPress={() => setShowJoinModal(true)} />,
         }}
       />
       <FlatList
