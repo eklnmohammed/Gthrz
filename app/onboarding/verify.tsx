@@ -16,7 +16,7 @@ import { AppButton } from "../../src/components/AppButton";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { Ionicons } from "@expo/vector-icons";
-import { verifyOtp, sendOtp, setDevPhone, syncCurrentProfileFromServer } from "../../src/lib/auth";
+import { verifyOtp, sendOtp, setDevMode, setDevPhone, syncCurrentProfileFromServer } from "../../src/lib/auth";
 import { areSamePhone } from "../../src/utils/phone";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
@@ -109,6 +109,7 @@ export default function VerifyScreen() {
   const handleDemoSkip = async () => {
     if (!phone) return;
     setLoading(true);
+    await setDevMode(true);
     await setDevPhone(phone);
     await onboardingStore.savePhone(phone);
     await syncCurrentProfileFromServer();
