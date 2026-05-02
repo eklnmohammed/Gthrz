@@ -117,6 +117,35 @@ function bringGuestLabelForPicker(phone: string, viewerPhone: string, profiles: 
   return "Guest";
 }
 
+/** True when we should read `profiles` from Supabase (no cache row or no usable avatar URL). */
+function cachedGuestProfileNeedsServerAvatar(profile: UserProfile | null | undefined): boolean {
+  if (!profile) return true;
+  return !String(profile.avatarUri ?? "").trim();
+}
+
+/**
+ * Guest list avatars: merge per-phone AsyncStorage with Supabase when the cache has no avatar.
+ * Otherwise a name-only cached row never refetches and the UI stays on initials after the guest uploads a photo.
+ */
+async function loadOrRefreshGuestProfileForPhone(phone: string): Promise<UserProfile | null> {
+  const cached = await onboardingStore.getProfileForPhone(phone);
+  if (!cachedGuestProfileNeedsServerAvatar(cached)) {
+    return cached;
+  }
+  const server = await fetchProfile(phone);
+  if (!server) {
+    return cached ?? null;
+  }
+  const parts = (server.full_name || "").trim().split(/\s+/);
+  const updated: UserProfile = {
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" ") || "",
+    avatarUri: server.avatar_url ?? undefined,
+  };
+  await onboardingStore.saveProfileForPhone(phone, updated);
+  return updated;
+}
+
 type RsvpStatus = "cant" | "maybe" | "going" | "pending" | null;
 
 /** Primary sticky-bar label. Declined-by-host must be evaluated before the public "Going" shortcut. */
@@ -381,19 +410,7 @@ export default function EventDetailScreen() {
       await Promise.all(
         phones.map(async (phone) => {
           if (cancelled) return;
-          let profile = await onboardingStore.getProfileForPhone(phone);
-          if (!profile) {
-            const server = await fetchProfile(phone);
-            if (server && !cancelled) {
-              const parts = (server.full_name || "").trim().split(/\s+/);
-              profile = {
-                firstName: parts[0] || "",
-                lastName: parts.slice(1).join(" ") || "",
-                avatarUri: server.avatar_url ?? undefined,
-              };
-              await onboardingStore.saveProfileForPhone(phone, profile);
-            }
-          }
+          const profile = await loadOrRefreshGuestProfileForPhone(phone);
           if (!cancelled) map[phone] = profile ?? null;
         })
       );
@@ -425,19 +442,7 @@ export default function EventDetailScreen() {
       await Promise.all(
         phones.map(async (phone) => {
           if (cancelled) return;
-          let profile = await onboardingStore.getProfileForPhone(phone);
-          if (!profile) {
-            const server = await fetchProfile(phone);
-            if (server && !cancelled) {
-              const parts = (server.full_name || "").trim().split(/\s+/);
-              profile = {
-                firstName: parts[0] || "",
-                lastName: parts.slice(1).join(" ") || "",
-                avatarUri: server.avatar_url ?? undefined,
-              };
-              await onboardingStore.saveProfileForPhone(phone, profile);
-            }
-          }
+          const profile = await loadOrRefreshGuestProfileForPhone(phone);
           if (!cancelled) map[phone] = profile ?? null;
         })
       );
