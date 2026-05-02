@@ -125,11 +125,15 @@ function cachedGuestProfileNeedsServerAvatar(profile: UserProfile | null | undef
 
 /**
  * Guest list avatars: merge per-phone AsyncStorage with Supabase when the cache has no avatar.
- * Otherwise a name-only cached row never refetches and the UI stays on initials after the guest uploads a photo.
+ * With `forceServer`, always read Supabase so avatar URL changes (same user, new photo) update the UI.
  */
-async function loadOrRefreshGuestProfileForPhone(phone: string): Promise<UserProfile | null> {
+async function loadOrRefreshGuestProfileForPhone(
+  phone: string,
+  opts?: { forceServer?: boolean },
+): Promise<UserProfile | null> {
+  const forceServer = opts?.forceServer ?? false;
   const cached = await onboardingStore.getProfileForPhone(phone);
-  if (!cachedGuestProfileNeedsServerAvatar(cached)) {
+  if (!forceServer && !cachedGuestProfileNeedsServerAvatar(cached)) {
     return cached;
   }
   const server = await fetchProfile(phone);
@@ -297,6 +301,7 @@ export default function EventDetailScreen() {
   // If the user just did an RSVP change (set/undo), don't overwrite with stale focus-fetch data.
   useFocusEffect(
     useCallback(() => {
+      let cancelled = false;
       const fetchEventData = async () => {
         if (!params.id) return;
         const focusGeneration = rsvpChangeGenerationRef.current;
@@ -312,14 +317,24 @@ export default function EventDetailScreen() {
           ]);
 
           if (!error && data) {
-            setEventData({
+            const snapshotHostName = data.host_name || undefined;
+            const hostPhoneVal = data.host_phone || undefined;
+            let hostNameForUi = snapshotHostName;
+            if (hostPhoneVal && !cancelled) {
+              const hostProf = await fetchProfile(hostPhoneVal);
+              if (!cancelled && hostProf?.full_name?.trim()) {
+                hostNameForUi = hostProf.full_name.trim();
+              }
+            }
+            if (!cancelled) {
+              setEventData({
               title: data.title || "Untitled Event",
               dateTime: data.date_time || "—",
               location: data.location_name || data.location || "",
               details: data.details || "",
               capacity: data.capacity?.toString() || "",
-              hostPhone: data.host_phone || undefined,
-              hostName: data.host_name || undefined,
+              hostPhone: hostPhoneVal,
+              hostName: hostNameForUi,
               eventType: normalizeEventType(data.event_type) ?? undefined,
               inviteCode: data.invite_code || undefined,
               visibility: data.visibility || "private",
@@ -346,6 +361,7 @@ export default function EventDetailScreen() {
               priceAmount: data.price_amount ?? null,
               priceCurrency: data.price_currency ?? "SAR",
             });
+            }
           }
 
           const rsvps = await getRsvpsForEvent(params.id!);
@@ -372,6 +388,44 @@ export default function EventDetailScreen() {
             setUserPlusOne(myGoingEntry?.plus_one ?? false);
             const myCantEntry = rsvps.cant.find((r) => r.user_phone === phone);
             setUserDeclinedByHost(myCantEntry?.declined_by_host ?? false);
+
+            // Guest avatars: always reconcile from server on focus so profile/avatar edits show when returning here
+            // (RSVP keys do not change when someone only updates their photo; cache may still hold the old URL).
+            if (!cancelled && rsvpChangeGenerationRef.current === focusGeneration) {
+              const goingPhones = rsvps.going.map((r) => r.user_phone);
+              const allGuestPhones = [
+                ...rsvps.going,
+                ...rsvps.pending,
+                ...rsvps.maybe,
+                ...rsvps.cant,
+              ]
+                .map((r) => r.user_phone)
+                .filter((p, i, arr) => arr.indexOf(p) === i);
+              if (allGuestPhones.length === 0) {
+                setGuestProfiles({});
+                setGoingProfiles({});
+              } else {
+                const guestMap: Record<string, UserProfile | null> = {};
+                await Promise.all(
+                  allGuestPhones.map(async (guestPhone) => {
+                    if (cancelled) return;
+                    const profile = await loadOrRefreshGuestProfileForPhone(guestPhone, { forceServer: true });
+                    if (!cancelled) guestMap[guestPhone] = profile ?? null;
+                  }),
+                );
+                if (cancelled) return;
+                setGuestProfiles(guestMap);
+                if (goingPhones.length === 0) {
+                  setGoingProfiles({});
+                } else {
+                  const goingMap: Record<string, UserProfile | null> = {};
+                  for (const p of goingPhones) {
+                    goingMap[p] = guestMap[p] ?? null;
+                  }
+                  setGoingProfiles(goingMap);
+                }
+              }
+            }
           }
         } catch (err) {
           console.error("Failed to fetch event:", err);
@@ -379,6 +433,9 @@ export default function EventDetailScreen() {
       };
 
       fetchEventData();
+      return () => {
+        cancelled = true;
+      };
     }, [params.id, getRsvpsForEvent, getContributions, getRsvp, clearContributionAssigneesNotGoing])
   );
 

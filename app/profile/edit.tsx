@@ -9,7 +9,7 @@ import { AppButton } from "../../src/components/AppButton";
 import { AppInput } from "../../src/components/AppInput";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore, UserProfile } from "../../src/state/onboardingStore";
-import { uploadAvatar, upsertProfile } from "../../src/lib/auth";
+import { uploadAvatar, upsertProfile, syncCurrentProfileFromServer } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -38,7 +38,15 @@ export default function ProfileEditScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadProfile();
+      let cancelled = false;
+      syncCurrentProfileFromServer()
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) void loadProfile();
+        });
+      return () => {
+        cancelled = true;
+      };
     }, [loadProfile])
   );
 
