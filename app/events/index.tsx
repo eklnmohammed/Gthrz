@@ -4,8 +4,8 @@ import { router, useFocusEffect, Stack } from "expo-router";
 import { useEvents, type Event } from "../../src/state/eventsStore";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { Screen } from "../../src/components/Screen";
-import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { HeaderTextButton } from "../../src/components/HeaderTextButton";
+import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { AppButton } from "../../src/components/AppButton";
 import { Card } from "../../src/components/Card";
 import { EventCard } from "../../src/components/EventCard";
@@ -98,22 +98,23 @@ export default function EventsScreen() {
   };
 
   return (
-    <Screen padding={false} topPadding={spacing.sm}>
-      <Stack.Screen
-        options={{
-          headerBackVisible: false,
-          headerLeft: () => (
-            <HeaderBackTextButton label="Back" onPress={() => router.back()} />
-          ),
-          headerRight: () => (
-            <HeaderTextButton label="Create" onPress={() => router.push("/events/create")} />
-          ),
-        }}
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar
+        title="Events"
+        onBack={() => router.back()}
+        right={
+          <HeaderTextButton
+            label="Create"
+            applyScreenEdgeInset={false}
+            onPress={() => router.push("/events/create")}
+          />
+        }
       />
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{
-          paddingTop: spacing.sm,
+          paddingTop: spacing.md,
           paddingHorizontal: spacing.xxl,
           paddingBottom: spacing.xxl,
           gap: spacing.md,

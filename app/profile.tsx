@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { router, useFocusEffect, Stack } from "expo-router";
 import { Screen } from "../src/components/Screen";
-import { HeaderBackTextButton } from "../src/components/HeaderBackTextButton";
 import { HeaderTextButton } from "../src/components/HeaderTextButton";
+import { StackScreenTopBar } from "../src/components/StackScreenTopBar";
 import { EventCard } from "../src/components/EventCard";
 import { HomeSectionHeader } from "../src/components/HomeSectionHeader";
 import { onboardingStore, UserProfile } from "../src/state/onboardingStore";
@@ -114,19 +114,18 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen padding={false} topPadding={spacing.sm}>
-      <Stack.Screen
-        options={{
-          headerTitle: "Profile",
-          headerBackVisible: false,
-          headerLeft: () => <HeaderBackTextButton label="Back" onPress={() => router.back()} />,
-          headerRight: () => (
-            <HeaderTextButton
-              label="Edit"
-              onPress={() => router.push("/profile/edit")}
-            />
-          ),
-        }}
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar
+        title="Profile"
+        onBack={() => router.back()}
+        right={
+          <HeaderTextButton
+            label="Edit"
+            applyScreenEdgeInset={false}
+            onPress={() => router.push("/profile/edit")}
+          />
+        }
       />
       <ScrollView
         contentContainerStyle={{

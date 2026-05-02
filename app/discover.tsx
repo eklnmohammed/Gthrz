@@ -1,10 +1,9 @@
 import { View, Text, FlatList, ActivityIndicator, Pressable, TextInput, useWindowDimensions } from "react-native";
 import { router, useFocusEffect, Stack } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useState, useMemo, useEffect } from "react";
 import { useEvents, Event } from "../src/state/eventsStore";
 import { Screen } from "../src/components/Screen";
-import { HeaderBackTextButton } from "../src/components/HeaderBackTextButton";
+import { StackScreenTopBar } from "../src/components/StackScreenTopBar";
 import { Card } from "../src/components/Card";
 import { EventCard } from "../src/components/EventCard";
 import { JoinWithCodeModal } from "../src/components/JoinWithCodeModal";
@@ -26,40 +25,6 @@ const GRID_GAP = 12;
 /** Main feed: first batch + each scroll load */
 const DISCOVER_INITIAL_COUNT = 12;
 const DISCOVER_PAGE_SIZE = 12;
-
-function DiscoverHeaderJoinButton({ onPress }: { onPress: () => void }) {
-  const insets = useSafeAreaInsets();
-  const padRight = Math.max(insets.right, spacing.xxl);
-  return (
-    <View style={{ marginRight: padRight }}>
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => ({
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 2,
-          backgroundColor: colors.surfaceLight,
-          borderRadius: radius.full,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.sm,
-          overflow: "hidden",
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <Text
-          style={{
-            fontSize: typography.sizes.md,
-            fontWeight: typography.weights.medium,
-            color: colors.text,
-          }}
-          numberOfLines={1}
-        >
-          Join +
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
 
 function compareDiscoverSoonest(a: Event, b: Event, goingCounts: Record<string, number>): number {
   const da = new Date(a.dateTime).getTime();
@@ -180,15 +145,38 @@ export default function DiscoverScreen() {
   }, [listVisibleCount, discoverSortedEvents.length]);
 
   return (
-    <Screen padding={false} topPadding={spacing.sm}>
-      <Stack.Screen
-        options={{
-          headerBackVisible: false,
-          headerLeft: () => (
-            <HeaderBackTextButton label="Back" onPress={() => router.back()} />
-          ),
-          headerRight: () => <DiscoverHeaderJoinButton onPress={() => setShowJoinModal(true)} />,
-        }}
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar
+        title="Discover"
+        onBack={() => router.back()}
+        right={
+          <Pressable
+            onPress={() => setShowJoinModal(true)}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 2,
+              backgroundColor: colors.surfaceLight,
+              borderRadius: radius.full,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.sm,
+              overflow: "hidden",
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Text
+              style={{
+                fontSize: typography.sizes.md,
+                fontWeight: typography.weights.medium,
+                color: colors.text,
+              }}
+              numberOfLines={1}
+            >
+              Join +
+            </Text>
+          </Pressable>
+        }
       />
       <FlatList
         data={loading ? [] : displayedEvents}
@@ -205,16 +193,6 @@ export default function DiscoverScreen() {
         }}
         ListHeaderComponent={
           <>
-            <Text
-              style={{
-                fontSize: typography.sizes.xl,
-                fontWeight: typography.weights.bold,
-                color: colors.text,
-                marginBottom: spacing.xs,
-              }}
-            >
-              Discover
-            </Text>
             <Text
               style={{
                 fontSize: typography.sizes.xs,

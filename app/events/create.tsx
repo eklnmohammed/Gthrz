@@ -22,7 +22,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEvents, type LineupEntry } from "@/src/state/eventsStore";
 import { onboardingStore } from "@/src/state/onboardingStore";
 import { EventType } from "@/src/lib/supabase";
-import { HeaderBackTextButton } from "@/src/components/HeaderBackTextButton";
+import { StackScreenTopBar } from "@/src/components/StackScreenTopBar";
 import { AppButton } from "@/src/components/AppButton";
 import { AppInput } from "@/src/components/AppInput";
 import { colors } from "@/src/theme/colors";
@@ -532,13 +532,8 @@ export default function CreateEventScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       <StatusBar barStyle="light-content" />
-      <Stack.Screen
-        options={{
-          headerTitle: "New Event",
-          headerBackVisible: false,
-          headerLeft: () => <HeaderBackTextButton label="Back" onPress={handleBack} />,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="New Event" onBack={handleBack} />
 
       <ScrollView
         style={{ flex: 1 }}

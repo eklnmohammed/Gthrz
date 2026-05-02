@@ -13,12 +13,15 @@ import { typography } from "../theme/typography";
 export function HeaderTextButton({
   label,
   onPress,
+  /** When false, skip outer inset (e.g. inside `StackScreenTopBar` which already pads horizontally). */
+  applyScreenEdgeInset = true,
 }: {
   label: string;
   onPress: () => void;
+  applyScreenEdgeInset?: boolean;
 }) {
   const insets = useSafeAreaInsets();
-  const padRight = Math.max(insets.right, spacing.xxl);
+  const padRight = applyScreenEdgeInset ? Math.max(insets.right, spacing.xxl) : 0;
 
   return (
     <View collapsable={false} style={{ marginRight: padRight }}>

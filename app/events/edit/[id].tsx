@@ -27,7 +27,7 @@ import {
   resolveCapacityLimitForAutoApproval,
 } from "@/src/state/eventsStore";
 import { supabase, EventType, normalizeEventType } from "@/src/lib/supabase";
-import { HeaderBackTextButton } from "@/src/components/HeaderBackTextButton";
+import { StackScreenTopBar } from "@/src/components/StackScreenTopBar";
 import { AppButton } from "@/src/components/AppButton";
 import { AppInput } from "@/src/components/AppInput";
 import { colors } from "@/src/theme/colors";
@@ -835,6 +835,8 @@ export default function EditEventScreen() {
     return (
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar barStyle="light-content" />
+        <Stack.Screen options={{ headerShown: false }} />
+        <StackScreenTopBar title="Edit Event" onBack={handleBack} />
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -848,13 +850,8 @@ export default function EditEventScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       <StatusBar barStyle="light-content" />
-      <Stack.Screen
-        options={{
-          headerTitle: "Edit Event",
-          headerBackVisible: false,
-          headerLeft: () => <HeaderBackTextButton label="Back" onPress={handleBack} />,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="Edit Event" onBack={handleBack} />
 
       <ScrollView
         style={{ flex: 1 }}

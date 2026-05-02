@@ -1,6 +1,7 @@
 export { BackToStartButton } from "./BackToStartButton";
 export { HeaderBackTextButton } from "./HeaderBackTextButton";
 export { HeaderTextButton } from "./HeaderTextButton";
+export { StackScreenTopBar } from "./StackScreenTopBar";
 export { Screen } from "./Screen";
 export { AppButton } from "./AppButton";
 export { AppInput } from "./AppInput";
