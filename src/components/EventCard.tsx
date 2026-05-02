@@ -41,6 +41,8 @@ interface EventCardProps {
   hideTypeChip?: boolean;
   /** When true, shows a "Cancelled" badge on the card. */
   cancelled?: boolean;
+  /** Host-only: guests awaiting approval; compact chip when count is positive. */
+  pendingRsvpCount?: number;
 }
 
 export function EventCard({
@@ -59,6 +61,7 @@ export function EventCard({
   showTypeChip = true,
   hideTypeChip = false,
   cancelled = false,
+  pendingRsvpCount,
 }: EventCardProps) {
   const { isFavorited, toggleFavorite } = useFavorites();
   const typeLabel = getEventTypeLabel(eventType as any);
@@ -197,7 +200,7 @@ export function EventCard({
           {dateTime}
         </Text>
         {/* Reserve space so cards with/without RSVP badges stay aligned */}
-        <View style={{ marginTop: 4, minHeight: 20, flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+        <View style={{ marginTop: 4, minHeight: 20, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.xs }}>
           {(statusPill || cancelled) ? (
             cancelled ? (
               <View
@@ -228,6 +231,20 @@ export function EventCard({
                 </View>
               ) : null
             )
+          ) : null}
+          {typeof pendingRsvpCount === "number" && pendingRsvpCount > 0 ? (
+            <View
+              style={{
+                paddingVertical: 2,
+                paddingHorizontal: 7,
+                borderRadius: radius.full,
+                backgroundColor: "rgba(255, 165, 2, 0.2)",
+              }}
+            >
+              <Text style={{ fontSize: 9, fontWeight: typography.weights.semibold, color: colors.warning }}>
+                Pending {pendingRsvpCount}
+              </Text>
+            </View>
           ) : null}
         </View>
       </View>

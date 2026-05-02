@@ -251,6 +251,7 @@ export default function ProfileScreen() {
                   width={TILE_SIZE}
                   posterHeight={TILE_SIZE}
                   hideTypeChip
+                  pendingRsvpCount={event.pendingRsvpCount}
                 />
               ))}
             </ScrollView>
@@ -329,6 +330,7 @@ export default function ProfileScreen() {
                   posterHeight={TILE_SIZE}
                   hideTypeChip
                   isHost
+                  pendingRsvpCount={event.pendingRsvpCount}
                 />
               ))}
             </ScrollView>

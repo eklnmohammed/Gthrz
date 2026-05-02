@@ -329,6 +329,7 @@ export default function Home() {
                       cancelled={eventForCard.status === "cancelled"}
                       isHost={areSamePhone(eventForCard.hostPhone, userPhone)}
                       width={CARD_WIDTH}
+                      pendingRsvpCount={eventForCard.pendingRsvpCount}
                     />
                   );
                 })}
@@ -364,6 +365,7 @@ export default function Home() {
                     cancelled={event.status === "cancelled"}
                     width={CARD_WIDTH}
                     isHost={areSamePhone(event.hostPhone, userPhone)}
+                    pendingRsvpCount={event.pendingRsvpCount}
                   />
                 ))}
               </ScrollView>
@@ -402,6 +404,7 @@ export default function Home() {
                         cancelled={eventForCard.status === "cancelled"}
                         isHost={areSamePhone(eventForCard.hostPhone, userPhone)}
                         width={CARD_WIDTH}
+                        pendingRsvpCount={eventForCard.pendingRsvpCount}
                       />
                     );
                   })}
@@ -440,6 +443,7 @@ export default function Home() {
                           cancelled={eventForCard.status === "cancelled"}
                           isHost={areSamePhone(eventForCard.hostPhone, userPhone)}
                           width={CARD_WIDTH}
+                          pendingRsvpCount={eventForCard.pendingRsvpCount}
                         />
                       );
                     })}

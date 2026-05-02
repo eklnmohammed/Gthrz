@@ -3,6 +3,7 @@ import { colors } from "@/src/theme/colors";
 import { spacing } from "@/src/theme/spacing";
 import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
+import { getEventCapacityFormErrorMessage } from "@/src/utils/capacityInput";
 
 type EventFormCapacityControlProps = {
   mode: "unlimited" | "set";
@@ -65,7 +66,7 @@ export function EventFormCapacityControl({
       )}
       {showValidationError && (
         <Text style={{ fontSize: typography.sizes.xs, color: colors.error, marginTop: 2 }}>
-          Capacity must be a positive whole number.
+          {getEventCapacityFormErrorMessage(value) ?? "Enter a whole number from 1 to 999."}
         </Text>
       )}
     </View>

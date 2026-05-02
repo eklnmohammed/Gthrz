@@ -208,6 +208,7 @@ export default function SavedScreen() {
                 cancelled={event.status === "cancelled"}
                 isHost={samePhoneIdentity(event.hostPhone, userPhone)}
                 width="100%"
+                pendingRsvpCount={event.pendingRsvpCount}
               />
             </View>
           ))}

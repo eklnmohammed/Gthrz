@@ -897,6 +897,7 @@ export default function EventDetailScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        nestedScrollEnabled
       >
         {/* ── POSTER CARD (Open-style) ───────────────────────────────────── */}
         <View style={{ paddingHorizontal: TOP_ACTION_INSET_H, paddingTop: eventDetailScrollTopPadding }}>
@@ -948,92 +949,104 @@ export default function EventDetailScreen() {
             borderTopLeftRadius: SHEET_RADIUS,
             borderTopRightRadius: SHEET_RADIUS,
             marginTop: -SHEET_RADIUS,
-            paddingHorizontal: spacing.xxl,
             paddingTop: spacing.md,
             paddingBottom: spacing.md,
-            flexDirection: "row",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: spacing.sm,
           }}
         >
-          {/* Host — always first, always row 1 */}
-          <View
-            style={{
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
               flexDirection: "row",
               alignItems: "center",
               gap: spacing.xs,
-              backgroundColor: colors.surfaceLight,
-              paddingVertical: spacing.xs,
-              paddingHorizontal: spacing.md,
-              borderRadius: radius.full,
+              paddingHorizontal: spacing.xxl,
+              paddingVertical: 0,
             }}
           >
-            <Ionicons name="person-outline" size={12} color={colors.textMuted} />
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-              {isHostMode ? "Host: You" : `Host: ${eventData.hostName?.split(" ")[0] || "Host"}`}
-            </Text>
-          </View>
-
-          {/* Visibility — always row 1 */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.xs,
-              backgroundColor: colors.surfaceLight,
-              paddingVertical: spacing.xs,
-              paddingHorizontal: spacing.md,
-              borderRadius: radius.full,
-            }}
-          >
-            <Ionicons
-              name={eventData.visibility === "public" ? "globe-outline" : "lock-closed-outline"}
-              size={12}
-              color={colors.textMuted}
-            />
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-              {eventData.visibility === "public" ? "Public" : "Private"}
-            </Text>
-          </View>
-
-          {/* Attendance — always row 1 */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: spacing.xs,
-              backgroundColor: colors.surfaceLight,
-              paddingVertical: spacing.xs,
-              paddingHorizontal: spacing.md,
-              borderRadius: radius.full,
-            }}
-          >
-            <Ionicons name="people-outline" size={12} color={colors.textMuted} />
-            <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-              {attendanceChipLabel}
-            </Text>
-          </View>
-
-          {/* Approval (conditional, host + guest) */}
-          {eventData.approvalRequired && (
+            {/* Host — first */}
             <View
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.xs,
+                gap: 3,
                 backgroundColor: colors.surfaceLight,
                 paddingVertical: spacing.xs,
-                paddingHorizontal: spacing.md,
+                paddingHorizontal: spacing.sm,
                 borderRadius: radius.full,
               }}
             >
-              <Ionicons name="person-add-outline" size={12} color={colors.textMuted} />
-              <Text style={{ fontSize: typography.sizes.sm, color: colors.textMuted }}>
-                Approval
+              <Ionicons name="person-outline" size={11} color={colors.textMuted} />
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted }}>
+                {isHostMode ? "Host: You" : `Host: ${eventData.hostName?.split(" ")[0] || "Host"}`}
               </Text>
             </View>
-          )}
+
+            {/* Visibility */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 3,
+                backgroundColor: colors.surfaceLight,
+                paddingVertical: spacing.xs,
+                paddingHorizontal: spacing.sm,
+                borderRadius: radius.full,
+              }}
+            >
+              <Ionicons
+                name={eventData.visibility === "public" ? "globe-outline" : "lock-closed-outline"}
+                size={11}
+                color={colors.textMuted}
+              />
+              <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted }}>
+                {eventData.visibility === "public" ? "Public" : "Private"}
+              </Text>
+            </View>
+
+            {/* Capacity / attendance (tabular nums keep wide counts stable) */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 3,
+                backgroundColor: colors.surfaceLight,
+                paddingVertical: spacing.xs,
+                paddingHorizontal: spacing.sm,
+                borderRadius: radius.full,
+              }}
+            >
+              <Ionicons name="people-outline" size={11} color={colors.textMuted} />
+              <Text
+                style={{
+                  fontSize: typography.sizes.xs,
+                  color: colors.textMuted,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {attendanceChipLabel}
+              </Text>
+            </View>
+
+            {/* Approval (conditional) — compact padding; row scrolls if still tight */}
+            {eventData.approvalRequired && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 3,
+                  backgroundColor: colors.surfaceLight,
+                  paddingVertical: spacing.xs,
+                  paddingHorizontal: spacing.xs,
+                  borderRadius: radius.full,
+                }}
+              >
+                <Ionicons name="person-add-outline" size={11} color={colors.textMuted} />
+                <Text style={{ fontSize: typography.sizes.xs, color: colors.textMuted }}>Approval</Text>
+              </View>
+            )}
+          </ScrollView>
         </View>
 
         {/* ── SHEET (title, date, who's coming, about, details accordion) ─── */}

@@ -4,7 +4,10 @@ import { colors } from "@/src/theme/colors";
 import { spacing } from "@/src/theme/spacing";
 import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
-import { isValidPositiveWholeCapacityString } from "@/src/utils/capacityInput";
+import {
+  getEventCapacityFormErrorMessage,
+  isValidPositiveWholeCapacityString,
+} from "@/src/utils/capacityInput";
 import { EventFormBottomSheet } from "./EventFormBottomSheet";
 
 type EventFormCapacitySheetModalProps = {
@@ -41,7 +44,7 @@ export function EventFormCapacitySheetModal({
           Guest limit
         </Text>
         <Text style={{ fontSize: typography.sizes.xs, color: colors.textDim }}>
-          Choose a preset or enter a custom number
+          Choose a preset or enter a custom number (1–999)
         </Text>
       </View>
       <View style={{ flexDirection: "row", gap: spacing.sm, justifyContent: "center" }}>
@@ -72,10 +75,15 @@ export function EventFormCapacitySheetModal({
       <AppInput
         label="Custom number"
         value={capacitySheetTemp}
-        onChangeText={(t) => onCapacitySheetTempChange(t.replace(/\D/g, "").slice(0, 5))}
+        onChangeText={(t) => onCapacitySheetTempChange(t.replace(/\D/g, "").slice(0, 3))}
         placeholder="e.g. 75"
         keyboardType="numeric"
       />
+      {!capacityApplyValid && v.length > 0 ? (
+        <Text style={{ fontSize: typography.sizes.xs, color: colors.error, alignSelf: "stretch" }}>
+          {getEventCapacityFormErrorMessage(capacitySheetTemp)}
+        </Text>
+      ) : null}
       <View style={{ flexDirection: "row", gap: spacing.sm }}>
         <Pressable
           onPress={onClose}

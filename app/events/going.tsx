@@ -229,6 +229,7 @@ export default function GoingScreen() {
                 cancelled={event.status === "cancelled"}
                 width="100%"
                 isHost={areSamePhone(event.hostPhone, userPhone)}
+                pendingRsvpCount={event.pendingRsvpCount}
               />
             </View>
           ))}

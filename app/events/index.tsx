@@ -296,6 +296,7 @@ export default function EventsScreen() {
                       cancelled={event.status === "cancelled"}
                       width={260}
                       isHost
+                      pendingRsvpCount={event.pendingRsvpCount}
                     />
                   ))}
                 </ScrollView>
@@ -402,6 +403,7 @@ export default function EventsScreen() {
                       cancelled={event.status === "cancelled"}
                       width={260}
                       isHost={areSamePhone(event.hostPhone, userPhone)}
+                      pendingRsvpCount={event.pendingRsvpCount}
                     />
                   ))}
                 </ScrollView>
@@ -441,6 +443,7 @@ export default function EventsScreen() {
                     statusPill={userPhone ? getEventStatusPill(event, userPhone) : undefined}
                     cancelled={event.status === "cancelled"}
                     isHost={areSamePhone(event.hostPhone, userPhone)}
+                    pendingRsvpCount={event.pendingRsvpCount}
                   />
                 </View>
               ))

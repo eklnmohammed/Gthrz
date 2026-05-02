@@ -38,6 +38,8 @@ export interface Event {
   coverUrl?: string;
   lineup?: LineupEntry[];
   attendingStatus?: "going" | "pending" | "maybe" | "cant";
+  /** Populated for events the user hosts: guests awaiting approval (status pending). */
+  pendingRsvpCount?: number;
   declinedByHost?: boolean;
   createdAt: string;
   locationVisibility?: "now" | "reveal";
@@ -370,12 +372,30 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       }
 
       const created = (createdData || []).map(convertSupabaseEvent);
+      const hostedIds = created.map((e) => e.id);
+      const pendingCountByEventId = new Map<string, number>();
+      if (hostedIds.length > 0) {
+        const { data: pendingRows, error: pendingErr } = await supabase
+          .from("rsvps")
+          .select("event_id")
+          .eq("status", "pending")
+          .in("event_id", hostedIds);
+        if (pendingErr) throw pendingErr;
+        (pendingRows || []).forEach((row) => {
+          const evId = row.event_id as string;
+          pendingCountByEventId.set(evId, (pendingCountByEventId.get(evId) ?? 0) + 1);
+        });
+      }
+      const createdWithPending = created.map((e) => ({
+        ...e,
+        pendingRsvpCount: pendingCountByEventId.get(e.id) ?? 0,
+      }));
       const attendingWithStatus = attendingEvents.map((e) => ({
         ...e,
         attendingStatus: attendingMap.get(e.id),
         declinedByHost: declinedMap.get(e.id) ?? false,
       }));
-      const merged = [...created, ...attendingWithStatus].sort((a, b) =>
+      const merged = [...createdWithPending, ...attendingWithStatus].sort((a, b) =>
         compareEventsDefaultChronological(a, b, Date.now())
       );
       setEvents(merged);
@@ -475,7 +495,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
             .single();
 
           if (!insertError && data) {
-            const newEvent = convertSupabaseEvent(data);
+            const newEvent: Event = { ...convertSupabaseEvent(data), pendingRsvpCount: 0 };
             setEvents((prev) => [newEvent, ...prev]);
             return data.id as string;
           }
@@ -590,7 +610,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         if (data) {
           const updatedEvent = convertSupabaseEvent(data);
           setEvents((prev) =>
-            prev.map((e) => (e.id === id ? updatedEvent : e))
+            prev.map((e) =>
+              e.id === id ? { ...updatedEvent, pendingRsvpCount: e.pendingRsvpCount } : e
+            )
           );
         }
       } catch (err) {
@@ -935,7 +957,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       if (upErr) throw upErr;
       if (updated) {
         const updatedEvent = convertSupabaseEvent(updated);
-        setEvents((prev) => prev.map((e) => (e.id === eventId ? updatedEvent : e)));
+        setEvents((prev) =>
+          prev.map((e) => (e.id === eventId ? { ...updatedEvent, pendingRsvpCount: 0 } : e))
+        );
       }
     },
     [getRsvpsForEvent, approveRsvp],

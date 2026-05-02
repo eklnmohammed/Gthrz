@@ -347,6 +347,7 @@ export default function DiscoverScreen() {
                 width={gridCardWidth}
                 posterHeight={215}
                 compact
+                pendingRsvpCount={eventForCard.pendingRsvpCount}
               />
             </View>
           );
