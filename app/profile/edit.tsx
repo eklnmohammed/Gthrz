@@ -4,7 +4,7 @@ import { router, useFocusEffect, Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { Screen } from "../../src/components/Screen";
-import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
+import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { AppButton } from "../../src/components/AppButton";
 import { AppInput } from "../../src/components/AppInput";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
@@ -123,15 +123,9 @@ export default function ProfileEditScreen() {
   const isValid = editFirstName.trim().length > 0;
 
   return (
-    <Screen>
-      <Stack.Screen
-        options={{
-          headerBackVisible: false,
-          headerLeft: () => (
-            <HeaderBackTextButton label="Back" onPress={() => router.back()} />
-          ),
-        }}
-      />
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="Edit profile" onBack={() => router.back()} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -141,6 +135,7 @@ export default function ProfileEditScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingVertical: spacing.xl,
+          paddingHorizontal: spacing.xxl,
           paddingBottom: spacing.xxl + keyboardInset,
         }}
       >

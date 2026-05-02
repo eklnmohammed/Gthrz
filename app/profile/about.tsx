@@ -1,7 +1,7 @@
 import { View, Text } from "react-native";
 import { router, Stack } from "expo-router";
-import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { Screen } from "../../src/components/Screen";
+import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -9,15 +9,9 @@ import { typography } from "../../src/theme/typography";
 
 export default function AboutScreen() {
   return (
-    <Screen padding={false} topPadding={spacing.sm}>
-      <Stack.Screen
-        options={{
-          headerTitle: "About",
-          headerBackTitle: "Profile",
-          headerBackVisible: false,
-          headerLeft: () => <HeaderBackTextButton label="Back" onPress={() => router.back()} />,
-        }}
-      />
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="About" onBack={() => router.back()} />
 
       <View
         style={{

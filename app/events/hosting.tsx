@@ -10,7 +10,7 @@ import {
 import { router, useLocalSearchParams, Stack, useFocusEffect } from "expo-router";
 import { useEvents, type Event } from "../../src/state/eventsStore";
 import { onboardingStore } from "../../src/state/onboardingStore";
-import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
+import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { EventCard } from "../../src/components/EventCard";
 import { SortSheet, type SortOption } from "../../src/components/SortSheet";
 import { AppButton } from "../../src/components/AppButton";
@@ -94,19 +94,13 @@ export default function HostingScreen() {
   };
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Hosting",
-          headerBackTitle: "Events",
-          headerBackVisible: false,
-          headerLeft: () => <HeaderBackTextButton label="Back" onPress={() => router.back()} />,
-        }}
-      />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="Hosting" onBack={() => router.back()} />
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: spacing.lg,
+          paddingTop: spacing.md,
           paddingHorizontal: spacing.xxl,
           paddingBottom: spacing.xxxxl,
         }}
@@ -239,6 +233,6 @@ export default function HostingScreen() {
         onSelect={setSortBy}
         showCancelledOption
       />
-    </>
+    </View>
   );
 }
