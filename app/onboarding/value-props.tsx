@@ -1,11 +1,11 @@
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
 import { View, Text, Pressable } from "react-native";
-import { router, useNavigation } from "expo-router";
+import { Stack, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../src/components";
 import { AppButton } from "../../src/components/AppButton";
-import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
+import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -43,7 +43,6 @@ const VALUE_PROPS: ValueProp[] = [
 ];
 
 export default function ValuePropsScreen() {
-  const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleBack = () => {
@@ -53,17 +52,6 @@ export default function ValuePropsScreen() {
     }
     router.back();
   };
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <HeaderBackTextButton
-          label="Back"
-          onPress={handleBack}
-        />
-      ),
-    });
-  }, [navigation, currentIndex]);
 
   const handleContinue = () => {
     if (currentIndex < VALUE_PROPS.length - 1) {
@@ -76,7 +64,9 @@ export default function ValuePropsScreen() {
   const currentProp = VALUE_PROPS[currentIndex];
 
   return (
-    <Screen>
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="" onBack={handleBack} />
       <View
         style={{
           flex: 1,

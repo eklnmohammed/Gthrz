@@ -5,7 +5,6 @@ import { EventsProvider } from "../src/state/eventsStore";
 import { FavoritesProvider } from "../src/state/favoritesStore";
 import { onboardingStore } from "../src/state/onboardingStore";
 import { syncCurrentProfileFromServer } from "../src/lib/auth";
-import { BackToStartButton } from "../src/components";
 import { colors } from "../src/theme/colors";
 
 function OnboardingGate({ children }: { children: React.ReactNode }) {
@@ -129,46 +128,10 @@ export default function RootLayout() {
 
           {/* Onboarding screens */}
           <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="onboarding/value-props"
-            options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
-              headerBackVisible: false,
-              headerLeft: () => <BackToStartButton />,
-            }}
-          />
-          <Stack.Screen
-            name="onboarding/phone"
-            options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
-              headerBackVisible: false,
-              headerLeft: () => <BackToStartButton />,
-            }}
-          />
-          <Stack.Screen
-            name="onboarding/verify"
-            options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
-              headerBackVisible: false,
-              headerLeft: () => <BackToStartButton />,
-            }}
-          />
-          <Stack.Screen
-            name="onboarding/profile"
-            options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
-              headerBackVisible: false,
-              headerLeft: () => <BackToStartButton />,
-            }}
-          />
+          <Stack.Screen name="onboarding/value-props" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/phone" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/verify" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/profile" options={{ headerShown: false }} />
         </Stack>
       </OnboardingGate>
       </FavoritesProvider>

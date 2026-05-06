@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { View, Text, Pressable, Image, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
 import { AppInput } from "../../src/components/AppInput";
+import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { upsertProfile, uploadAvatar } from "../../src/lib/auth";
@@ -16,7 +16,6 @@ import { radius } from "../../src/theme/radius";
 import { typography } from "../../src/theme/typography";
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -87,7 +86,9 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen topPadding={insets.top + spacing.xxxxl + spacing.md}>
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="" onBack={() => router.back()} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}

@@ -9,10 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { router } from "expo-router";
+import { Stack, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "../../src/components/Screen";
 import { AppButton } from "../../src/components/AppButton";
+import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -68,7 +69,9 @@ export default function PhoneLoginScreen() {
   };
 
   return (
-    <Screen>
+    <Screen padding={false} topPadding={0}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <StackScreenTopBar title="" onBack={() => router.back()} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
