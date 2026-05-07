@@ -23,7 +23,7 @@ const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 const MAX_SIGNAL_AGE_WEEKS = 12; // prune signals older than this
 
 /** Minimum score required for a type to affect recommendations (e.g. reorder Discover, show "Recommended" on Home). */
-export const PREFERENCE_THRESHOLD = 3;
+export const PREFERENCE_THRESHOLD = 1.5;
 
 const VALID_TYPES = new Set<EventType>([
   "party",
