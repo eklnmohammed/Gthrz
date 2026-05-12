@@ -111,6 +111,7 @@ export class RsvpUserFacingError extends Error {
   }
 }
 
+/** Seats consumed by RSVP rows: 1 for the guest plus 1 more when plus_one is true. */
 function rsvpRowsSeatSum(rows: { plus_one?: boolean }[]): number {
   return rows.reduce((sum, r) => sum + 1 + (r.plus_one ? 1 : 0), 0);
 }

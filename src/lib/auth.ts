@@ -128,9 +128,7 @@ export async function upsertProfile(opts: {
   avatarUrl?: string;
 }): Promise<{ error?: string }> {
   const { phone, fullName, avatarUrl } = opts;
-  if (__DEV__ && avatarUrl) console.log("[upsertProfile] Writing avatar_url to profiles:", avatarUrl);
 
-  // Build the row
   const row: Record<string, unknown> = {
     phone,
     full_name: fullName ?? null,
@@ -183,17 +181,10 @@ export async function syncCurrentProfileFromServer(): Promise<void> {
   const user = await getCurrentUser();
   const phone = user?.phone ?? (await onboardingStore.getPhone());
   const normalizedPhone = phone?.trim() || null;
-  if (!normalizedPhone) {
-    if (__DEV__) console.log("[syncCurrentProfile] No phone/identity, skip sync");
-    return;
-  }
-  if (__DEV__) console.log("[syncCurrentProfile] Fetching profile for phone:", normalizedPhone);
+  if (!normalizedPhone) return;
 
   const server = await fetchProfile(normalizedPhone);
-  if (!server) {
-    if (__DEV__) console.log("[syncCurrentProfile] No server row, keep local fallback");
-    return;
-  }
+  if (!server) return;
 
   const parts = (server.full_name || "").trim().split(/\s+/);
   const firstName = parts[0] ?? "";
@@ -207,14 +198,6 @@ export async function syncCurrentProfileFromServer(): Promise<void> {
   };
   await onboardingStore.saveProfile(profile);
   await onboardingStore.saveProfileForPhone(normalizedPhone, profile);
-
-  if (__DEV__) {
-    console.log("[syncCurrentProfile] Updated local cache from server", {
-      full_name: server.full_name,
-      avatar_url: server.avatar_url,
-      finalAvatarUri: avatarUri,
-    });
-  }
 }
 
 /**
@@ -228,13 +211,11 @@ export async function uploadAvatar(
   phone: string
 ): Promise<{ url: string } | { error: string }> {
   if (localUri.startsWith("http://") || localUri.startsWith("https://")) {
-    if (__DEV__) console.log("[uploadAvatar] Already remote URL:", localUri);
     return { url: localUri };
   }
 
   const sanitizedPhone = phone.replace(/\D/g, "") || "unknown";
   const filePath = `${sanitizedPhone}.jpg`;
-  if (__DEV__) console.log("[uploadAvatar] Storage path:", filePath);
 
   try {
     const FileSystem = await import("expo-file-system/legacy");
@@ -265,7 +246,6 @@ export async function uploadAvatar(
     // Cache-bust avatar URL so updated image appears immediately on current screen
     // even when uploading to the same storage path (upsert true).
     const url = `${urlData.publicUrl}?v=${Date.now()}`;
-    if (__DEV__) console.log("[uploadAvatar] Resolved avatarUrl saved to profiles:", url);
     return { url };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";

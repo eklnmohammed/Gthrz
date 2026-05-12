@@ -107,6 +107,7 @@ export default function ProfileScreen() {
             flex: 1,
             paddingTop: spacing.sm,
             paddingBottom: spacing.xl,
+            paddingHorizontal: spacing.xxl,
           }}
         >
           {/* Header */}

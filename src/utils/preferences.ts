@@ -142,30 +142,6 @@ export async function getPreferredEventType(phone: string): Promise<EventType | 
   return types[0] ?? null;
 }
 
-/** Debug helper: returns the current top type and its score (even if below threshold). */
-export async function getPreferenceSummary(
-  phone: string
-): Promise<{ topType: EventType | null; topScore: number }> {
-  const scores = await getPreferenceScores(phone);
-  const entries = (Object.entries(scores) as [EventType, number][]).sort((a, b) => b[1] - a[1]);
-  const top = entries[0];
-  return top
-    ? { topType: top[0], topScore: top[1] }
-    : { topType: null, topScore: 0 };
-}
-
-/** Top N event types by score (desc), with scores. Raw scores, no threshold. For mixed ordering. */
-export async function getTopEventTypes(
-  phone: string,
-  limit = 3
-): Promise<Array<{ type: EventType; score: number }>> {
-  const scores = await getPreferenceScores(phone);
-  return (Object.entries(scores) as [EventType, number][])
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([type, score]) => ({ type, score }));
-}
-
 /** Clears preference data for the given phone. Call on sign out so the next account doesn't see old recommendations. */
 export async function clearPreferencesForPhone(phone: string): Promise<void> {
   const key = storageKey(phone);
