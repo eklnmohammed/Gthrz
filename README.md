@@ -27,6 +27,8 @@ The Supabase anon key is designed to be public and is protected by row-level sec
 
 ---
 
+For marking, a `.env` file may be included with the submitted ZIP so the prototype can connect to the Supabase test project.
+
 ## Install and Run
 
 ```bash
@@ -54,19 +56,26 @@ The verification screen includes a **Skip OTP — demo mode** button so the prot
 
 To test:
 
-1. Enter a phone number (e.g. +966500000001).
+1. Enter a phone number (e.g. +44500000001).
 2. On the verify screen, tap **Skip OTP — demo mode**.
 3. Complete onboarding.
 
+Supabase Phone OTP is the intended authentication method for production.
+
 ### Demo Test Users
 
-| Role    | Phone Number   | Purpose                              |
-| ------- | -------------- | ------------------------------------ |
-| Host    | +966500000001  | Creates and manages events           |
-| Guest 1 | +966500000002  | Joins events and submits RSVP        |
-| Guest 2 | +966500000003  | Used for approval and capacity tests |
+The app can be tested with any phone number in demo mode. The following numbers already have sample data in the Supabase project:
 
-To test invite-code joining: create an event as Host, copy the generated invite code, then use it with a Guest account.
+| Role | Phone Number | Purpose |
+|---|---|---|
+| Host / sample user | +4411111111 | Can be used to view public events and some existing created/joined events. |
+| Main host user | +4499999999 | Main demo account used to create most of the sample events. Useful for testing host features. |
+| Guest user | +4422222222 | Simple guest account for testing joining, RSVP, and guest-side flows. |
+
+To test the app from a fresh account, enter any new phone number and use **Skip OTP — demo mode**.
+
+To test host features quickly, use **+4499999999**. To test guest features, use **+4422222222**. To test invite-code joining, create an event as the host, copy the generated six-character invite code, then join using a guest account.
+
 
 ---
 
@@ -116,7 +125,7 @@ scripts/             Build scripts
 - **`.env` not picked up:** restart Metro with `npx expo start -c`
 - **iOS Simulator not opening:** ensure Xcode Command Line Tools are installed
 - **Android Emulator not detected:** open Android Studio, install an emulator image, retry
-- **Tunnel mode:** `npx expo start --tunnel`
+- **Tunnel mode:** `npx expo start --tunnel -c`
 
 ---
 

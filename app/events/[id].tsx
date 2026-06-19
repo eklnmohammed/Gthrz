@@ -25,7 +25,8 @@ import { Badge } from "../../src/components/Badge";
 import { HeaderBackTextButton } from "../../src/components/HeaderBackTextButton";
 import { useEvents, RsvpUserFacingError } from "../../src/state/eventsStore";
 import { useFavorites } from "../../src/state/favoritesStore";
-import { supabase, EventType, normalizeEventType } from "../../src/lib/supabase";
+import { supabase, EventType, normalizeEventType, Event as SupabaseEvent } from "../../src/lib/supabase";
+import { subscribeToEventRealtime } from "../../src/lib/realtime";
 import { recordRsvp } from "../../src/utils/preferences";
 import { fetchProfile } from "../../src/lib/auth";
 import { onboardingStore, type UserProfile } from "../../src/state/onboardingStore";
@@ -164,6 +165,43 @@ function getRsvpStickyPrimaryLabel(
   if (rsvpStatus === "going") return "Going";
   if (rsvpStatus === "maybe") return "Maybe";
   return "Not going";
+}
+
+/** Map a Supabase `events` row into the screen's `eventData` shape. Shared by focus-load and realtime refresh. */
+function mapEventRowToEventData(data: SupabaseEvent, hostNameForUi: string | undefined) {
+  return {
+    title: data.title || "Untitled Event",
+    dateTime: data.date_time || "—",
+    location: data.location_name || data.location || "",
+    details: data.details || "",
+    capacity: data.capacity?.toString() || "",
+    hostPhone: data.host_phone || undefined,
+    hostName: hostNameForUi,
+    eventType: normalizeEventType(data.event_type) ?? undefined,
+    inviteCode: data.invite_code || undefined,
+    visibility: data.visibility || "private",
+    coverKey: data.cover_key ?? undefined,
+    coverUrl: isValidCoverUrl(data.cover_url) ? data.cover_url ?? undefined : undefined,
+    lineup: Array.isArray(data.lineup) ? data.lineup : [],
+    locationVisibility: data.location_visibility === "reveal" ? ("reveal" as const) : ("now" as const),
+    revealHoursBefore: typeof data.reveal_hours_before === "number" ? data.reveal_hours_before : null,
+    locationExactAudience:
+      data.location_exact_audience === "all_viewers" ? ("all_viewers" as const) : ("going_only" as const),
+    locationAddress: data.location_address || "",
+    locationLat: data.location_lat ?? null,
+    locationLng: data.location_lng ?? null,
+    approvalRequired: data.approval_required ?? false,
+    hideGuestNames: data.hide_guest_names ?? false,
+    hideGuestAvatars: data.hide_guest_avatars ?? false,
+    status: data.status === "cancelled" ? ("cancelled" as const) : ("active" as const),
+    cancellationReason: data.cancellation_reason ?? null,
+    dressCode: data.dress_code ?? "",
+    audience: data.audience ?? "",
+    allowPlusOne: data.allow_plus_one ?? false,
+    priceMode: data.price_mode === "paid" ? ("paid" as const) : ("free" as const),
+    priceAmount: data.price_amount ?? null,
+    priceCurrency: data.price_currency ?? "SAR",
+  };
 }
 
 export default function EventDetailScreen() {
@@ -327,40 +365,7 @@ export default function EventDetailScreen() {
               }
             }
             if (!cancelled) {
-              setEventData({
-              title: data.title || "Untitled Event",
-              dateTime: data.date_time || "—",
-              location: data.location_name || data.location || "",
-              details: data.details || "",
-              capacity: data.capacity?.toString() || "",
-              hostPhone: hostPhoneVal,
-              hostName: hostNameForUi,
-              eventType: normalizeEventType(data.event_type) ?? undefined,
-              inviteCode: data.invite_code || undefined,
-              visibility: data.visibility || "private",
-              coverKey: data.cover_key ?? undefined,
-              coverUrl: isValidCoverUrl(data.cover_url) ? data.cover_url ?? undefined : undefined,
-              lineup: Array.isArray(data.lineup) ? data.lineup : [],
-              locationVisibility: data.location_visibility === "reveal" ? "reveal" : "now",
-              revealHoursBefore:
-                typeof data.reveal_hours_before === "number" ? data.reveal_hours_before : null,
-              locationExactAudience:
-                data.location_exact_audience === "all_viewers" ? "all_viewers" : "going_only",
-              locationAddress: data.location_address || "",
-              locationLat: data.location_lat ?? null,
-              locationLng: data.location_lng ?? null,
-              approvalRequired: data.approval_required ?? false,
-              hideGuestNames: data.hide_guest_names ?? false,
-              hideGuestAvatars: data.hide_guest_avatars ?? false,
-              status: data.status === "cancelled" ? "cancelled" : "active",
-              cancellationReason: data.cancellation_reason ?? null,
-              dressCode: data.dress_code ?? "",
-              audience: data.audience ?? "",
-              allowPlusOne: data.allow_plus_one ?? false,
-              priceMode: data.price_mode === "paid" ? "paid" : "free",
-              priceAmount: data.price_amount ?? null,
-              priceCurrency: data.price_currency ?? "SAR",
-            });
+              setEventData(mapEventRowToEventData(data, hostNameForUi));
             }
           }
 
@@ -529,6 +534,79 @@ export default function EventDetailScreen() {
       id: c.id, title: c.title, assigned_user_phone: c.assigned_user_phone, status: c.status,
     })));
   }, [params.id, getContributions, getRsvpsForEvent, clearContributionAssigneesNotGoing]);
+
+  // Keep latest phone available to the realtime refresh without making it re-subscribe on every phone change.
+  const userPhoneRef = useRef(userPhone);
+  useEffect(() => {
+    userPhoneRef.current = userPhone;
+  }, [userPhone]);
+
+  // Reload the event row into eventData (used by realtime when the host edits/cancels).
+  const loadEventData = useCallback(async () => {
+    if (!params.id) return;
+    const { data, error } = await supabase.from("events").select("*").eq("id", params.id).single();
+    if (error || !data) return;
+    let hostNameForUi = data.host_name || undefined;
+    if (data.host_phone) {
+      const hostProf = await fetchProfile(data.host_phone);
+      if (hostProf?.full_name?.trim()) hostNameForUi = hostProf.full_name.trim();
+    }
+    setEventData(mapEventRowToEventData(data, hostNameForUi));
+  }, [params.id]);
+
+  // Single refresh used by the realtime subscription: reloads event, RSVPs, contributions,
+  // and this user's own RSVP status. Server is the source of truth here.
+  const refreshFromRealtime = useCallback(async () => {
+    const id = params.id;
+    if (!id) return;
+    try {
+      const [, rsvps] = await Promise.all([loadEventData(), getRsvpsForEvent(id)]);
+      const goingPhones = rsvps.going.map((r) => r.user_phone);
+      await clearContributionAssigneesNotGoing(id, goingPhones);
+      const fetchedContribs = await getContributions(id);
+
+      setGoingCount(rsvps.going.length);
+      setRsvpsByStatus({ going: rsvps.going, pending: rsvps.pending, maybe: rsvps.maybe, cant: rsvps.cant });
+      setContributions(fetchedContribs.map((c) => ({
+        id: c.id, title: c.title, assigned_user_phone: c.assigned_user_phone, status: c.status,
+      })));
+
+      // Reflect host approve/decline on the current guest without a manual refresh.
+      const phone = userPhoneRef.current;
+      if (phone && phone !== "guest") {
+        const myCant = rsvps.cant.find((r) => r.user_phone === phone);
+        let myStatus: RsvpStatus = null;
+        if (rsvps.going.some((r) => r.user_phone === phone)) myStatus = "going";
+        else if (rsvps.pending.some((r) => r.user_phone === phone)) myStatus = "pending";
+        else if (rsvps.maybe.some((r) => r.user_phone === phone)) myStatus = "maybe";
+        else if (myCant) myStatus = "cant";
+        setRsvpStatus(myStatus);
+        setUserPlusOne(rsvps.going.find((r) => r.user_phone === phone)?.plus_one ?? false);
+        setUserDeclinedByHost(myCant?.declined_by_host ?? false);
+      }
+    } catch (err) {
+      console.warn("[realtime] refresh failed:", err);
+    }
+  }, [params.id, loadEventData, getRsvpsForEvent, clearContributionAssigneesNotGoing, getContributions]);
+
+  // Subscribe to realtime changes for this event. Coalesce bursts (e.g. event + rsvp updates
+  // from a single host action) with a short debounce so we refetch once, not per row.
+  useEffect(() => {
+    const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    if (!id) return;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        refreshFromRealtime();
+      }, 300);
+    };
+    const unsubscribe = subscribeToEventRealtime(id, scheduleRefresh);
+    return () => {
+      if (debounce) clearTimeout(debounce);
+      unsubscribe();
+    };
+  }, [params.id, refreshFromRealtime]);
 
   /** Same uniqueness + chip behavior as Create/Edit — persist immediately on event details. */
   const addHostBringItemIfNew = useCallback(
