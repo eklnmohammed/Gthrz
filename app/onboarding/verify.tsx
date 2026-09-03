@@ -17,7 +17,8 @@ import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { Ionicons } from "@expo/vector-icons";
-import { verifyOtp, sendOtp, setDevMode, setDevPhone, syncCurrentProfileFromServer } from "../../src/lib/auth";
+import { verifyOtp, sendOtp, setDevMode, completeDemoSkipLogin, syncCurrentProfileFromServer, friendlyAuthError } from "../../src/lib/auth";
+import { savePushTokenForUser } from "../../src/lib/notifications";
 import { areSamePhone } from "../../src/utils/phone";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
@@ -68,14 +69,21 @@ export default function VerifyScreen() {
     const result = await verifyOtp(phone, code);
 
     if (result.error) {
-      setError(result.error);
+      setError(friendlyAuthError(result.error));
       setLoading(false);
       return;
     }
 
+    // Real Supabase verify succeeded. Clear leftover Skip OTP flag.
+    await setDevMode(false);
+
     // Auth succeeded. Save phone locally and sync profile from server (server wins).
     await onboardingStore.savePhone(phone);
     await syncCurrentProfileFromServer();
+
+    // Register this device for push notifications (best effort, never blocks login).
+    // Only meaningful for real OTP sessions; no-ops in dev/skip-OTP mode.
+    savePushTokenForUser(phone).catch(() => {});
 
     const p = await onboardingStore.getProfile();
     if (areSamePhone(p?.phone, phone) && (p?.firstName || p?.avatarUri)) {
@@ -101,7 +109,7 @@ export default function VerifyScreen() {
     setResendTimer(RESEND_COOLDOWN);
     const result = await sendOtp(phone);
     if (result.error) {
-      Alert.alert("Error", result.error);
+      Alert.alert("Could not send code", friendlyAuthError(result.error));
     } else {
       Alert.alert("Code sent", "A new code has been sent to your phone.");
     }
@@ -110,29 +118,12 @@ export default function VerifyScreen() {
   const handleDemoSkip = async () => {
     if (!phone) return;
     setLoading(true);
-    await setDevMode(true);
-    await setDevPhone(phone);
-    await onboardingStore.savePhone(phone);
-    await syncCurrentProfileFromServer();
-
-    const p = await onboardingStore.getProfile();
-    if (areSamePhone(p?.phone, phone) && (p?.firstName || p?.avatarUri)) {
-      await onboardingStore.setOnboarded(true);
-      setLoading(false);
-      router.replace("/");
-      return;
-    }
-
-    const localProfile = await onboardingStore.getProfileForPhone(phone);
-    if (localProfile) {
-      await onboardingStore.saveProfile({ ...localProfile, phone });
-      await onboardingStore.setOnboarded(true);
-      setLoading(false);
-      router.replace("/");
-      return;
-    }
-
+    const dest = await completeDemoSkipLogin(phone);
     setLoading(false);
+    if (dest === "home") {
+      router.replace("/");
+      return;
+    }
     router.replace("/onboarding/profile");
   };
 
@@ -306,30 +297,31 @@ export default function VerifyScreen() {
           </Text>
         </Pressable>
 
-        {/* Demo bypass — visible skip for prototype testing */}
-        <Pressable
-          onPress={handleDemoSkip}
-          disabled={loading}
-          style={({ pressed }) => ({
-            marginTop: spacing.xl,
-            paddingVertical: spacing.sm,
-            paddingHorizontal: spacing.lg,
-            borderRadius: radius.full,
-            borderWidth: 1,
-            borderColor: colors.border,
-            opacity: pressed || loading ? 0.6 : 1,
-          })}
-        >
-          <Text
-            style={{
-              fontSize: typography.sizes.sm,
-              color: colors.textMuted,
-              fontWeight: typography.weights.medium,
-            }}
+        {__DEV__ ? (
+          <Pressable
+            onPress={handleDemoSkip}
+            disabled={loading}
+            style={({ pressed }) => ({
+              marginTop: spacing.xl,
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.lg,
+              borderRadius: radius.full,
+              borderWidth: 1,
+              borderColor: colors.border,
+              opacity: pressed || loading ? 0.6 : 1,
+            })}
           >
-            Skip OTP — demo mode
-          </Text>
-        </Pressable>
+            <Text
+              style={{
+                fontSize: typography.sizes.sm,
+                color: colors.textMuted,
+                fontWeight: typography.weights.medium,
+              }}
+            >
+              Skip OTP — demo mode
+            </Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

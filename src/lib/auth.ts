@@ -2,20 +2,17 @@
  * Auth layer for Gthrz: login, current user, sign out, and profile sync with Supabase.
  *
  * ## Dev mode (skip OTP)
- * When dev mode is ON (AsyncStorage key `gthrz_dev_skip_otp` = "true" or env EXPO_PUBLIC_DEV_SKIP_OTP=true):
- * - sendOtp() is a no-op; verifyOtp() stores the phone as dev identity and returns success.
- * - getCurrentUser() reads from AsyncStorage (gthrz_dev_phone) instead of Supabase Auth.
- * - signOut() clears only the dev phone; upsertProfile() does not require a Supabase user id.
- * This lets the app run without an SMS provider (Supabase Phone OTP needs Twilio/etc.).
+ * When the user taps “Skip OTP — demo mode”, `setDevMode(true)` + `setDevPhone` store a local identity.
+ * getCurrentUser() / signOut() / upsertProfile() then use that identity (no JWT).
+ * sendOtp() and verifyOtp() ALWAYS call Supabase — demo never fakes SMS or accepts random codes.
  *
- * ## Real OTP (production)
- * When dev mode is OFF:
- * - sendOtp() calls supabase.auth.signInWithOtp({ phone }); verifyOtp() calls verifyOtp({ phone, token, type: 'sms' }).
- * - Supabase must have an SMS provider configured or OTP will fail (e.g. "Unsupported phone provider").
+ * ## Real OTP
+ * sendOtp() → supabase.auth.signInWithOtp({ phone }); verifyOtp() → verifyOtp({ phone, token, type: 'sms' }).
+ * Needs an SMS provider on the Supabase project or send fails (e.g. "Unsupported phone provider").
  *
  * ## Public API (use these from app code)
- * - isDevMode(), setDevMode(), setDevPhone() — dev toggle and identity.
- * - sendOtp(phone), verifyOtp(phone, code) — OTP flow (no-op / stub in dev).
+ * - isDevMode(), setDevMode(), setDevPhone() — demo identity after Skip OTP only.
+ * - completeDemoSkipLogin(phone) — Skip OTP only; no session.
  * - getCurrentUser() — { id, phone } or null.
  * - signOut() — clear session or dev identity.
  * - upsertProfile({ phone, fullName?, avatarUrl? }), fetchProfile(phone) — Supabase profiles by phone.
@@ -24,6 +21,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./supabase";
 import { onboardingStore } from "../state/onboardingStore";
+import { areSamePhone } from "../utils/phone";
 
 const DEV_SKIP_OTP_KEY = "gthrz_dev_skip_otp";
 const DEV_PHONE_KEY = "gthrz_dev_phone";
@@ -34,6 +32,8 @@ const DEV_PHONE_KEY = "gthrz_dev_phone";
  * or when EXPO_PUBLIC_DEV_SKIP_OTP=true is set and the user hasn't toggled it OFF.
  */
 export async function isDevMode(): Promise<boolean> {
+  // Release builds never use Skip OTP, even if a leftover AsyncStorage flag exists.
+  if (!__DEV__) return false;
   try {
     const stored = await AsyncStorage.getItem(DEV_SKIP_OTP_KEY);
     if (stored !== null) return stored === "true";
@@ -42,6 +42,26 @@ export async function isDevMode(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Short user-facing copy for common Supabase Phone OTP errors. */
+export function friendlyAuthError(message: string | undefined): string {
+  const m = (message ?? "").toLowerCase();
+  if (
+    m.includes("unsupported phone provider") ||
+    m.includes("phone provider") ||
+    (m.includes("sms") && m.includes("provider"))
+  ) {
+    return "SMS login is not configured yet.";
+  }
+  if (m.includes("rate") || m.includes("too many") || m.includes("429")) {
+    return "Too many attempts. Please wait and try again.";
+  }
+  if (m.includes("invalid") && m.includes("phone")) {
+    return "Please enter a valid phone number.";
+  }
+  const trimmed = message?.trim();
+  return trimmed || "Something went wrong. Please try again.";
 }
 
 export async function setDevMode(enabled: boolean): Promise<void> {
@@ -54,30 +74,47 @@ export async function setDevPhone(phone: string): Promise<void> {
 }
 
 /**
- * Send OTP to phone number.
- * In dev mode this is a no-op.
+ * Explicit Skip OTP login. No SMS, no JWT, no push registration.
+ * Returns where the UI should go after local identity is stored.
+ */
+export async function completeDemoSkipLogin(phone: string): Promise<"home" | "profile"> {
+  const trimmed = phone.trim();
+  await setDevMode(true);
+  await setDevPhone(trimmed);
+  await onboardingStore.savePhone(trimmed);
+  await syncCurrentProfileFromServer();
+
+  const p = await onboardingStore.getProfile();
+  if (areSamePhone(p?.phone, trimmed) && (p?.firstName || p?.avatarUri)) {
+    await onboardingStore.setOnboarded(true);
+    return "home";
+  }
+  const localProfile = await onboardingStore.getProfileForPhone(trimmed);
+  if (localProfile) {
+    await onboardingStore.saveProfile({ ...localProfile, phone: trimmed });
+    await onboardingStore.setOnboarded(true);
+    return "home";
+  }
+  return "profile";
+}
+
+/**
+ * Send a real SMS OTP via Supabase. Never short-circuits for demo mode.
+ * Demo login is only `handleDemoSkip` on the verify screen.
  */
 export async function sendOtp(phone: string): Promise<{ error?: string }> {
-  if (await isDevMode()) {
-    return {};
-  }
   const { error } = await supabase.auth.signInWithOtp({ phone });
   if (error) return { error: error.message };
   return {};
 }
 
 /**
- * Verify OTP code.
- * In dev mode: stores phone as dev identity and returns success.
+ * Verify a real SMS OTP via Supabase. Never accepts a random code because demo mode is on.
  */
 export async function verifyOtp(
   phone: string,
   code: string
 ): Promise<{ error?: string; userId?: string }> {
-  if (await isDevMode()) {
-    await AsyncStorage.setItem(DEV_PHONE_KEY, phone);
-    return { userId: `dev-${phone}` };
-  }
   const { data, error } = await supabase.auth.verifyOtp({
     phone,
     token: code,

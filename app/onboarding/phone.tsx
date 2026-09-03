@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { Stack, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,7 +18,7 @@ import { StackScreenTopBar } from "../../src/components/StackScreenTopBar";
 import { useKeyboardInset } from "../../src/hooks/useKeyboardInset";
 import { onboardingStore } from "../../src/state/onboardingStore";
 import { Ionicons } from "@expo/vector-icons";
-import { sendOtp } from "../../src/lib/auth";
+import { sendOtp, friendlyAuthError, completeDemoSkipLogin } from "../../src/lib/auth";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { radius } from "../../src/theme/radius";
@@ -56,9 +57,13 @@ export default function PhoneLoginScreen() {
 
     const fullPhone = `${selectedCountry.code}${digitsOnly}`;
 
-    // Real OTP mode: attempt to send code, then navigate regardless.
-    // If OTP send fails the verify screen has a visible demo bypass.
-    await sendOtp(fullPhone);
+    const result = await sendOtp(fullPhone);
+    if (result.error) {
+      Alert.alert("Could not send code", friendlyAuthError(result.error));
+      setLoading(false);
+      return;
+    }
+
     await onboardingStore.savePhone(fullPhone);
     setLoading(false);
 
@@ -66,6 +71,19 @@ export default function PhoneLoginScreen() {
       pathname: "/onboarding/verify",
       params: { phone: fullPhone },
     });
+  };
+
+  const handleDemoSkip = async () => {
+    if (!isValid) return;
+    setLoading(true);
+    const fullPhone = `${selectedCountry.code}${digitsOnly}`;
+    const dest = await completeDemoSkipLogin(fullPhone);
+    setLoading(false);
+    if (dest === "home") {
+      router.replace("/");
+      return;
+    }
+    router.replace("/onboarding/profile");
   };
 
   return (
@@ -216,6 +234,32 @@ export default function PhoneLoginScreen() {
             disabled={!isValid || loading}
           />
         </View>
+
+        {__DEV__ ? (
+          <Pressable
+            onPress={handleDemoSkip}
+            disabled={!isValid || loading}
+            style={({ pressed }) => ({
+              marginTop: spacing.xl,
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.lg,
+              borderRadius: radius.full,
+              borderWidth: 1,
+              borderColor: colors.border,
+              opacity: pressed || loading || !isValid ? 0.6 : 1,
+            })}
+          >
+            <Text
+              style={{
+                fontSize: typography.sizes.sm,
+                color: colors.textMuted,
+                fontWeight: typography.weights.medium,
+              }}
+            >
+              Skip OTP — demo mode
+            </Text>
+          </Pressable>
+        ) : null}
 
       </ScrollView>
       </KeyboardAvoidingView>
