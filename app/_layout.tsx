@@ -15,7 +15,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const navigationState = useRootNavigationState();
   const pushTokenRegistrationAttempted = useRef(false);
-  const prevRouteGroup = useRef<string | undefined>(undefined);
+  const prevInOnboarding = useRef<boolean | null>(null);
 
   const checkOnboarding = async () => {
     const onboarded = await onboardingStore.isOnboarded();
@@ -42,19 +42,20 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   };
 
+  const inOnboarding = segments[0] === "onboarding";
+
   // After profile Done → home, React still has isOnboarded=false for one paint.
-  // That paint would Redirect to Get started. Hold the gate until storage is re-read.
+  // Hold the gate only when crossing onboarding ↔ home, not on every segments[0] identity change.
   useLayoutEffect(() => {
-    const group = segments[0] as string | undefined;
-    if (prevRouteGroup.current !== group) {
-      prevRouteGroup.current = group;
+    if (prevInOnboarding.current !== null && prevInOnboarding.current !== inOnboarding) {
       setIsLoading(true);
     }
-  }, [segments]);
+    prevInOnboarding.current = inOnboarding;
+  }, [inOnboarding]);
 
   useEffect(() => {
     checkOnboarding();
-  }, [segments]);
+  }, [inOnboarding]);
 
   if (isLoading || !navigationState?.key) {
     return (
@@ -71,7 +72,6 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const inOnboarding = segments[0] === "onboarding";
   if (!isOnboarded && !inOnboarding) {
     return <Redirect href="/onboarding" />;
   }

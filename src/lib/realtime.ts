@@ -37,7 +37,7 @@ export function subscribeToEventRealtime(eventId: string, onChange: RealtimeRefr
     .subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
         console.log(`[realtime] subscribed to event ${eventId}`);
-      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         console.warn(`[realtime] event ${eventId} status: ${status}`, err ?? "");
       }
     });

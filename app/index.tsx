@@ -36,12 +36,15 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
-      syncCurrentProfileFromServer().then(() =>
-        onboardingStore.getProfile().then((p) => {
-          setFirstName(p?.firstName?.trim() || "");
-          setAvatarUri(p?.avatarUri ?? null);
-        })
-      );
+      void (async () => {
+        const local = await onboardingStore.getProfile();
+        setFirstName(local?.firstName?.trim() || "");
+        setAvatarUri(local?.avatarUri ?? null);
+        await syncCurrentProfileFromServer();
+        const p = await onboardingStore.getProfile();
+        setFirstName(p?.firstName?.trim() || "");
+        setAvatarUri(p?.avatarUri ?? null);
+      })();
       fetchEvents();
       onboardingStore.getPhone().then((ph) => {
         const phone = ph || "";

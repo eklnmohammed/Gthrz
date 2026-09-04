@@ -221,7 +221,9 @@ export async function syncCurrentProfileFromServer(): Promise<void> {
   if (!normalizedPhone) return;
 
   const server = await fetchProfile(normalizedPhone);
-  if (!server) return;
+  if (!server) {
+    return;
+  }
 
   const parts = (server.full_name || "").trim().split(/\s+/);
   const firstName = parts[0] ?? "";

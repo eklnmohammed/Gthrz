@@ -20,6 +20,7 @@ import { getDefaultCoverKey } from "../utils/covers";
 import { isValidCoverUrl } from "../utils/coverUrl";
 import { compareEventsDefaultChronological } from "../utils/eventListOrdering";
 import { areSamePhone, normalizePhoneForCompare } from "../utils/phone";
+import { triggerEventNotification } from "../lib/notifications";
 
 export interface Event {
   id: string;
@@ -331,8 +332,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         setEvents([]);
         return;
       }
-      // Drop previous user's merged list immediately so UI cannot briefly show wrong events after sign-in / switch.
-      setEvents([]);
+      // Keep existing cards until the new list arrives (same user refetch / Fast Refresh).
 
       // 1) Events user created (host)
       const { data: createdData, error: createdErr } = await supabase
@@ -677,6 +677,8 @@ export function EventsProvider({ children }: { children: ReactNode }) {
 
       if (updateError) throw updateError;
 
+      triggerEventNotification({ type: "event_cancelled", eventId: id });
+
       setEvents((prev) => prev.map((e) => e.id === id ? { ...e, status: "cancelled" as const, cancellationReason: cancellationReason?.trim() || undefined } : e));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel event");
@@ -852,6 +854,13 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           .from("rsvps")
           .upsert(upsertPayload, { onConflict: "event_id,user_phone" });
         if (upsertError) throw upsertError;
+
+        // Notify host after the RSVP is saved. A manual-approval "going" becomes a join
+        // request; everything else is a plain RSVP change. Recipients/text resolved server-side.
+        triggerEventNotification({
+          type: effectiveStatus === "pending" ? "join_request_created" : "rsvp_changed",
+          eventId,
+        });
       } catch (err) {
         if (!(err instanceof RsvpUserFacingError)) {
           console.error("Error submitting RSVP:", err);
@@ -930,6 +939,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       .eq("event_id", eventId)
       .eq("user_phone", userPhone);
     if (error) throw error;
+    triggerEventNotification({ type: "join_request_approved", eventId, targetPhone: userPhone });
   }, [assertCurrentUserCanManageEventRsvp]);
 
   const finalizeManualToAutoApproval = useCallback(
@@ -975,6 +985,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       .eq("event_id", eventId)
       .eq("user_phone", userPhone);
     if (error) throw error;
+    triggerEventNotification({ type: "join_request_declined", eventId, targetPhone: userPhone });
   }, [assertCurrentUserCanManageEventRsvp]);
 
   const removeRsvp = useCallback(async (eventId: string, userPhone: string) => {
@@ -1039,11 +1050,18 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const assignContribution = useCallback(async (id: string, userPhone: string | null) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("event_contributions")
       .update({ assigned_user_phone: userPhone })
-      .eq("id", id);
+      .eq("id", id)
+      .select("event_id")
+      .maybeSingle();
     if (error) throw error;
+    // Only a claim (assignee set) triggers a notification. The server ignores it when the
+    // caller is the host (host assigning to a guest), so only guest self-claims notify the host.
+    if (userPhone && data?.event_id) {
+      triggerEventNotification({ type: "bring_item_claimed", eventId: data.event_id as string });
+    }
   }, []);
 
   const unassignContributionsForUser = useCallback(async (eventId: string, userPhone: string) => {
