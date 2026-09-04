@@ -19,6 +19,7 @@ import { onboardingStore, UserProfile } from "../src/state/onboardingStore";
 import { useEvents, type Event } from "../src/state/eventsStore";
 import { useFavorites } from "../src/state/favoritesStore";
 import { signOut as authSignOut, syncCurrentProfileFromServer } from "../src/lib/auth";
+import { deactivatePushTokenForCurrentDevice } from "../src/lib/notifications";
 import { colors } from "../src/theme/colors";
 import { spacing } from "../src/theme/spacing";
 import { radius } from "../src/theme/radius";
@@ -99,6 +100,8 @@ export default function ProfileScreen() {
   const handleSignOut = async () => {
     const currentPhone = phone ?? (await onboardingStore.getPhone()) ?? "";
     await clearPreferencesForPhone(currentPhone);
+    // Deactivate this device's push token while the session is still valid (best effort).
+    await deactivatePushTokenForCurrentDevice();
     await authSignOut();
     await onboardingStore.reset();
     await reloadFavorites();

@@ -68,3 +68,6 @@ RECENT_FIXES.md
 KNOWN_LIMITATIONS.md
 APP_DISCOVERY.md
 APP_GROUND_TRUTH.md
+
+.mcp.json
+.vscode/
