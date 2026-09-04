@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { Stack, Redirect, useSegments, useRootNavigationState } from "expo-router";
 import { EventsProvider } from "../src/state/eventsStore";
 import { FavoritesProvider } from "../src/state/favoritesStore";
 import { onboardingStore } from "../src/state/onboardingStore";
 import { syncCurrentProfileFromServer } from "../src/lib/auth";
+import { savePushTokenForUser } from "../src/lib/notifications";
+import { supabase } from "../src/lib/supabase";
 import { colors } from "../src/theme/colors";
 
 function OnboardingGate({ children }: { children: React.ReactNode }) {
@@ -12,17 +14,44 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [isOnboarded, setIsOnboarded] = useState(false);
   const segments = useSegments();
   const navigationState = useRootNavigationState();
+  const pushTokenRegistrationAttempted = useRef(false);
+  const prevRouteGroup = useRef<string | undefined>(undefined);
 
   const checkOnboarding = async () => {
     const onboarded = await onboardingStore.isOnboarded();
     if (onboarded) {
       syncCurrentProfileFromServer().catch(() => {});
+      // Returning OTP users never hit verify again. Register once per launch, and only
+      // when a real Supabase session exists (demo / Skip OTP has none → no permission prompt).
+      if (!pushTokenRegistrationAttempted.current) {
+        pushTokenRegistrationAttempted.current = true;
+        void (async () => {
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session) return;
+            const phone = (await onboardingStore.getPhone())?.trim();
+            if (!phone) return;
+            savePushTokenForUser(phone).catch(() => {});
+          } catch {
+            // Token registration must never block or crash startup.
+          }
+        })();
+      }
     }
     setIsOnboarded(onboarded);
     setIsLoading(false);
   };
 
-  // Initial load and whenever segments change (e.g. after completing profile → home)
+  // After profile Done → home, React still has isOnboarded=false for one paint.
+  // That paint would Redirect to Get started. Hold the gate until storage is re-read.
+  useLayoutEffect(() => {
+    const group = segments[0] as string | undefined;
+    if (prevRouteGroup.current !== group) {
+      prevRouteGroup.current = group;
+      setIsLoading(true);
+    }
+  }, [segments]);
+
   useEffect(() => {
     checkOnboarding();
   }, [segments]);
