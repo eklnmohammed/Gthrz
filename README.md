@@ -15,7 +15,7 @@ I built it as my undergraduate project to bring event details, guest management,
 - Capacity limits and plus-ones
 - Lineups and shared bring lists
 - Profile photos stored with Supabase Storage
-- Device-local favourites and simple event suggestions 
+- Device-local favourites and simple event suggestions
 - Push notification support through Expo Notifications and a Supabase Edge Function
 
 Event prices are informational only; the app does not process payments.
@@ -38,8 +38,17 @@ Event prices are informational only; the app does not process payments.
 - `supabase/migrations/` — database and Row Level Security changes
 - `supabase/functions/` — server-side push notification handling
 
-## Running locally
+## Database schema
 
+The current database structure is documented in `supabase/schema.sql`.
+
+This file is a schema-only snapshot from the hosted Supabase project. It is included as a reference for the current tables, constraints, indexes, RLS policies, storage buckets, and realtime publication setup.
+
+It does not contain table data, phone numbers, profiles, event rows, RSVP rows, push tokens, or secrets.
+
+The existing migration files are incremental changes from the project’s development history, so `schema.sql` is the clearest reference for the current backend shape.
+
+## Running locally
 
 Copy `.env.example` to `.env` and add credentials from your own Supabase project:
 
