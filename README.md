@@ -1,134 +1,123 @@
 # Gthrz
 
-Privacy-first mobile event planning prototype for private social events.
-Final-year project (BSc Computer Science) — built with React Native, Expo, TypeScript, and Supabase.
+Gthrz is a privacy first mobile event planning app for creating, joining, and managing private events.
 
----
+I built Gthrz as my undergraduate project, but I treated it like a production mobile app: real authentication, database-backed event state, realtime updates, and server-side notification handling.
 
-## Requirements
+## Why it exists
 
-- Node.js 18 or 20 LTS
-- npm 10+
-- Xcode (for iOS Simulator) and/or Android Studio (for Android Emulator)
-- Expo Go SDK 54 on a physical device (optional)
+Group event planning often leaks more personal information than it needs to. Guest lists, exact addresses, and photos can spread across chats with no clear host control. Coordination also gets fragmented across WhatsApp, iMessage, and notes.
 
----
+Gthrz keeps the host in control of who can see an event, who can join, when location is revealed, and what guests can see about each other.
 
-## Environment Variables
+## Key features
 
-Copy `.env.example` to `.env` and fill in the values:
+- **Phone OTP authentication** via Supabase Auth
+- **Public, private, and invite-code** event flows
+- **Host and guest** roles
+- **RSVPs** for going, maybe, can’t, and pending
+- **Join requests and host approvals** for events that require approval
+- **Privacy controls** for guest names, avatars, capacity, plus-one, and location visibility
+- **Realtime updates** on event detail screens for RSVPs, contributions, and event changes
+- **Push notification support** using Expo Notifications and a Supabase Edge Function — final device delivery testing pending
+- **Profile setup** with name and avatar using Supabase Storage
+- **Saved / favourite events** stored locally per device
 
+Price on an event is display only. There is no payment processing.
+
+## Tech stack
+
+- React Native and Expo SDK 54
+- Expo Router
+- TypeScript
+- Supabase: PostgreSQL, Auth, Storage, and Realtime
+- Supabase Edge Functions
+- Expo Notifications
+- EAS configuration for future native builds
+
+## Architecture
+
+| Path | Role |
+|------|------|
+| `app/` | Expo Router screens and stack navigation |
+| `src/components/` | Shared UI components |
+| `src/state/` | App stores for events, favourites, onboarding |
+| `src/lib/` | Supabase client, auth, realtime, notifications |
+| `src/theme/` | Colour, spacing, and typography constants |
+| `supabase/migrations/` | Database and RLS changes |
+| `supabase/functions/` | Server-side push sender |
+
+Identity is phone based across profiles, hosts, RSVPs, and push token rows.
+
+The notification Edge Function verifies the caller’s JWT and decides the notification recipients on the server instead of trusting the client to choose them.
+
+## Environment setup
+
+Copy `.env.example` to `.env` in the project root.
+
+Required variables:
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
 ```
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
 
-The Supabase anon key is designed to be public and is protected by row-level security policies.
+Use your own Supabase project. Never commit `.env`. The anon key is public by design and must be backed by Row Level Security.
 
----
+Node 22 is the version in `.nvmrc`.
 
-For marking, a `.env` file may be included with the submitted ZIP so the prototype can connect to the Supabase test project.
-
-## Install and Run
+## Running locally
 
 ```bash
 npm install
-npx expo start
+npx expo start --tunnel --go
 ```
 
-For tunnel mode (recommended if LAN does not work):
+Scan the QR code with **Expo Go** (SDK 54). Press `s` in Metro if it is waiting for a development build instead of Expo Go.
+
+Typecheck:
 
 ```bash
-npx expo start --tunnel -c
+npx tsc --noEmit
 ```
 
-Then choose one of:
+## Auth setup
 
-- Press `i` for iOS Simulator (requires Xcode)
-- Press `a` for Android Emulator (requires Android Studio)
-- Scan the QR code with Expo Go SDK 54 on a physical device
+Production login uses **Supabase Phone OTP**. Configure an SMS provider (for example Twilio) in the Supabase dashboard under Auth → Phone. Without a provider, sending a code fails by design.
 
----
+**Skip OTP — demo mode** is shown only when `__DEV__` is true (Expo Go / local Metro). Release builds do not use it. Demo skip stores a local identity and does **not** create a Supabase session, so session-gated features (including push registration) do not run.
 
-## Demo Authentication
+## Push notifications
 
-The verification screen includes a **Skip OTP — demo mode** button so the prototype can be evaluated without configuring a live SMS provider.
+Groundwork is in the client (`src/lib/notifications.ts`) and the Edge Function `send-event-notification`.
 
-To test:
+- Tokens are saved only on a **physical device** with permission granted and a valid EAS `projectId`.
+- **Simulator and Expo Go** cannot fully exercise remote Expo push tokens.
+- Real delivery needs a **development or production native build** on a physical device, plus the function deployed with Supabase-injected service role (never committed to git).
+- Notification copy is generic (no location, names, or invite codes).
 
-1. Enter a phone number (e.g. +44500000001).
-2. On the verify screen, tap **Skip OTP — demo mode**.
-3. Complete onboarding.
+This path has **not** been fully production-tested on a physical device yet.
 
-Supabase Phone OTP is the intended authentication method for production.
+## Current limitations
 
-### Demo Test Users
-
-The app can be tested with any phone number in demo mode. The following numbers already have sample data in the Supabase project:
-
-| Role | Phone Number | Purpose |
-|---|---|---|
-| Host / sample user | +4411111111 | Can be used to view public events and some existing created/joined events. |
-| Main host user | +4499999999 | Main demo account used to create most of the sample events. Useful for testing host features. |
-| Guest user | +4422222222 | Simple guest account for testing joining, RSVP, and guest-side flows. |
-
-To test the app from a fresh account, enter any new phone number and use **Skip OTP — demo mode**.
-
-To test host features quickly, use **+4499999999**. To test guest features, use **+4422222222**. To test invite-code joining, create an event as the host, copy the generated six-character invite code, then join using a guest account.
-
-
----
-
-## Scope
-
-Implemented:
-
-- Event creation, editing, and cancellation
-- Public/private visibility, approval-required RSVP, capacity, plus-one
-- Privacy controls (hide guest names/avatars, exact-location audience, delayed location reveal)
-- Invite-code joining (6-character codes)
-- Bring-item tracking with duplicate prevention
-- Local favourites and preference-signal recommendations (AsyncStorage)
-- Profile editing and avatar upload (Supabase Storage)
-- Partial row-level security (remaining checks in application logic)
-
-## Limitations
-
-- No push notifications
+- Real-device push delivery still needs a native build and device test
+- No payments
+- No automated tests yet (TypeScript check is the current gate)
+- RLS and schema hardening continue as the product evolves
 - No full offline mode
-- No real-time updates (manual refresh required)
-- No payment processing (price is display-only)
-- Live SMS OTP not enabled in submitted build
-- Full RLS hardening is future work
 
----
+## Engineering focus
 
-## Project Layout
+This project emphasises:
 
-```
-app/                 Expo Router screens
-src/components/      Reusable UI components
-src/state/           State providers (events, favourites, onboarding)
-src/lib/             Supabase client and auth
-src/utils/           Helpers (invite codes, preferences, formatting)
-src/theme/           Colours, spacing, typography
-supabase/migrations/ SQL migrations
-assets/              Icons, splash, event covers
-scripts/             Build scripts
-```
-
----
-
-## Troubleshooting
-
-- **Metro cache:** `npx expo start -c`
-- **`.env` not picked up:** restart Metro with `npx expo start -c`
-- **iOS Simulator not opening:** ensure Xcode Command Line Tools are installed
-- **Android Emulator not detected:** open Android Studio, install an emulator image, retry
-- **Tunnel mode:** `npx expo start --tunnel -c`
-
----
+- **Privacy** as a product constraint, not a setting buried in the UI
+- **Auth** that matches how the rest of the app identifies users (phone)
+- **Realtime** so event detail stays consistent without a full app refresh
+- **Defensive server-side notifications** (JWT check, server-chosen recipients, privacy-safe text)
+- **Mobile UX** for hosts and guests on a single stack, without extra routing frameworks
 
 ## License
 
-Submitted as part of an undergraduate final-year project. Not licensed for production use.
+This repository is source-available for portfolio and review purposes only.
+
+You may view the code, but you may not copy, modify, distribute, sublicense, or use it for commercial or production purposes without permission.
