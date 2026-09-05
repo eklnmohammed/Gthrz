@@ -1,80 +1,129 @@
 # Gthrz
 
-Gthrz is a privacy-first mobile app for creating, joining, and managing private events.
+Gthrz is a privacy-first mobile application for creating, joining, and managing private events.
 
-I built Gthrz as my undergraduate capstone project to explore secure mobile event management using React Native, Expo, and Supabase. The app brings event details, guest management, RSVPs, and invitations into one place while giving hosts more control over what guests can see.
-
----
-
-## Screenshots
-
-### Authentication & Discovery
-
-| Welcome | Home | Discover |
-|---------|------|----------|
-| ![Gthrz welcome screen](assets/screenshots/welcome.png) | ![Gthrz home screen](assets/screenshots/home.png) | ![Gthrz discover screen](assets/screenshots/discover.png) |
-| Secure phone OTP authentication | Personalized event dashboard | Browse public events with search |
-
-### Event Creation & Privacy
-
-| Events | Create Event | Privacy Controls |
-|--------|--------------|------------------|
-| ![Gthrz events screen](assets/screenshots/events.png) | ![Gthrz create event screen](assets/screenshots/create-event.png) | ![Gthrz privacy controls](assets/screenshots/create-event-settings.png) |
-| Manage hosted and joined events | Create customizable events | Control guest visibility and location privacy |
-
-### Event Experience
-
-| Event Details | Guests & Planning | Profile |
-|--------------|-----------------|---------|
-| ![Gthrz event detail](assets/screenshots/event-detail.png) | ![Gthrz guests and planning](assets/screenshots/event-guests.png) | ![Gthrz profile](assets/screenshots/profile.png) |
-| Event details and RSVP management | Guests, contributions, and schedule | User profile and saved events |
+Built as my undergraduate capstone project, Gthrz showcases secure mobile event management using **React Native**, **Expo**, and **Supabase**. The application combines event planning, RSVPs, guest management, realtime updates, and fine-grained privacy controls into a single mobile experience.
 
 ---
 
-## Features
+## Highlights
 
-- Phone OTP authentication with Supabase Auth
-- Public, private, and invite-code event flows
-- RSVPs, join requests, and host approval
-- Realtime updates for event changes, RSVPs, and contributions
-- Privacy controls for guest names, avatars, and location visibility
-- Timed location reveal and confirmed-guests-only address access
-- Capacity limits and plus-ones
-- Lineups and shared bring lists
+- 🔐 Phone OTP authentication with Supabase
+- 👥 RSVP workflow with host approval
+- 📍 Timed location reveal and privacy controls
+- ⚡ Realtime updates using Supabase Realtime
+- 📱 Built with React Native, Expo, and TypeScript
+
+---
+
+# Screenshots
+
+## Welcome
+
+<p align="center">
+  <img src="assets/screenshots/welcome.png" width="280">
+</p>
+
+Secure phone OTP authentication powered by Supabase Authentication.
+
+---
+
+## Home • Discover • Events
+
+<p align="center">
+  <img src="assets/screenshots/home.png" width="250">
+  <img src="assets/screenshots/discover.png" width="250">
+  <img src="assets/screenshots/events.png" width="250">
+</p>
+
+Personalized dashboard with upcoming events, public event discovery, and quick access to hosted and joined events.
+
+---
+
+## Event Creation
+
+<p align="center">
+  <img src="assets/screenshots/create-event.png" width="250">
+  <img src="assets/screenshots/create-event-settings.png" width="250">
+</p>
+
+Create customizable events with invite codes, audience restrictions, guest visibility settings, timed location reveal, and extensive privacy controls.
+
+---
+
+## Event Details
+
+<p align="center">
+  <img src="assets/screenshots/event-detail.png" width="250">
+  <img src="assets/screenshots/event-guests.png" width="250">
+</p>
+
+View complete event information, manage RSVPs, browse guest lists, organize shared contributions, and access schedules from a single event page.
+
+---
+
+## Profile
+
+<p align="center">
+  <img src="assets/screenshots/profile.png" width="280">
+</p>
+
+Manage your profile, saved events, and events you've created.
+
+---
+
+# Features
+
+### Authentication
+
+- Phone OTP authentication
+- Invite code access
+
+### Events
+
+- Public and private event creation
+- RSVP workflow
+- Host approval
+- Capacity limits
+- Shared bring lists
+- Event schedules
+
+### Privacy
+
+- Timed location reveal
+- Guest name visibility
+- Guest profile photo visibility
+
+### Infrastructure
+
+- Realtime updates using Supabase Realtime
+- Push notification infrastructure
 - Profile photos stored with Supabase Storage
-- Device-local favourites and lightweight event recommendations
-- Push notification infrastructure using Expo Notifications and a Supabase Edge Function
 
 > **Note**
 >
-> Event prices are informational only. Gthrz does not process payments.
+> Event prices shown in the screenshots are informational only. Gthrz does not process payments.
 
 ---
 
-## Architecture
+# Technologies
 
-- Expo Router for navigation
-- React Context for global state management
-- Supabase Authentication (Phone OTP)
-- PostgreSQL with Row Level Security (RLS)
-- Supabase Realtime subscriptions
+- React Native
+- Expo SDK 54
+- Expo Router
+- React Context API
+- TypeScript
+- Supabase Authentication
+- PostgreSQL
+- Row Level Security (RLS)
+- Supabase Realtime
+- Supabase Storage
 - Expo Notifications
 - Supabase Edge Functions
 
 ---
 
-## Built With
-
-- React Native
-- Expo SDK 54
-- Expo Router
-- TypeScript
-- Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions)
-- Expo Notifications
-
----
-
-## Project Structure
+# Project Structure
 
 ```text
 app/                    Screens and navigation
@@ -83,28 +132,36 @@ src/state/              Event, onboarding, and favourites state
 src/lib/                Authentication, Supabase, realtime, notifications
 src/theme/              Design system
 supabase/functions/     Edge Functions
-supabase/migrations/    Database migrations and RLS changes
+supabase/migrations/    Database migrations and RLS policies
 ```
 
 ---
 
-## Database Schema
+# Database Schema
 
-The repository includes a schema snapshot in:
+The repository includes a complete database schema snapshot located at:
 
-```
+```text
 supabase/schema.sql
 ```
 
-It documents the current tables, indexes, constraints, storage buckets, realtime configuration, and Row Level Security policies.
+It documents:
 
-No user data, phone numbers, secrets, or production credentials are included.
+- Tables
+- Relationships
+- Constraints
+- Indexes
+- Storage buckets
+- Realtime configuration
+- Row Level Security (RLS) policies
+
+No production data, secrets, or user information are included.
 
 ---
 
-## Running Locally
+# Running Locally
 
-Copy `.env.example` to `.env` and configure your own Supabase project.
+Create a `.env` file from `.env.example`.
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=
@@ -117,13 +174,19 @@ Install dependencies:
 npm install
 ```
 
-Start the project:
+Start the development server:
+
+```bash
+npm run start
+```
+
+Or run Expo directly:
 
 ```bash
 npx expo start --tunnel --go
 ```
 
-Type-check:
+Run the TypeScript type checker:
 
 ```bash
 npx tsc --noEmit
@@ -131,40 +194,41 @@ npx tsc --noEmit
 
 ---
 
-## Authentication & Push Notifications
+# Authentication & Notifications
 
-Production authentication uses Supabase Phone OTP with an SMS provider (Twilio).
+Production authentication uses Supabase Phone OTP with a configured SMS provider.
 
-For development, a **Skip OTP (Demo Mode)** shortcut is available. It creates a local identity without a Supabase session, making it suitable for UI development but not for testing authenticated features.
+For development, a **Skip OTP (Demo Mode)** option is available. It creates a local identity without a Supabase session, making it useful for UI development while disabling authenticated features.
 
 Push notification infrastructure has been implemented using Expo Notifications and a Supabase Edge Function.
 
 End-to-end push delivery requires:
 
-- a native development or production build
-- a physical device
-- notification permission
-- a configured EAS project
-- a deployed Edge Function
+- Native development or production build
+- Physical device
+- Notification permission
+- Configured EAS project
+- Deployed Supabase Edge Function
 
 ---
 
-## Current Limitations
+# Current Limitations
 
 - Push notifications have not yet been verified end-to-end on a physical device.
-- Favourites and recommendation signals are stored locally and do not sync across devices.
 - Offline mode is not currently supported.
-- Payment processing has not been implemented.
+- Payment processing is not implemented.
+- Favourites and recommendations are stored locally and do not sync across devices.
 - Automated tests have not yet been added.
-- Database policies will be further tightened before a production release.
+- Some Row Level Security policies will be further refined before a production deployment.
 
 ---
 
-## License
+# License
 
 This repository is source-available for portfolio and review purposes only.
 
-You may view the code, but you may not copy, modify, distribute, sublicense, or use it for commercial or production purposes without permission.
+You may view the source code, but you may not copy, modify, distribute, sublicense, or use it for commercial or production purposes without prior permission.
 
 Copyright © 2026 Mohammed Ali Bin Shamlan.
+
 All rights reserved.
