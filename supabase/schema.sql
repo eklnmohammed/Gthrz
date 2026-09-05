@@ -1,15 +1,7 @@
--- Gthrz public schema baseline (schema only, no table data).
---
--- Source: live linked Supabase project "Gthrz" (catalog snapshot, 2026-09-05).
--- `npx supabase db dump --linked --schema public,storage` could not run here
--- because this CLI version shells pg_dump through Docker, which is not installed.
--- This file is reconstructed from live Postgres catalog (columns, constraints,
--- indexes, RLS flags/policies, storage buckets, storage.objects policies).
---
--- Do NOT apply this to the hosted database. Do NOT run `supabase db reset`
--- against production. This file is documentation / recreate-from-zero reference.
--- Prefer `supabase/schema.sql` over a timestamped migration so the CLI will not
--- try to apply it on a database that already has these objects.
+-- Gthrz database schema snapshot
+-- Schema only. No table data, profiles, phone numbers, RSVP rows, push tokens, or secrets.
+-- Generated from the live Supabase project on 2026-09-05.
+-- Included as a reference for the current database structure.
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -125,7 +117,7 @@ CREATE TABLE public.user_push_tokens (
 );
 
 -- ---------------------------------------------------------------------------
--- Extra indexes (beyond those implied by PRIMARY KEY / UNIQUE constraints)
+-- Extra indexes
 -- ---------------------------------------------------------------------------
 
 CREATE UNIQUE INDEX events_invite_code_unique ON public.events USING btree (invite_code) WHERE (invite_code IS NOT NULL);
@@ -144,9 +136,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.rsvps;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.event_contributions;
 
 -- ---------------------------------------------------------------------------
--- Row Level Security
--- Live policies are permissive on most public tables (anon key can read/write).
--- user_push_tokens is phone-scoped for authenticated JWT. Snapshot as-is.
+-- Row Level Security (as on the live project; most public tables are open to anon)
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -248,7 +238,7 @@ CREATE POLICY "Users delete own push tokens"
   USING (user_phone = (auth.jwt() ->> 'phone'::text));
 
 -- ---------------------------------------------------------------------------
--- Storage: Gthrz buckets + object policies only (not the Storage engine tables)
+-- Storage buckets and object policies (avatars, event-covers)
 -- ---------------------------------------------------------------------------
 
 INSERT INTO storage.buckets (id, name, public)

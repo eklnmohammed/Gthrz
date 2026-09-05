@@ -1,20 +1,6 @@
 /**
- * Push notifications for Gthrz (Expo).
- *
- * This module is intentionally defensive: every public function fails gracefully
- * (returns null / no-ops) and NEVER throws into app flows. Notification setup must
- * never block startup, sign-in, or sign-out.
- *
- * Identity model: the app keys users by phone (see profiles / rsvps / events), so push
- * tokens are stored in `user_push_tokens.user_phone`. Token registration only works for
- * real (OTP) sessions because RLS requires the phone claim in the JWT; dev-mode (skip OTP)
- * has no session and simply no-ops here.
- *
- * Public API:
- *  - registerForPushNotificationsAsync(): get permission + Expo token (or null)
- *  - savePushTokenForUser(userPhone): register + upsert token into Supabase (best effort)
- *  - deactivatePushTokenForCurrentDevice(): best-effort sign-out cleanup
- *  - triggerEventNotification(payload): fire-and-forget call to the send-event-notification Edge Function
+ * Expo push helpers. Fail quietly so notifications never block login or startup.
+ * Tokens are stored by phone. Skip OTP has no JWT session, so registration is skipped.
  */
 import { Platform } from "react-native";
 import * as Device from "expo-device";

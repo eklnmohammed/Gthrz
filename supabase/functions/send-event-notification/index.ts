@@ -1,17 +1,12 @@
 // send-event-notification
 //
-// Server-side push notification sender for Gthrz closed beta.
-//
-// The client only sends { type, eventId, targetPhone? }. This function:
-//   1. Verifies the caller from their JWT (identity = phone claim, matching app RLS).
-//   2. Re-checks permissions server-side (never trusts the client).
-//   3. Resolves recipients server-side based on the event + current RSVPs.
-//   4. Builds PRIVACY-SAFE generic text (no location, names, avatars, or invite codes).
-//   5. Fetches active Expo tokens (service role bypasses RLS) and sends via Expo push API.
-//   6. Deactivates tokens Expo reports as DeviceNotRegistered.
+// Sends Expo push messages after an event action.
+// The client sends { type, eventId, targetPhone? }. Recipients and copy are decided here
+// (JWT phone check, then service-role lookup). Notification text is generic: no location,
+// names, or invite codes.
 //
 // Deploy: supabase functions deploy send-event-notification
-// Required env (auto-injected by Supabase): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
+// Env (injected by Supabase): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -55,8 +50,7 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-// Generic, privacy-safe copy. NEVER include location, guest names/avatars, or invite codes.
-// Private events use the same minimal text (we do not leak any private detail here).
+// Keep titles/bodies generic: no location, names, or invite codes.
 function textFor(type: NotificationType): { title: string; body: string } {
   switch (type) {
     case "join_request_created":

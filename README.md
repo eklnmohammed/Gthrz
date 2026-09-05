@@ -40,13 +40,7 @@ Event prices are informational only; the app does not process payments.
 
 ## Database schema
 
-The current database structure is documented in `supabase/schema.sql`.
-
-This file is a schema-only snapshot from the hosted Supabase project. It is included as a reference for the current tables, constraints, indexes, RLS policies, storage buckets, and realtime publication setup.
-
-It does not contain table data, phone numbers, profiles, event rows, RSVP rows, push tokens, or secrets.
-
-The existing migration files are incremental changes from the project’s development history, so `schema.sql` is the clearest reference for the current backend shape.
+See `supabase/schema.sql` for the current tables, constraints, indexes, RLS, storage buckets, and realtime setup. It is schema only — no user data or secrets. Files under `supabase/migrations/` are older incremental changes.
 
 ## Running locally
 
@@ -85,8 +79,8 @@ Push notification code is present in the client and in the `send-event-notificat
 - Push delivery has not yet been verified end to end on a physical device
 - Favourites and recommendation signals are stored locally and do not sync across devices
 - There is no payment integration or full offline mode
-- Automated tests have not been added; TypeScript checking is the current quality gate
-- Database policies and migrations should be reviewed again before a production launch
+- Automated tests have not been added yet; `npx tsc --noEmit` is the current check
+- Database policies should be tightened before a public App Store release
 
 ## License
 
