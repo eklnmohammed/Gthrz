@@ -18,7 +18,7 @@ CREATE TABLE public.profiles (
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_phone_key UNIQUE (phone),
   CONSTRAINT profiles_auth_user_id_key UNIQUE (auth_user_id)
-);
+);Z
 
 COMMENT ON COLUMN public.profiles.auth_user_id IS
   'Supabase Auth user id when using OTP; null in dev/skip-OTP mode.';
