@@ -5,7 +5,9 @@
 // the Create Event form fields.
 //
 // Deploy: supabase functions deploy smart-planner
-// Env: OPENAI_API_KEY (required for OpenAI integration, not yet used)
+// Env: OPENAI_API_KEY
+
+import OpenAI from "npm:openai";
 
 interface RequestBody {
   prompt?: string;
@@ -57,14 +59,37 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: "empty_prompt" }, 400);
   }
 
-  // Check that OpenAI API key is configured (for future use).
+  // Check that OpenAI API key is configured.
   if (!OPENAI_API_KEY) {
     return json({ error: "openai_not_configured" }, 503);
   }
 
-  // Placeholder response — OpenAI integration will be added in the next step.
-  return json({
-    success: true,
-    message: "Smart Planner endpoint is ready.",
-  });
+  // Call OpenAI — connection check only (no SmartPlan yet).
+  try {
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-5-mini",
+      messages: [
+        {
+          role: "user",
+          content:
+            `Reply with one short plain-text sentence acknowledging this event planning request:\n\n${prompt.trim()}`,
+        },
+      ],
+    });
+
+    const response = completion.choices[0]?.message?.content?.trim() ?? "";
+    if (!response) {
+      return json({ error: "empty_model_response" }, 502);
+    }
+
+    return json({
+      success: true,
+      response,
+    });
+  } catch (err) {
+    console.error("OpenAI request failed:", err);
+    return json({ error: "openai_request_failed" }, 502);
+  }
 });
