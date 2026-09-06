@@ -13,12 +13,15 @@ export function EventFormBottomSheet({
   onRequestClose,
   keyboardInset,
   bottomSafeInset,
+  extraBottomPadding = 0,
   children,
 }: {
   visible: boolean;
   onRequestClose: () => void;
   keyboardInset: number;
   bottomSafeInset: number;
+  /** Extra breathing room under the sheet content, for taller sheets. */
+  extraBottomPadding?: number;
   children: ReactNode;
 }) {
   return (
@@ -34,7 +37,9 @@ export function EventFormBottomSheet({
             borderTopRightRadius: radius.xl,
             paddingHorizontal: spacing.lg,
             paddingTop: spacing.xl,
-            paddingBottom: keyboardInset > 0 ? spacing.lg : spacing.xxl + bottomSafeInset,
+            paddingBottom:
+              (keyboardInset > 0 ? spacing.lg : spacing.xxl + bottomSafeInset) +
+              extraBottomPadding,
             marginBottom: keyboardInset,
             borderWidth: 0.5,
             borderColor: "rgba(255,255,255,0.08)",

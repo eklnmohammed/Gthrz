@@ -17,6 +17,14 @@ export { EventFormDressCodeControl } from "./EventFormDressCodeControl";
 export { EventFormLocationVisibilityControl } from "./EventFormLocationVisibilityControl";
 export { EventFormPriceSection } from "./EventFormPriceSection";
 export { EventFormBottomSheet } from "./EventFormBottomSheet";
+export {
+  EventFormSmartPlannerCard,
+  type SmartPlannerCardState,
+} from "./EventFormSmartPlannerCard";
+export {
+  EventFormSmartPlannerModal,
+  SMART_PLANNER_PROMPT_MAX_LENGTH,
+} from "./EventFormSmartPlannerModal";
 export { EventFormCapacitySheetModal } from "./EventFormCapacitySheetModal";
 export { EventFormRevealAddressSheetModal } from "./EventFormRevealAddressSheetModal";
 export { EventFormDressCodeSheetModal } from "./EventFormDressCodeSheetModal";

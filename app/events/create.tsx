@@ -65,6 +65,8 @@ import {
   EventFormCapacitySheetModal,
   EventFormRevealAddressSheetModal,
   EventFormDressCodeSheetModal,
+  EventFormSmartPlannerCard,
+  EventFormSmartPlannerModal,
   EVENT_FORM_DRESS_CODE_CUSTOM,
 } from "@/src/components/event-form";
 
@@ -141,6 +143,8 @@ export default function CreateEventScreen() {
   const [priceMode, setPriceMode] = useState<"free" | "paid">("free");
   const [priceAmount, setPriceAmount] = useState("");
   const [priceCurrency, setPriceCurrency] = useState("SAR");
+  const [showSmartPlannerSheet, setShowSmartPlannerSheet] = useState(false);
+  const [smartPlannerPrompt, setSmartPlannerPrompt] = useState("");
 
   const dressCodeValue = dressCode === EVENT_FORM_DRESS_CODE_CUSTOM ? dressCodeCustom.trim() : dressCode;
 
@@ -549,6 +553,13 @@ export default function CreateEventScreen() {
           onPressChangeCover={() => {
             setSelectedCoverType(eventType);
             setShowCoverModal(true);
+          }}
+        />
+
+        <EventFormSmartPlannerCard
+          onPress={() => {
+            Keyboard.dismiss();
+            setShowSmartPlannerSheet(true);
           }}
         />
 
@@ -1352,6 +1363,20 @@ export default function CreateEventScreen() {
           setRevealHoursBefore(hours);
           setLocationVisibility("reveal");
           setShowRevealSheet(false);
+        }}
+      />
+
+      <EventFormSmartPlannerModal
+        visible={showSmartPlannerSheet}
+        onClose={() => setShowSmartPlannerSheet(false)}
+        keyboardInset={keyboardInset}
+        bottomSafeInset={insets?.bottom ?? 0}
+        prompt={smartPlannerPrompt}
+        onPromptChange={setSmartPlannerPrompt}
+        onGenerate={(trimmedPrompt) => {
+          // Milestone 1: UI only. Backend wiring comes next.
+          console.log("Smart Planner prompt:", trimmedPrompt);
+          setShowSmartPlannerSheet(false);
         }}
       />
 
