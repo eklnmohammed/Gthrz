@@ -7,7 +7,8 @@
     "strict": true,
     "noEmit": true,
     "paths": {
-      "npm:@supabase/supabase-js@2": ["../../node_modules/@supabase/supabase-js"]
+      "npm:@supabase/supabase-js@2": ["../../node_modules/@supabase/supabase-js"],
+      "npm:openai": ["../../node_modules/openai"]
     }
   },
   "include": ["**/*.ts", "deno.d.ts"]
