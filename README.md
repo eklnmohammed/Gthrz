@@ -1,22 +1,77 @@
 # Gthrz
 
-Gthrz is a privacy-first mobile application for creating, joining, and managing private events.
+Gthrz is a privacy-first mobile application for creating, joining, and managing events with AI-assisted planning, realtime collaboration, and fine-grained guest privacy controls.
 
-Built as my undergraduate capstone project, Gthrz showcases secure mobile event management using **React Native**, **Expo**, and **Supabase**. The application combines event planning, RSVPs, guest management, realtime updates, and fine-grained privacy controls into a single mobile experience.
+Built with **React Native**, **Expo**, **TypeScript**, **Supabase**, and **OpenAI**, Gthrz combines secure event management, realtime collaboration, and AI-assisted event planning into a modern mobile experience while giving hosts full control over guest privacy and event visibility.
 
 ---
 
 ## Highlights
 
+- 🤖 AI Smart Planner powered by OpenAI
+- 📱 Cross-platform mobile app built with React Native & Expo
 - 🔐 Phone OTP authentication with Supabase
+- ⚡ Realtime synchronization using Supabase Realtime
+- 📍 Fine-grained privacy and location controls
 - 👥 RSVP workflow with host approval
-- 📍 Timed location reveal and privacy controls
-- ⚡ Realtime updates using Supabase Realtime
-- 📱 Built with React Native, Expo, and TypeScript
+
+---
+
+# AI Smart Planner
+
+Smart Planner is an AI-assisted event planning workflow designed to help hosts create events faster while keeping them in complete control.
+
+Instead of automatically filling the event form, Smart Planner generates structured suggestions that appear inline beside the relevant fields. Hosts review and accept each suggestion individually before creating the event.
+
+### Smart Planner can suggest
+
+- Event title
+- Description
+- Event type
+- Audience
+- Privacy settings
+- Dress code
+- Guest capacity
+- Approval requirement
+- Shared bring list
+
+### Smart Planner intentionally does **not** generate
+
+- Dates
+- Times
+- Locations
+- Invite codes
+- Cover images
+- IDs
+- System-generated values
+
+### Architecture
+
+```text
+User Prompt
+      │
+      ▼
+Supabase Edge Function
+      │
+      ▼
+OpenAI Responses API (GPT-5-mini)
+      │
+      ▼
+Structured SmartPlan JSON
+      │
+      ▼
+Inline Suggestions
+      │
+      ▼
+Host accepts individual suggestions
+```
+
+Unlike traditional AI form generators, Smart Planner never overwrites existing user input automatically. The host always decides which suggestions to use.
 
 ---
 
 # Screenshots
+
 
 ## Welcome
 
@@ -68,7 +123,7 @@ View complete event information, manage RSVPs, browse guest lists, organize shar
   <img src="assets/screenshots/profile.png" width="280">
 </p>
 
-Manage your profile, saved events, and events you've created.
+Manage your profile, saved events, and hosted events.
 
 ---
 
@@ -77,49 +132,75 @@ Manage your profile, saved events, and events you've created.
 ### Authentication
 
 - Phone OTP authentication
-- Invite code access
+- Persistent user sessions
+- Invite-code event access
+
+### AI Smart Planner
+
+- Natural language event planning
+- Structured AI suggestions
+- Inline suggestion workflow
+- Individual suggestion acceptance
+- User-controlled editing
+- OpenAI Responses API integration
 
 ### Events
 
-- Public and private event creation
-- RSVP workflow
-- Host approval
-- Capacity limits
+- Public and private events
+- RSVP workflow with host approval
+- Guest capacity management
 - Shared bring lists
-- Event schedules
+- Event lineups
+- Dress codes
+- Audience selection
 
 ### Privacy
 
 - Timed location reveal
 - Guest name visibility
 - Guest profile photo visibility
+- Configurable event visibility
 
 ### Infrastructure
 
-- Realtime updates using Supabase Realtime
+- Realtime synchronization using Supabase Realtime
 - Push notification infrastructure
-- Profile photos stored with Supabase Storage
+- AI processing with Supabase Edge Functions
+- Profile photos and event covers stored with Supabase Storage
 
 > **Note**
 >
-> Event prices shown in the screenshots are informational only. Gthrz does not process payments.
+> Event prices shown in the application are informational only. Gthrz does not process payments.
 
 ---
 
 # Technologies
 
+### Mobile
+
 - React Native
 - Expo SDK 54
 - Expo Router
-- React Context API
 - TypeScript
-- Supabase Authentication
-- PostgreSQL
-- Row Level Security (RLS)
-- Supabase Realtime
-- Supabase Storage
+- React Context API
+
+### Backend
+
+- Supabase
+  - PostgreSQL
+  - Authentication
+  - Storage
+  - Realtime
+  - Edge Functions
+
+### AI
+
+- OpenAI Responses API
+- GPT-5-mini
+
+### Notifications
+
 - Expo Notifications
-- Supabase Edge Functions
 
 ---
 
@@ -137,7 +218,7 @@ supabase/migrations/    Database migrations and RLS policies
 
 ---
 
-# Database Schema
+# Database
 
 The repository includes a complete database schema snapshot located at:
 
@@ -166,6 +247,12 @@ Create a `.env` file from `.env.example`.
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+To enable AI features, configure the following Supabase secret:
+
+```text
+OPENAI_API_KEY
 ```
 
 Install dependencies:
@@ -200,26 +287,17 @@ Production authentication uses Supabase Phone OTP with a configured SMS provider
 
 For development, a **Skip OTP (Demo Mode)** option is available. It creates a local identity without a Supabase session, making it useful for UI development while disabling authenticated features.
 
-Push notification infrastructure has been implemented using Expo Notifications and a Supabase Edge Function.
-
-End-to-end push delivery requires:
-
-- Native development or production build
-- Physical device
-- Notification permission
-- Configured EAS project
-- Deployed Supabase Edge Function
+Push notification infrastructure is implemented using Expo Notifications and Supabase Edge Functions to support event notifications and future server-side workflows.
 
 ---
 
 # Current Limitations
 
-- Push notifications have not yet been verified end-to-end on a physical device.
 - Offline mode is not currently supported.
-- Payment processing is not implemented.
-- Favourites and recommendations are stored locally and do not sync across devices.
+- Payment processing is intentionally outside the project scope.
+- Favourites and recommendations are currently stored locally and do not sync across devices.
 - Automated tests have not yet been added.
-- Some Row Level Security policies will be further refined before a production deployment.
+- Additional production hardening (rate limiting, monitoring, and security refinement) is planned before public release.
 
 ---
 
