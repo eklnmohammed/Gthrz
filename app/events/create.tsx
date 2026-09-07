@@ -67,8 +67,70 @@ import {
   EventFormDressCodeSheetModal,
   EventFormSmartPlannerCard,
   EventFormSmartPlannerModal,
+  type SmartPlannerCardState,
   EVENT_FORM_DRESS_CODE_CUSTOM,
 } from "@/src/components/event-form";
+import { requestSmartPlan, type SmartPlan } from "@/src/lib/smartPlanner";
+import {
+  SmartPlannerSuggestion,
+  SmartPlannerFieldHighlight,
+} from "@/src/components/event-form";
+import { isEventType } from "@/src/lib/supabase";
+import { EVENT_FORM_DRESS_CODE_PRESETS } from "@/src/components/event-form/eventFormDressCode";
+
+/** Keys for tracking which Smart Planner suggestions have been accepted. */
+type AcceptedSuggestionKey =
+  | "title"
+  | "details"
+  | "eventType"
+  | "visibility"
+  | "approvalRequired"
+  | "capacityValue"
+  | "dressCode"
+  | "audience"
+  | "bringItems";
+
+const AUDIENCE_VALUES = ["Men only", "Mixed", "Women only"] as const;
+const DRESS_PRESETS = EVENT_FORM_DRESS_CODE_PRESETS.filter(
+  (p) => p !== EVENT_FORM_DRESS_CODE_CUSTOM,
+);
+
+/** Returns suggestion keys that currently have a usable value in the plan. */
+function getOfferedSuggestionKeys(
+  plan: SmartPlan | null,
+  bringOfferedItems: string[] = [],
+): AcceptedSuggestionKey[] {
+  if (!plan) return [];
+  const keys: AcceptedSuggestionKey[] = [];
+
+  if (typeof plan.title?.value === "string" && plan.title.value.trim()) keys.push("title");
+  if (typeof plan.details?.value === "string" && plan.details.value.trim()) keys.push("details");
+  if (typeof plan.eventType?.value === "string" && isEventType(plan.eventType.value)) {
+    keys.push("eventType");
+  }
+  if (plan.visibility?.value === "public" || plan.visibility?.value === "private") {
+    keys.push("visibility");
+  }
+  if (typeof plan.approvalRequired?.value === "boolean") keys.push("approvalRequired");
+  if (
+    typeof plan.capacityValue?.value === "number" &&
+    Number.isFinite(plan.capacityValue.value)
+  ) {
+    keys.push("capacityValue");
+  }
+  if (typeof plan.dressCode?.value === "string" && plan.dressCode.value.trim()) {
+    keys.push("dressCode");
+  }
+  if (
+    typeof plan.audience?.value === "string" &&
+    (AUDIENCE_VALUES as readonly string[]).includes(plan.audience.value)
+  ) {
+    keys.push("audience");
+  }
+  if (bringOfferedItems.length > 0) keys.push("bringItems");
+
+  return keys;
+}
 
 function serializeLocationForDirty(loc: LocationSelection): string {
   return JSON.stringify({
@@ -145,6 +207,50 @@ export default function CreateEventScreen() {
   const [priceCurrency, setPriceCurrency] = useState("SAR");
   const [showSmartPlannerSheet, setShowSmartPlannerSheet] = useState(false);
   const [smartPlannerPrompt, setSmartPlannerPrompt] = useState("");
+  const [smartPlannerCardState, setSmartPlannerCardState] = useState<SmartPlannerCardState>("idle");
+  const [smartPlannerModalError, setSmartPlannerModalError] = useState<string | null>(null);
+  const [smartPlan, setSmartPlan] = useState<SmartPlan | null>(null);
+  const smartPlannerRequestId = useRef(0);
+  const [acceptedSuggestions, setAcceptedSuggestions] = useState<Set<AcceptedSuggestionKey>>(new Set());
+  const [highlightedField, setHighlightedField] = useState<AcceptedSuggestionKey | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Snapshot of bring-item suggestions for the current plan (stable across accepts). */
+  const bringSuggestionItemsRef = useRef<string[]>([]);
+
+  const offeredSuggestionKeys = getOfferedSuggestionKeys(
+    smartPlan,
+    bringSuggestionItemsRef.current,
+  );
+  const remainingSuggestionCount = offeredSuggestionKeys.filter(
+    (key) => !acceptedSuggestions.has(key),
+  ).length;
+  const totalSuggestionCount = offeredSuggestionKeys.length;
+
+  /** Mark a suggestion as accepted (hides it from the UI after exit animation). */
+  const dismissSuggestion = (key: AcceptedSuggestionKey) => {
+    setAcceptedSuggestions((prev) => new Set(prev).add(key));
+  };
+
+  /** Brief purple pulse on the field that just received a suggestion. */
+  const highlightField = (key: AcceptedSuggestionKey) => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    setHighlightedField(key);
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedField((current) => (current === key ? null : current));
+      highlightTimerRef.current = null;
+    }, 320);
+  };
+
+  /** Check if a suggestion should be shown (exists and not yet accepted). */
+  const shouldShowSuggestion = (key: AcceptedSuggestionKey): boolean => {
+    return smartPlan != null && !acceptedSuggestions.has(key);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    };
+  }, []);
 
   const dressCodeValue = dressCode === EVENT_FORM_DRESS_CODE_CUSTOM ? dressCodeCustom.trim() : dressCode;
 
@@ -557,13 +663,39 @@ export default function CreateEventScreen() {
         />
 
         <EventFormSmartPlannerCard
+          state={smartPlannerCardState}
+          remainingCount={
+            smartPlannerCardState === "ready" ? remainingSuggestionCount : undefined
+          }
+          totalCount={
+            smartPlannerCardState === "ready" ? totalSuggestionCount : undefined
+          }
           onPress={() => {
+            if (smartPlannerCardState === "generating") return;
+            // In any state (idle, ready, error), open the modal to generate (again)
             Keyboard.dismiss();
+            setSmartPlannerModalError(null);
             setShowSmartPlannerSheet(true);
           }}
         />
 
-        <EventFormEventTypeChips eventType={eventType} onSelect={handleEventTypeChange} />
+        <View style={{ marginHorizontal: EVENT_FORM_HERO_PADDING_H }}>
+          <SmartPlannerFieldHighlight active={highlightedField === "eventType"}>
+            <EventFormEventTypeChips eventType={eventType} onSelect={handleEventTypeChange} />
+          </SmartPlannerFieldHighlight>
+          {shouldShowSuggestion("eventType") &&
+            smartPlan?.eventType?.value &&
+            isEventType(smartPlan.eventType.value) && (
+              <SmartPlannerSuggestion
+                value={smartPlan.eventType.value.charAt(0).toUpperCase() + smartPlan.eventType.value.slice(1)}
+                onAccept={() => {
+                  setEventType(smartPlan.eventType!.value as EventType);
+                  highlightField("eventType");
+                }}
+                onDismiss={() => dismissSuggestion("eventType")}
+              />
+            )}
+        </View>
 
         {error ? <EventFormErrorBanner message={error} /> : null}
 
@@ -571,13 +703,27 @@ export default function CreateEventScreen() {
         <View style={{ paddingHorizontal: HERO_PADDING_H, marginBottom: spacing.xl }}>
           <EventFormEssentialsHeading />
           <View style={{ gap: spacing.xl }}>
-            <AppInput
-              label="Title *"
-              value={title}
-              onChangeText={setTitle}
-              placeholder="e.g., Eid gathering, Istiraha night..."
-              error={showValidationErrors && !title.trim() ? "Title is required" : undefined}
-            />
+            <View>
+              <SmartPlannerFieldHighlight active={highlightedField === "title"}>
+                <AppInput
+                  label="Title *"
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="e.g., Eid gathering, Istiraha night..."
+                  error={showValidationErrors && !title.trim() ? "Title is required" : undefined}
+                />
+              </SmartPlannerFieldHighlight>
+              {shouldShowSuggestion("title") && smartPlan?.title?.value && (
+                <SmartPlannerSuggestion
+                  value={smartPlan.title.value}
+                  onAccept={() => {
+                    setTitle(smartPlan.title!.value!);
+                    highlightField("title");
+                  }}
+                  onDismiss={() => dismissSuggestion("title")}
+                />
+              )}
+            </View>
             <View style={{ gap: spacing.sm }}>
               <Text style={{ fontSize: typography.sizes.sm, fontWeight: typography.weights.medium, color: colors.textMuted }}>
                 Date & Time *
@@ -618,46 +764,91 @@ export default function CreateEventScreen() {
                 userPhone={userPhone}
               />
             </View>
-            <AppInput
-              label="About"
-              value={details}
-              onChangeText={setDetails}
-              placeholder="What's this event about?"
-              multiline
-              numberOfLines={4}
-            />
+            <View>
+              <SmartPlannerFieldHighlight active={highlightedField === "details"}>
+                <AppInput
+                  label="About"
+                  value={details}
+                  onChangeText={setDetails}
+                  placeholder="What's this event about?"
+                  multiline
+                  numberOfLines={4}
+                />
+              </SmartPlannerFieldHighlight>
+              {shouldShowSuggestion("details") && smartPlan?.details?.value && (
+                <SmartPlannerSuggestion
+                  value={smartPlan.details.value}
+                  onAccept={() => {
+                    setDetails(smartPlan.details!.value!);
+                    highlightField("details");
+                  }}
+                  onDismiss={() => dismissSuggestion("details")}
+                />
+              )}
+            </View>
           </View>
         </View>
 
         {/* ── Access: visibility, approval, capacity ── */}
         <EventFormSectionCard title="Access">
           <>
-            <EventFormTogglePair
-              label="Who can join"
-              options={[
-                { value: "private", label: "Private" },
-                { value: "public", label: "Public" },
-              ]}
-              value={visibility}
-              onChange={setVisibility}
-              helperText={(v) =>
-                v === "private"
-                  ? "Only people with the code can find this event."
-                  : "Visible in Discover. Share the code for quick access."
-              }
-            />
-            <EventFormTogglePair
-              label="Guest approval"
-              options={[
-                { value: "auto", label: "Auto approve" },
-                { value: "manual", label: "Manual approval" },
-              ]}
-              value={approvalRequired ? "manual" : "auto"}
-              onChange={(v) => setApprovalRequired(v === "manual")}
-              helperText={(v) =>
-                v === "manual" ? "You approve each request" : "Anyone can join instantly"
-              }
-            />
+            <View>
+              <SmartPlannerFieldHighlight active={highlightedField === "visibility"}>
+                <EventFormTogglePair
+                  label="Who can join"
+                  options={[
+                    { value: "private", label: "Private" },
+                    { value: "public", label: "Public" },
+                  ]}
+                  value={visibility}
+                  onChange={setVisibility}
+                  helperText={(v) =>
+                    v === "private"
+                      ? "Only people with the code can find this event."
+                      : "Visible in Discover. Share the code for quick access."
+                  }
+                />
+              </SmartPlannerFieldHighlight>
+              {shouldShowSuggestion("visibility") &&
+                smartPlan?.visibility?.value &&
+                (smartPlan.visibility.value === "public" || smartPlan.visibility.value === "private") && (
+                  <SmartPlannerSuggestion
+                    value={smartPlan.visibility.value === "public" ? "Public" : "Private"}
+                    onAccept={() => {
+                      setVisibility(smartPlan.visibility!.value as "public" | "private");
+                      highlightField("visibility");
+                    }}
+                    onDismiss={() => dismissSuggestion("visibility")}
+                  />
+                )}
+            </View>
+            <View>
+              <SmartPlannerFieldHighlight active={highlightedField === "approvalRequired"}>
+                <EventFormTogglePair
+                  label="Guest approval"
+                  options={[
+                    { value: "auto", label: "Auto approve" },
+                    { value: "manual", label: "Manual approval" },
+                  ]}
+                  value={approvalRequired ? "manual" : "auto"}
+                  onChange={(v) => setApprovalRequired(v === "manual")}
+                  helperText={(v) =>
+                    v === "manual" ? "You approve each request" : "Anyone can join instantly"
+                  }
+                />
+              </SmartPlannerFieldHighlight>
+              {shouldShowSuggestion("approvalRequired") &&
+                typeof smartPlan?.approvalRequired?.value === "boolean" && (
+                  <SmartPlannerSuggestion
+                    value={smartPlan.approvalRequired.value ? "Manual approval" : "Auto approve"}
+                    onAccept={() => {
+                      setApprovalRequired(smartPlan.approvalRequired!.value!);
+                      highlightField("approvalRequired");
+                    }}
+                    onDismiss={() => dismissSuggestion("approvalRequired")}
+                  />
+                )}
+            </View>
             <EventFormTogglePair
               label="Allow extra"
               options={[
@@ -668,27 +859,91 @@ export default function CreateEventScreen() {
               onChange={(v) => setAllowPlusOne(v === "yes")}
               helperText="Guests can bring one additional person"
             />
-            <EventFormCapacityControl
-              mode={capacityMode}
-              value={capacityValue}
-              onSelectUnlimited={() => setCapacityMode("unlimited")}
-              onOpenSheet={() => {
-                setCapacitySheetTemp(capacityValue || "50");
-                setShowCapacitySheet(true);
-              }}
-              showValidationError={showValidationErrors && hasCapacityError}
-            />
-            <EventFormDressCodeControl
-              dressCode={dressCode}
-              dressCodeValue={dressCodeValue}
-              onClear={() => { setDressCode(""); setDressCodeCustom(""); }}
-              onOpenSheet={() => {
-                setDressCodeSheetTemp(dressCode || "");
-                setDressCodeSheetCustom(dressCode === EVENT_FORM_DRESS_CODE_CUSTOM ? dressCodeCustom : "");
-                setShowDressCodeSheet(true);
-              }}
-            />
-            <EventFormAudienceChips value={audience} onChange={setAudience} />
+            <View>
+              <SmartPlannerFieldHighlight active={highlightedField === "capacityValue"}>
+                <EventFormCapacityControl
+                  mode={capacityMode}
+                  value={capacityValue}
+                  onSelectUnlimited={() => setCapacityMode("unlimited")}
+                  onOpenSheet={() => {
+                    setCapacitySheetTemp(capacityValue || "50");
+                    setShowCapacitySheet(true);
+                  }}
+                  showValidationError={showValidationErrors && hasCapacityError}
+                />
+              </SmartPlannerFieldHighlight>
+              {shouldShowSuggestion("capacityValue") &&
+                typeof smartPlan?.capacityValue?.value === "number" &&
+                Number.isFinite(smartPlan.capacityValue.value) && (
+                  <SmartPlannerSuggestion
+                    value={`${Math.trunc(smartPlan.capacityValue.value)} guests`}
+                    onAccept={() => {
+                      const asString = String(Math.trunc(smartPlan.capacityValue!.value!));
+                      if (isValidPositiveWholeCapacityString(asString)) {
+                        setCapacityValue(asString);
+                        setCapacityMode("set");
+                      }
+                      highlightField("capacityValue");
+                    }}
+                    onDismiss={() => dismissSuggestion("capacityValue")}
+                  />
+                )}
+            </View>
+            <View>
+              <SmartPlannerFieldHighlight active={highlightedField === "dressCode"}>
+                <EventFormDressCodeControl
+                  dressCode={dressCode}
+                  dressCodeValue={dressCodeValue}
+                  onClear={() => { setDressCode(""); setDressCodeCustom(""); }}
+                  onOpenSheet={() => {
+                    setDressCodeSheetTemp(dressCode || "");
+                    setDressCodeSheetCustom(dressCode === EVENT_FORM_DRESS_CODE_CUSTOM ? dressCodeCustom : "");
+                    setShowDressCodeSheet(true);
+                  }}
+                />
+              </SmartPlannerFieldHighlight>
+              {shouldShowSuggestion("dressCode") && smartPlan?.dressCode?.value && (
+                <SmartPlannerSuggestion
+                  value={smartPlan.dressCode.value}
+                  onAccept={() => {
+                    const raw = smartPlan.dressCode!.value!;
+                    const exact = DRESS_PRESETS.find((p) => p === raw);
+                    if (exact) {
+                      setDressCode(exact);
+                      setDressCodeCustom("");
+                    } else {
+                      const loose = DRESS_PRESETS.find((p) => p.toLowerCase() === raw.toLowerCase());
+                      if (loose) {
+                        setDressCode(loose);
+                        setDressCodeCustom("");
+                      } else {
+                        setDressCode(EVENT_FORM_DRESS_CODE_CUSTOM);
+                        setDressCodeCustom(raw);
+                      }
+                    }
+                    highlightField("dressCode");
+                  }}
+                  onDismiss={() => dismissSuggestion("dressCode")}
+                />
+              )}
+            </View>
+            <View>
+              <SmartPlannerFieldHighlight active={highlightedField === "audience"}>
+                <EventFormAudienceChips value={audience} onChange={setAudience} />
+              </SmartPlannerFieldHighlight>
+              {shouldShowSuggestion("audience") &&
+                smartPlan?.audience?.value &&
+                (AUDIENCE_VALUES as readonly string[]).includes(smartPlan.audience.value) && (
+                  <SmartPlannerSuggestion
+                    value={smartPlan.audience.value}
+                    onAccept={() => {
+                      setAudience(smartPlan.audience!.value!);
+                      highlightField("audience");
+                    }}
+                    onDismiss={() => dismissSuggestion("audience")}
+                  />
+                )}
+            </View>
           </>
         </EventFormSectionCard>
 
@@ -1222,6 +1477,23 @@ export default function CreateEventScreen() {
                 ))}
               </View>
             )}
+            {/* Smart Planner bring items suggestions */}
+            {shouldShowSuggestion("bringItems") && bringSuggestionItemsRef.current.length > 0 && (
+              <SmartPlannerSuggestion
+                key={`bring-suggest-${smartPlannerRequestId.current}`}
+                value=""
+                items={bringSuggestionItemsRef.current}
+                onAccept={() => {}}
+                onAcceptItem={(item) => {
+                  setBringItems((prev) => {
+                    if (prev.some((b) => bringTitleKey(b) === bringTitleKey(item))) return prev;
+                    return [...prev, item];
+                  });
+                  highlightField("bringItems");
+                }}
+                onDismiss={() => dismissSuggestion("bringItems")}
+              />
+            )}
           </>
         </EventFormSectionCard>
 
@@ -1368,14 +1640,47 @@ export default function CreateEventScreen() {
 
       <EventFormSmartPlannerModal
         visible={showSmartPlannerSheet}
-        onClose={() => setShowSmartPlannerSheet(false)}
+        onClose={() => {
+          if (smartPlannerCardState === "generating") return;
+          setSmartPlannerModalError(null);
+          setShowSmartPlannerSheet(false);
+        }}
         keyboardInset={keyboardInset}
         bottomSafeInset={insets?.bottom ?? 0}
         prompt={smartPlannerPrompt}
-        onPromptChange={setSmartPlannerPrompt}
-        onGenerate={(trimmedPrompt) => {
-          // Milestone 1: UI only. Backend wiring comes next.
-          console.log("Smart Planner prompt:", trimmedPrompt);
+        onPromptChange={(value) => {
+          setSmartPlannerPrompt(value);
+          if (smartPlannerModalError) setSmartPlannerModalError(null);
+        }}
+        isGenerating={smartPlannerCardState === "generating"}
+        errorMessage={smartPlannerModalError}
+        onGenerate={async (trimmedPrompt) => {
+          const requestId = ++smartPlannerRequestId.current;
+          setSmartPlannerModalError(null);
+          setSmartPlannerCardState("generating");
+
+          const result = await requestSmartPlan(trimmedPrompt);
+          if (requestId !== smartPlannerRequestId.current) {
+            return;
+          }
+
+          if (!result.ok) {
+            setSmartPlannerModalError(result.message);
+            setSmartPlannerCardState("error");
+            return;
+          }
+
+          // Store plan and reset accepted suggestions so inline suggestions appear fresh
+          setSmartPlan(result.plan);
+          setAcceptedSuggestions(new Set());
+          bringSuggestionItemsRef.current = Array.isArray(result.plan.bringItems?.value)
+            ? result.plan.bringItems.value
+                .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+                .map((item) => item.trim())
+                .filter((item) => !bringItems.some((b) => bringTitleKey(b) === bringTitleKey(item)))
+            : [];
+          setSmartPlannerCardState("ready");
+          setSmartPlannerModalError(null);
           setShowSmartPlannerSheet(false);
         }}
       />

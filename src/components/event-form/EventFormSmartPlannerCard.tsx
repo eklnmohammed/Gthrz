@@ -9,24 +9,42 @@ import { EVENT_FORM_HERO_PADDING_H } from "./eventFormTokens";
 /** Lifecycle of the Smart Planner card on the Create Event screen. */
 export type SmartPlannerCardState = "idle" | "generating" | "ready" | "error";
 
-const COPY: Record<SmartPlannerCardState, { description: string; action: string }> = {
-  idle: {
-    description: "Describe your event and Smart Planner prepares the first draft.",
-    action: "Generate Event Plan",
-  },
-  generating: {
-    description: "Preparing your first draft…",
-    action: "Generating…",
-  },
-  ready: {
-    description: "Draft ready. Review and edit anything before creating the event.",
-    action: "Generate again",
-  },
-  error: {
-    description: "Smart Planner couldn't prepare a draft.",
-    action: "Try again",
-  },
-};
+function descriptionForState(
+  state: SmartPlannerCardState,
+  remainingCount: number | undefined,
+  totalCount: number | undefined,
+): string {
+  switch (state) {
+    case "idle":
+      return "Describe your event and Smart Planner prepares the first draft.";
+    case "generating":
+      return "Planning your event...";
+    case "error":
+      return "Smart Planner couldn't prepare a draft.";
+    case "ready": {
+      const remaining = remainingCount ?? 0;
+      const total = totalCount ?? remaining;
+      if (remaining <= 0) return "All suggestions reviewed.";
+      if (remaining === total) {
+        return `${remaining} suggestion${remaining === 1 ? "" : "s"} ready.`;
+      }
+      return `${remaining} suggestion${remaining === 1 ? "" : "s"} remaining.`;
+    }
+  }
+}
+
+function actionForState(state: SmartPlannerCardState): string {
+  switch (state) {
+    case "idle":
+      return "Generate Event Plan";
+    case "generating":
+      return "Generating…";
+    case "ready":
+      return "Generate Again";
+    case "error":
+      return "Try again";
+  }
+}
 
 /**
  * Smart Planner entry point on the Create Event screen.
@@ -35,11 +53,18 @@ const COPY: Record<SmartPlannerCardState, { description: string; action: string 
 export function EventFormSmartPlannerCard({
   onPress,
   state = "idle",
+  remainingCount,
+  totalCount,
 }: {
   onPress: () => void;
   state?: SmartPlannerCardState;
+  /** How many inline suggestions are still visible. */
+  remainingCount?: number;
+  /** How many suggestions were offered after the last generate. */
+  totalCount?: number;
 }) {
-  const { description, action } = COPY[state];
+  const description = descriptionForState(state, remainingCount, totalCount);
+  const action = actionForState(state);
   const isGenerating = state === "generating";
   const accent = state === "error" ? colors.error : colors.primary;
 

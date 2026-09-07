@@ -1,12 +1,12 @@
-import { View, Text, Pressable, TextInput } from "react-native";
+import { View, Text, Pressable, TextInput, ActivityIndicator } from "react-native";
 import { colors } from "@/src/theme/colors";
 import { spacing } from "@/src/theme/spacing";
 import { radius } from "@/src/theme/radius";
 import { typography } from "@/src/theme/typography";
+import { SMART_PLANNER_PROMPT_MAX_LENGTH } from "@/src/lib/smartPlanner";
 import { EventFormBottomSheet } from "./EventFormBottomSheet";
 
-/** Upper bound for the Smart Planner prompt. */
-export const SMART_PLANNER_PROMPT_MAX_LENGTH = 300;
+export { SMART_PLANNER_PROMPT_MAX_LENGTH };
 
 type EventFormSmartPlannerModalProps = {
   visible: boolean;
@@ -16,6 +16,8 @@ type EventFormSmartPlannerModalProps = {
   prompt: string;
   onPromptChange: (value: string) => void;
   onGenerate: (trimmedPrompt: string) => void;
+  isGenerating?: boolean;
+  errorMessage?: string | null;
 };
 
 export function EventFormSmartPlannerModal({
@@ -26,14 +28,16 @@ export function EventFormSmartPlannerModal({
   prompt,
   onPromptChange,
   onGenerate,
+  isGenerating = false,
+  errorMessage = null,
 }: EventFormSmartPlannerModalProps) {
   const trimmed = prompt.trim();
-  const canGenerate = trimmed.length > 0;
+  const canGenerate = trimmed.length > 0 && !isGenerating;
 
   return (
     <EventFormBottomSheet
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={isGenerating ? () => {} : onClose}
       keyboardInset={keyboardInset}
       bottomSafeInset={bottomSafeInset}
       extraBottomPadding={spacing.md}
@@ -57,6 +61,7 @@ export function EventFormSmartPlannerModal({
         <TextInput
           value={prompt}
           onChangeText={onPromptChange}
+          editable={!isGenerating}
           placeholder="e.g. Birthday party for 20 friends. Pizza and games. Indoor. Budget 1,200 SAR."
           placeholderTextColor={colors.textDim}
           multiline
@@ -71,7 +76,8 @@ export function EventFormSmartPlannerModal({
             minHeight: 140,
             textAlignVertical: "top",
             borderWidth: 0.5,
-            borderColor: colors.border,
+            borderColor: errorMessage ? colors.error : colors.border,
+            opacity: isGenerating ? 0.7 : 1,
           }}
         />
         <View style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.sm }}>
@@ -82,11 +88,17 @@ export function EventFormSmartPlannerModal({
             {prompt.length} / {SMART_PLANNER_PROMPT_MAX_LENGTH}
           </Text>
         </View>
+        {errorMessage ? (
+          <Text style={{ fontSize: typography.sizes.xs, color: colors.error }}>
+            {errorMessage}
+          </Text>
+        ) : null}
       </View>
 
       <View style={{ flexDirection: "row", gap: spacing.sm }}>
         <Pressable
           onPress={onClose}
+          disabled={isGenerating}
           style={({ pressed }) => ({
             flex: 1,
             paddingVertical: spacing.md,
@@ -95,7 +107,7 @@ export function EventFormSmartPlannerModal({
             borderWidth: 0.5,
             borderColor: colors.border,
             alignItems: "center",
-            opacity: pressed ? 0.9 : 1,
+            opacity: isGenerating ? 0.5 : pressed ? 0.9 : 1,
           })}
         >
           <Text
@@ -115,21 +127,25 @@ export function EventFormSmartPlannerModal({
           disabled={!canGenerate}
           style={({ pressed }) => ({
             flex: 1,
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: spacing.sm,
             paddingVertical: spacing.md,
             borderRadius: radius.md,
-            backgroundColor: canGenerate ? colors.primary : colors.surfaceLight,
-            alignItems: "center",
+            backgroundColor: canGenerate || isGenerating ? colors.primary : colors.surfaceLight,
             opacity: pressed && canGenerate ? 0.9 : 1,
           })}
         >
+          {isGenerating ? <ActivityIndicator size="small" color={colors.text} /> : null}
           <Text
             style={{
               fontSize: typography.sizes.sm,
               fontWeight: typography.weights.semibold,
-              color: canGenerate ? colors.text : colors.textMuted,
+              color: canGenerate || isGenerating ? colors.text : colors.textMuted,
             }}
           >
-            Generate Event Plan
+            {isGenerating ? "Generating…" : "Generate Event Plan"}
           </Text>
         </Pressable>
       </View>

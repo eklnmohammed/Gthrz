@@ -29,3 +29,7 @@ export { EventFormCapacitySheetModal } from "./EventFormCapacitySheetModal";
 export { EventFormRevealAddressSheetModal } from "./EventFormRevealAddressSheetModal";
 export { EventFormDressCodeSheetModal } from "./EventFormDressCodeSheetModal";
 export { EVENT_FORM_DRESS_CODE_CUSTOM, EVENT_FORM_DRESS_CODE_PRESETS } from "./eventFormDressCode";
+export {
+  SmartPlannerSuggestion,
+  SmartPlannerFieldHighlight,
+} from "./SmartPlannerSuggestion";
