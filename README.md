@@ -1,8 +1,9 @@
 # Gthrz
 
-Gthrz is a privacy-first mobile application for creating, joining, and managing events with AI-assisted planning, realtime collaboration, and fine-grained guest privacy controls.
 
-Built with **React Native**, **Expo**, **TypeScript**, **Supabase**, and **OpenAI**, Gthrz combines secure event management, realtime collaboration, and AI-assisted event planning into a modern mobile experience while giving hosts full control over guest privacy and event visibility.
+Gthrz is a privacy-first mobile application for creating, joining, and managing social events.
+
+Built with **React Native**, **Expo**, **TypeScript**, **Supabase**, and **OpenAI**, it focuses on secure event management, realtime collaboration, and AI-assisted planning while giving hosts fine-grained control over guest privacy and event visibility.
 
 ---
 
@@ -21,7 +22,12 @@ Built with **React Native**, **Expo**, **TypeScript**, **Supabase**, and **OpenA
 
 Smart Planner is an AI-assisted event planning workflow designed to help hosts create events faster while keeping them in complete control.
 
-Instead of automatically filling the event form, Smart Planner generates structured suggestions that appear inline beside the relevant fields. Hosts review and accept each suggestion individually before creating the event.
+Rather than completing the event form automatically, Smart Planner generates structured suggestions for individual fields. Users review and accept each suggestion independently, keeping full control over the final event.
+
+| Generate | Describe | Review |
+|-----------|----------|--------|
+| <img src="assets/screenshots/ai-planner-start.png" width="250"> | <img src="assets/screenshots/ai-planner-prompt.png" width="250"> | <img src="assets/screenshots/ai-planner-suggestions.png" width="250"> |
+| Launch Start Smart Planner from the event form. | Describe the event in natural language. | Review and Accept individual suggestions while remaining in control. |
 
 ### Smart Planner can suggest
 
@@ -63,7 +69,7 @@ Structured SmartPlan JSON
 Inline Suggestions
       │
       ▼
-Host accepts individual suggestions
+User reviews and accepts suggestions
 ```
 
 Unlike traditional AI form generators, Smart Planner never overwrites existing user input automatically. The host always decides which suggestions to use.
@@ -129,12 +135,6 @@ Manage your profile, saved events, and hosted events.
 
 # Features
 
-### Authentication
-
-- Phone OTP authentication
-- Persistent user sessions
-- Invite-code event access
-
 ### AI Smart Planner
 
 - Natural language event planning
@@ -143,6 +143,12 @@ Manage your profile, saved events, and hosted events.
 - Individual suggestion acceptance
 - User-controlled editing
 - OpenAI Responses API integration
+
+### Authentication
+
+- Phone OTP authentication
+- Persistent user sessions
+- Invite-code event access
 
 ### Events
 
@@ -182,6 +188,9 @@ Manage your profile, saved events, and hosted events.
 - Expo SDK 54
 - Expo Router
 - TypeScript
+
+### State Management
+
 - React Context API
 
 ### Backend
@@ -245,6 +254,12 @@ No production data, secrets, or user information are included.
 Create a `.env` file from `.env.example`.
 
 ```bash
+cp .env.example .env
+```
+
+Then add your Supabase project credentials:
+
+```bash
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
 ```
@@ -285,10 +300,9 @@ npx tsc --noEmit
 
 Production authentication uses Supabase Phone OTP with a configured SMS provider.
 
-For development, a **Skip OTP (Demo Mode)** option is available. It creates a local identity without a Supabase session, making it useful for UI development while disabling authenticated features.
+For development, a **Skip OTP (Demo Mode)** option is available. It creates a local identity without an authenticated Supabase session, making it useful for UI development while disabling authenticated features.
 
-Push notification infrastructure is implemented using Expo Notifications and Supabase Edge Functions to support event notifications and future server-side workflows.
-
+Push notification infrastructure is implemented using Expo Notifications and Supabase Edge Functions. 
 ---
 
 # Current Limitations
@@ -297,7 +311,7 @@ Push notification infrastructure is implemented using Expo Notifications and Sup
 - Payment processing is intentionally outside the project scope.
 - Favourites and recommendations are currently stored locally and do not sync across devices.
 - Automated tests have not yet been added.
-- Additional production hardening (rate limiting, monitoring, and security refinement) is planned before public release.
+- Additional production hardening—including rate limiting, monitoring, and security refinement—is planned before public release.
 
 ---
 
